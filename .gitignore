@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Data (never commit user data)
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Environment
+.env
+
+# Test/CI
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Ollama model files live outside the repo, but just in case
+models/
+
+# IDE
+.idea/
+.vscode/
+*.swp
