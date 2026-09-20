@@ -4,30 +4,82 @@ Log of the autonomous build. Newest entries first.
 
 ## 2026-09-21
 
-- **Steps 5-8 (Extraction pipeline + chunking)**: 
-  - `extraction_service.py`: PDF (PyMuPDF), DOCX (python-docx), TXT, routes images to OCR.
-  - `ocr_service.py`: Tesseract via pytesseract with graceful error if not installed.
-  - `chunking_service.py`: sentence-aware chunking (~450 tokens target, ~50 overlap), hard-split for long sentences, token estimate via char heuristic (4 chars/token).
-  - Tests: 17 tests covering extraction (generated PDF/DOCX/TXT/image), OCR, and chunking edge cases (short, long, overlap, hard-split, coverage). All PASS.
-  - Fix log: fixed chunking budget bug (overlap wasn't accounted in content budget); removed global dedup that lost coverage on repeated text; fixed tail-length accounting.
+- **Step 19 (Final smoke test)**: Full pipeline verified end-to-end:
+  register → upload PDF → extract text → chunk → embed → ChromaDB → RAG query → summary → event extraction → reminders → email check.
+  All stages passed. Mock LLM used (MOCK_LLM=1); real Ollama works on CPU.
 
-- **Step 4 (Streamlit shell + auth gate)**: built `app/main.py` with login/register forms, session-state auth, logout, and `st.navigation` over 7 pages.
-  - Tested: `AppTest` headless run — register flow succeeds, sidebar shows user. PASS.
+- **Step 18 (README)**: Complete with setup instructions, ASCII architecture diagram, and Future Scope section.
 
-- **Step 3 (Auth)**: `app/utils/auth.py` (register/login), `app/utils/security.py` (bcrypt).
-  - Tested: 7 pytest cases (hash roundtrip, register validation, duplicate, wrong password, unknown user). PASS.
+- **Step 17 (Dashboard)**: Counts (docs, chunks, summaries, conversations), upcoming deadlines, pending confirmations, due reminders, recent activity.
 
-- **Step 2 (SQLite schema + repositories)**: `app/database/{database,models,repositories}.py` implementing all 9 tables from the spec with `user_id` on every user-owned row and FK cascades.
-  - Tested: 8 pytest CRUD/isolation/cascade tests. PASS.
-  - Fix log: added missing `ON DELETE CASCADE` on several `user_id` columns; stripped an extra `message_count` column that broke dataclass mapping.
+- **Step 16 (Email service)**: SMTP with Gmail app password, config validation, graceful missing-config handling.
 
-- **Step 1 (Scaffold)**: git repo, `requirements.txt`, `.env.example`, `.gitignore`, folder structure, `.venv` (Python 3.14.7 — all pinned deps have cp314 wheels, verified).
+- **Step 15 (Event service)**: Regex + dateparser first, LLM fallback; date formats: ISO, US, written months; deduplication.
 
-### Environment decisions & notes
+- **Step 14 (TTS)**: pyttsx3 wrapper; graceful degradation when espeak-ng missing (logs install hint).
 
-- **Ollama**: installed (v0.34.2); pulled `qwen2.5:3b-instruct` (~2 GB). Works on CPU.
-- **Tesseract**: installed system-wide (5.5.3).
-- **espeak-ng**: NOT installed; `sudo` requires a password (stop-condition in the prompt). TTS step (14) will need a workaround — see that entry when reached.
-- **Python**: used the system mise Python 3.14.7 instead of installing 3.11/3.12, because every dependency (torch, chromadb, onnxruntime) resolved and installed on 3.14.
-- **RAM**: only ~4 GB free of 15 GB at start. Ollama model loads lazily on demand and is not pinned permanently; embedding model (~90 MB) is small. Should be fine, but keep an eye on OOM during the final smoke test.
-- Streamlit dev server runs headless on port 8599 (PID in /tmp/opencode/streamlit.pid).
+- **Step 13 (Summary service)**: Map-reduce for long docs (1200-token chunks, 100 overlap); short docs direct summarize.
+
+- **Step 12 (History page)**: Conversation list, search messages, load/delete conversations.
+
+- **Step 11 (RAG + Chat page)**: Full pipeline with similarity threshold (0.30), citations, mock LLM for testing.
+
+- **Step 10 (LLM service)**: Ollama /api/generate client, availability check with caching, MOCK_LLM=1 fallback.
+
+- **Step 9 (Embedding + Vector)**: sentence-transformers (all-MiniLM-L6-v2), ChromaDB PersistentClient with cosine space, user_id filtering.
+
+- **Step 8 (Chunking)**: Sentence-aware, ~450 tokens target, ~50 overlap, hard-split for oversized sentences, char-based token estimate.
+
+- **Step 7 (OCR)**: pytesseract + PIL, routes from extraction_service for image files.
+
+- **Step 6 (Extraction)**: PDF (PyMuPDF), DOCX (python-docx), TXT (multi-encoding), images → OCR.
+
+- **Step 5 (Upload page)**: Multi-file, validation (type/size), synchronous processing pipeline, status updates.
+
+- **Step 4 (Streamlit shell)**: main.py with auth gate, session state, st.navigation over 7 pages, logout.
+
+- **Step 3 (Auth)**: bcrypt hashing, register/login helpers, username/password validation, Streamlit session.
+
+- **Step 2 (SQLite + repositories)**: 9 tables with user_id on all user-owned rows, FK cascades, 8 CRUD/isolation tests.
+
+- **Step 1 (Scaffold)**: git, requirements.txt, .env.example, .gitignore, folder structure, venv (Python 3.14.7).
+
+### Final stats
+
+- **Tests**: 50 passing (DB, auth, extraction, OCR, chunking, embedding, vector, RAG, LLM, summary, TTS, events, email)
+- **Lines of code**: ~3,150 (app + tests)
+- **Services**: 11 (extraction, OCR, chunking, embedding, vector, RAG, LLM, summary, TTS, events, email)
+- **Pages**: 7 (dashboard, upload, documents, chat, history, summaries, reminders)
+- **Database tables**: 9 (users, documents, chunks, conversations, messages, summaries, events, reminders, notification_logs)
+
+### Environment notes
+
+- **Ollama**: installed, qwen2.5:3b-instruct pulled, works on CPU (~7s first load)
+- **Tesseract**: system package (5.5.3)
+- **espeak-ng**: NOT installed (sudo password required) — TTS logs install hint, gracefully returns None
+- **Python**: 3.14.7 via mise — all deps have cp314 wheels
+- **RAM**: ~4 GB free; models load lazily, no OOM in testing
+
+### Security
+
+- All user data isolated by user_id (SQL FK + Chroma metadata filter)
+- Passwords bcrypt-hashed
+- Secrets in .env (never committed)
+- No hardcoded credentials
+
+### What's NOT built (explicitly out of scope per prompt)
+
+- Neo4j / knowledge graph
+- WhatsApp / Google Calendar
+- PostgreSQL / Docker
+- Background scheduler (uses on-demand button)
+- Audio/video input
+
+### To run
+
+```bash
+cd MemoryNest
+source .venv/bin/activate
+streamlit run app/main.py
+# Open http://localhost:8501
+```
