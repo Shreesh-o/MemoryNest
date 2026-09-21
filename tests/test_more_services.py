@@ -28,10 +28,26 @@ def test_summarize_long_map_reduce(monkeypatch):
 
 
 def test_tts_unavailable(monkeypatch):
-    # TTS should be unavailable without espeak-ng
+    # Mock pyttsx3.init to raise an exception, simulating missing espeak-ng
+    import app.services.tts_service as tts_mod
+    monkeypatch.setattr(tts_mod, "_get_engine", lambda: None)
+    monkeypatch.setattr(tts_mod, "_tts_engine", None)
+    monkeypatch.setattr(tts_mod, "_tts_available", False)
+
     result = tts_service.synthesize_to_file("hello")
     assert result is None
     assert tts_service.tts_available() is False
+
+
+def test_tts_available(monkeypatch):
+    # When espeak-ng is available, synthesis should produce a file
+    # This test runs with real pyttsx3 (espeak-ng is installed on the system)
+    result = tts_service.synthesize_to_file("test")
+    if tts_service.tts_available():
+        assert result is not None
+        assert result.endswith(".wav")
+    else:
+        pytest.skip("espeak-ng not available in this environment")
 
 
 def test_event_extraction_regex():

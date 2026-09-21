@@ -5,6 +5,12 @@ Run with:  streamlit run app/main.py
 
 from __future__ import annotations
 
+import os
+import sys
+
+# Ensure project root is on sys.path so 'app' imports work when Streamlit runs from app/
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import streamlit as st
 
 from app.database.database import init_db
