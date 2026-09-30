@@ -30,7 +30,7 @@ def extract_text(stored_path: str | Path, file_type: str) -> str:
 
 
 def _extract_pdf(path: Path) -> str:
-    import fitz  # PyMuPDF
+    import pymupdf as fitz  # PyMuPDF
 
     parts = []
     with fitz.open(path) as doc:
