@@ -226,3 +226,85 @@ def test_process_document_extracts_events(temp_db, temp_chroma, temp_uploads, te
             found = True
             break
     assert found, "Expected an event with date 2026-10-15 or raw_date containing 'October'"
+
+
+def test_duplicate_detection_same_user(temp_db, temp_chroma, temp_uploads, test_user):
+    """Test that uploading the same file twice by the same user is detected as duplicate."""
+    import hashlib
+    
+    txt_content = "This is a test document for duplicate detection."
+    txt_path = temp_uploads / "duplicate_test.txt"
+    txt_path.write_text(txt_content, encoding="utf-8")
+    
+    # Compute hash
+    file_hash = hashlib.sha256(txt_content.encode("utf-8")).hexdigest()
+    
+    doc_repo = DocumentRepository()
+    
+    # First upload
+    doc1 = doc_repo.create(
+        user_id=test_user.id,
+        filename="test.txt",
+        stored_path=str(txt_path),
+        file_type="txt",
+        size_bytes=len(txt_content.encode("utf-8")),
+        file_hash=file_hash,
+    )
+    
+    # Check duplicate detection
+    existing = doc_repo.get_by_hash(test_user.id, file_hash)
+    assert existing is not None
+    assert existing.id == doc1.id
+    assert existing.filename == "test.txt"
+    
+    # Try to create another document with same hash for same user - should be detected
+    existing2 = doc_repo.get_by_hash(test_user.id, file_hash)
+    assert existing2 is not None
+    assert existing2.id == doc1.id
+
+
+def test_duplicate_detection_different_users(temp_db, temp_chroma, temp_uploads, test_user):
+    """Test that different users can upload the same file (different user_id)."""
+    import hashlib
+    
+    txt_content = "Shared document content."
+    file_hash = hashlib.sha256(txt_content.encode("utf-8")).hexdigest()
+    
+    # Create a second user
+    from app.database.repositories import UserRepository
+    user_repo = UserRepository()
+    user2 = user_repo.create("testuser2", "hashed_password", "test2@example.com")
+    
+    txt_content = "Shared document content."
+    txt_path = temp_uploads / "shared.txt"
+    txt_path.write_text(txt_content, encoding="utf-8")
+    
+    doc_repo = DocumentRepository()
+    
+    # First user uploads
+    doc1 = doc_repo.create(
+        user_id=test_user.id,
+        filename="shared.txt",
+        stored_path=str(txt_path),
+        file_type="txt",
+        size_bytes=len(txt_content.encode("utf-8")),
+        file_hash=file_hash,
+    )
+    
+    # Second user uploads same content - should NOT be detected as duplicate
+    existing_for_user2 = doc_repo.get_by_hash(user2.id, file_hash)
+    assert existing_for_user2 is None
+    
+    # Second user can upload
+    doc2 = doc_repo.create(
+        user_id=user2.id,
+        filename="shared.txt",
+        stored_path=str(txt_path),
+        file_type="txt",
+        size_bytes=len(txt_content.encode("utf-8")),
+        file_hash=file_hash,
+    )
+    
+    assert doc1.id != doc2.id
+    assert doc1.user_id == test_user.id
+    assert doc2.user_id == user2.id

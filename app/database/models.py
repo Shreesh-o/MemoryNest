@@ -23,6 +23,7 @@ class Document:
     stored_path: str
     file_type: str
     size_bytes: int = 0
+    file_hash: str = ""
     status: str = "uploaded"
     error_message: Optional[str] = None
     text_preview: Optional[str] = None

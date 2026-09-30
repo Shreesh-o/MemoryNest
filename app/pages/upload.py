@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import uuid
 from pathlib import Path
 
@@ -112,6 +113,7 @@ def render() -> None:
     )
 
     if uploaded_files:
+        doc_repo = DocumentRepository()
         for uploaded in uploaded_files:
             original_name = uploaded.name
             safe_name = sanitize_filename(original_name)
@@ -139,14 +141,36 @@ def render() -> None:
 
             file_type = detected_type
 
-            # 5. Save file
+            # 5. Compute SHA-256 hash for duplicate detection
+            file_hash = hashlib.sha256(file_bytes).hexdigest()
+
+            # 6. Check for duplicate (same user, same file hash)
+            existing = doc_repo.get_by_hash(user.id, file_hash)
+            if existing:
+                st.warning(f"{original_name}: Already exists (uploaded as '{existing.filename}' on {existing.created_at[:10]})")
+                continue
+
+            # 7. Validate size
+            ok, reason = validate_size(len(file_bytes), MAX_FILE_SIZE_BYTES)
+            if not ok:
+                st.error(f"{original_name}: {reason}")
+                continue
+
+            # 8. Validate content via magic bytes
+            ok, reason, detected_type = validate_file_content(file_bytes)
+            if not ok:
+                st.error(f"{original_name}: {reason}")
+                continue
+
+            file_type = detected_type
+
+            # 9. Save file
             stored_path, size = _save_uploaded_file(uploaded, user.id, safe_name)
 
-            # 6. Create document record with original name
-            doc_repo = DocumentRepository()
-            doc = doc_repo.create(user.id, original_name, stored_path, file_type, size)
+            # 10. Create document record with original name and hash
+            doc = doc_repo.create(user.id, original_name, stored_path, file_type, size, file_hash=file_hash)
 
-            # 7. Process synchronously
+            # 11. Process synchronously
             with st.spinner(f"Processing {original_name}..."):
                 try:
                     _process_document(doc.id, user.id, stored_path, file_type, original_name)

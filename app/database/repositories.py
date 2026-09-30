@@ -83,14 +83,15 @@ class DocumentRepository(BaseRepository):
         file_type: str,
         size_bytes: int = 0,
         status: str = "uploaded",
+        file_hash: str = "",
     ) -> Document:
         conn = self._connect()
         try:
             cur = conn.execute(
                 """INSERT INTO documents
-                   (user_id, filename, stored_path, file_type, size_bytes, status)
-                   VALUES (?, ?, ?, ?, ?, ?)""",
-                (user_id, filename, stored_path, file_type, size_bytes, status),
+                   (user_id, filename, stored_path, file_type, size_bytes, status, file_hash)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (user_id, filename, stored_path, file_type, size_bytes, status, file_hash),
             )
             conn.commit()
             return self.get_by_id(cur.lastrowid, user_id)
@@ -102,6 +103,18 @@ class DocumentRepository(BaseRepository):
         try:
             row = conn.execute(
                 "SELECT * FROM documents WHERE id = ? AND user_id = ?", (doc_id, user_id)
+            ).fetchone()
+            return self._row_to_dataclass(row, Document) if row else None
+        finally:
+            conn.close()
+
+    def get_by_hash(self, user_id: int, file_hash: str) -> Optional[Document]:
+        """Find a document by file_hash for the same user (duplicate detection)."""
+        conn = self._connect()
+        try:
+            row = conn.execute(
+                "SELECT * FROM documents WHERE user_id = ? AND file_hash = ?",
+                (user_id, file_hash),
             ).fetchone()
             return self._row_to_dataclass(row, Document) if row else None
         finally:

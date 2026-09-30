@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS documents (
     stored_path TEXT NOT NULL,
     file_type TEXT NOT NULL,
     size_bytes INTEGER NOT NULL DEFAULT 0,
+    file_hash TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'uploaded',
     error_message TEXT,
     text_preview TEXT,
@@ -106,6 +107,7 @@ CREATE TABLE IF NOT EXISTS notification_logs (
 );
 
 CREATE INDEX IF NOT EXISTS idx_documents_user ON documents(user_id);
+CREATE INDEX IF NOT EXISTS idx_documents_user_hash ON documents(user_id, file_hash);
 CREATE INDEX IF NOT EXISTS idx_chunks_user ON document_chunks(user_id);
 CREATE INDEX IF NOT EXISTS idx_chunks_doc ON document_chunks(document_id);
 CREATE INDEX IF NOT EXISTS idx_conversations_user ON conversations(user_id);
@@ -126,10 +128,38 @@ def get_connection(db_path: Path | None = None) -> sqlite3.Connection:
 
 
 def init_db(db_path: Path | None = None) -> None:
-    """Create all tables if they do not exist."""
+    """Create all tables if they do not exist. Run migrations for existing databases."""
     conn = get_connection(db_path)
     try:
         conn.executescript(SCHEMA)
         conn.commit()
+        _migrate_add_file_hash(conn)
     finally:
         conn.close()
+
+
+def _migrate_add_file_hash(conn: sqlite3.Connection) -> None:
+    """Add file_hash column to documents table if it doesn't exist (migration for existing DBs)."""
+    cursor = conn.execute("PRAGMA table_info(documents)")
+    columns = [row[1] for row in cursor.fetchall()]
+    if "file_hash" not in columns:
+        conn.execute("ALTER TABLE documents ADD COLUMN file_hash TEXT NOT NULL DEFAULT ''")
+        conn.commit()
+        # Backfill existing rows with computed hash from stored files
+        _backfill_file_hashes(conn)
+
+
+def _backfill_file_hashes(conn: sqlite3.Connection) -> None:
+    """Compute SHA-256 for existing documents and update file_hash column."""
+    import hashlib
+    rows = conn.execute("SELECT id, stored_path FROM documents WHERE file_hash = '' OR file_hash IS NULL").fetchall()
+    for row in rows:
+        doc_id, stored_path = row["id"], row["stored_path"]
+        from pathlib import Path
+        path = Path(stored_path)
+        if path.exists():
+            data = path.read_bytes()
+            file_hash = hashlib.sha256(data).hexdigest()
+            conn.execute("UPDATE documents SET file_hash = ? WHERE id = ?", (file_hash, doc_id))
+    if rows:
+        conn.commit()
