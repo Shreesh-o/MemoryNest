@@ -75,7 +75,7 @@ def _process_document(doc_id: int, user_id: int, stored_path: str, file_type: st
         ev_repo = EventRepository()
         for e in events:
             ev_repo.create(
-                user_id=user.id,
+                user_id=user_id,
                 event_text=e["event_text"],
                 document_id=doc_id,
                 event_date=e.get("event_date"),

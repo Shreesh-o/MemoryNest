@@ -82,16 +82,16 @@ def main() -> None:
     from app.pages import chat, dashboard, documents, history, reminders, summaries, upload
 
     pages = st.navigation(
-        [
-            st.Page(dashboard.render, title="Dashboard", default=True),
-            st.Page(upload.render, title="Upload"),
-            st.Page(documents.render, title="Documents"),
-            st.Page(chat.render, title="Ask (RAG)"),
-            st.Page(history.render, title="History"),
-            st.Page(summaries.render, title="Summaries"),
-            st.Page(reminders.render, title="Reminders"),
-        ]
-    )
+    [
+        st.Page(dashboard.render, title="Dashboard", url_path="dashboard", default=True),
+        st.Page(upload.render, title="Upload", url_path="upload"),
+        st.Page(documents.render, title="Documents", url_path="documents"),
+        st.Page(chat.render, title="Ask (RAG)", url_path="chat"),
+        st.Page(history.render, title="History", url_path="history"),
+        st.Page(summaries.render, title="Summaries", url_path="summaries"),
+        st.Page(reminders.render, title="Reminders", url_path="reminders"),
+    ]
+)
     pages.run()
 
 
