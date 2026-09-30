@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 import uuid
 from pathlib import Path
 
@@ -18,16 +17,27 @@ from app.services import (
     vector_service,
     event_service,
 )
-from app.utils.config import UPLOAD_DIR, CHUNK_SIZE, CHUNK_OVERLAP
-from app.utils.validators import validate_filename, validate_size, file_type_for
+from app.utils.config import UPLOAD_DIR, CHUNK_SIZE, CHUNK_OVERLAP, MAX_FILE_SIZE_BYTES
+from app.utils.validators import (
+    validate_filename,
+    sanitize_filename,
+    validate_file_content,
+    validate_size,
+    file_type_for,
+)
 
 
-def _save_uploaded_file(uploaded_file, user_id: int) -> tuple[str, int]:
-    """Save uploaded file to disk, return (stored_path, size)."""
-    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-    ext = Path(uploaded_file.name).suffix
-    unique_name = f"{user_id}_{uuid.uuid4().hex[:8]}{ext}"
-    stored_path = UPLOAD_DIR / unique_name
+def _save_uploaded_file(uploaded_file, user_id: int, original_filename: str) -> tuple[str, int]:
+    """Save uploaded file to disk under user_id folder, return (stored_path, size)."""
+    user_dir = UPLOAD_DIR / str(user_id)
+    user_dir.mkdir(parents=True, exist_ok=True)
+
+    # Sanitize and keep original extension
+    safe_name = sanitize_filename(original_filename)
+    ext = Path(safe_name).suffix
+    unique_name = f"{uuid.uuid4().hex[:12]}{ext}"
+    stored_path = user_dir / unique_name
+
     data = uploaded_file.getbuffer()
     stored_path.write_bytes(data)
     return str(stored_path), len(data)
@@ -103,36 +113,52 @@ def render() -> None:
 
     if uploaded_files:
         for uploaded in uploaded_files:
-            # Validate
-            ok, reason = validate_filename(uploaded.name)
+            original_name = uploaded.name
+            safe_name = sanitize_filename(original_name)
+
+            # 1. Validate extension
+            ok, reason = validate_filename(safe_name)
             if not ok:
-                st.error(f"{uploaded.name}: {reason}")
-                continue
-            ok, reason = validate_size(uploaded.size)
-            if not ok:
-                st.error(f"{uploaded.name}: {reason}")
+                st.error(f"{original_name}: {reason}")
                 continue
 
-            file_type = file_type_for(uploaded.name)
-            stored_path, size = _save_uploaded_file(uploaded, user.id)
+            # 2. Read file bytes for content validation
+            file_bytes = uploaded.getbuffer()
 
-            # Create document record
+            # 3. Validate size
+            ok, reason = validate_size(len(file_bytes), MAX_FILE_SIZE_BYTES)
+            if not ok:
+                st.error(f"{original_name}: {reason}")
+                continue
+
+            # 4. Validate content via magic bytes
+            ok, reason, detected_type = validate_file_content(file_bytes)
+            if not ok:
+                st.error(f"{original_name}: {reason}")
+                continue
+
+            file_type = detected_type
+
+            # 5. Save file
+            stored_path, size = _save_uploaded_file(uploaded, user.id, safe_name)
+
+            # 6. Create document record with original name
             doc_repo = DocumentRepository()
-            doc = doc_repo.create(user.id, uploaded.name, stored_path, file_type, size)
+            doc = doc_repo.create(user.id, original_name, stored_path, file_type, size)
 
-            # Process synchronously (for MVP; could be async later)
-            with st.spinner(f"Processing {uploaded.name}..."):
+            # 7. Process synchronously
+            with st.spinner(f"Processing {original_name}..."):
                 try:
-                    _process_document(doc.id, user.id, stored_path, file_type, uploaded.name)
-                    st.success(f"✅ {uploaded.name} processed ({doc.chunk_count} chunks)")
+                    _process_document(doc.id, user.id, stored_path, file_type, original_name)
+                    st.success(f"✅ {original_name} processed ({doc.chunk_count} chunks)")
                 except Exception as e:
                     import logging
-                    logging.exception("Upload processing failed for %s", uploaded.name)
-                    st.error(f"❌ {uploaded.name}: {e}")
+                    logging.exception("Upload processing failed for %s", original_name)
+                    st.error(f"❌ {original_name}: {e}")
 
         st.rerun()
 
     st.divider()
     st.caption(f"Upload folder: {UPLOAD_DIR}")
-    st.caption(f"Max file size: 25 MB")
-    st.caption("Supported: PDF, DOCX, TXT, PNG/JPG/TIFF/BMP (OCR)")
+    st.caption(f"Max file size: {MAX_FILE_SIZE_BYTES / (1024*1024):.0f} MB")
+    st.caption("Supported: PDF, DOCX, TXT, PNG, JPG, TIFF, BMP")

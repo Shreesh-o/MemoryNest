@@ -11,4 +11,5 @@ python-dotenv>=1.0
 pyttsx3>=2.90
 requests>=2.31
 icalendar>=5.0
+filetype>=1.2
 pytest>=8.0

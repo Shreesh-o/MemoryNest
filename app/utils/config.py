@@ -40,6 +40,10 @@ RAG_MIN_SIMILARITY: float = float(os.environ.get("RAG_MIN_SIMILARITY", "0.30"))
 CHUNK_SIZE: int = int(os.environ.get("CHUNK_SIZE", "450"))
 CHUNK_OVERLAP: int = int(os.environ.get("CHUNK_OVERLAP", "50"))
 
+# --- Upload ---
+MAX_FILE_SIZE_MB: int = int(os.environ.get("MAX_FILE_SIZE_MB", "20"))
+MAX_FILE_SIZE_BYTES: int = MAX_FILE_SIZE_MB * 1024 * 1024
+
 # --- Email ---
 EMAIL_HOST: str = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
 EMAIL_PORT: int = int(os.environ.get("EMAIL_PORT", "587"))
