@@ -15,6 +15,7 @@ Personal knowledge management with local RAG. Upload documents (PDF, DOCX, TXT, 
 - **TTS**: offline pyttsx3 (needs espeak-ng)
 - **Event extraction**: regex + dateparser, LLM fallback
 - **Email reminders**: Gmail SMTP with app password, on-demand "check" button
+- **Calendar export**: .ics file download for confirmed events and scheduled reminders
 - **Auth**: username/password with bcrypt, Streamlit session state
 
 ## Quick Start
@@ -152,7 +153,7 @@ These features are explicitly **not implemented** in this build but are designed
 
 - **Knowledge Graph (Neo4j)**: Entities/relationships extracted from documents, stored in Neo4j alongside vectors. Would enable graph-RAG traversals (e.g., "what projects is person X involved in?"). The current `Event` table is a lightweight precursor — could be expanded to a full entity/relation store.
 - **WhatsApp notifications**: Replace/supplement email with WhatsApp Business API or a self-hosted bridge (e.g., whatsapp-web.js). Requires external service integration.
-- **Google Calendar sync**: Two-way sync of confirmed events/reminders. Needs OAuth flow and Calendar API.
+- **Google Calendar sync**: Two-way sync of confirmed events/reminders via Calendar API. Current implementation provides .ics file export for manual import into Google Calendar, Outlook, or phone calendars. Direct API sync needs OAuth flow.
 - **PostgreSQL**: Replace SQLite for multi-user concurrency and horizontal scaling. Current schema is portable.
 - **Docker/Compose**: Containerize Ollama, Chroma, and the app for reproducible deployment. Current design is single-process + local services.
 - **Background scheduler**: APScheduler/cron for automatic reminder checks. Current MVP uses an on-demand button.
