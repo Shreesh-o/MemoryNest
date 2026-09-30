@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
+from pathlib import Path
+
 import pytest
 
 from app.database.database import init_db
@@ -308,3 +311,109 @@ def test_duplicate_detection_different_users(temp_db, temp_chroma, temp_uploads,
     assert doc1.id != doc2.id
     assert doc1.user_id == test_user.id
     assert doc2.user_id == user2.id
+
+
+def test_failure_cleanup_removes_partial_data(temp_db, temp_chroma, temp_uploads, test_user):
+    """Test that processing failure cleans up partial data (chunks, vectors, file)."""
+    import hashlib
+    
+    txt_content = "This document will fail processing."
+    txt_path = temp_uploads / "fail_test.txt"
+    txt_path.write_text(txt_content, encoding="utf-8")
+    
+    file_hash = hashlib.sha256(txt_content.encode("utf-8")).hexdigest()
+    
+    doc_repo = DocumentRepository()
+    chunk_repo = ChunkRepository()
+    
+    # Create document
+    doc = doc_repo.create(
+        user_id=test_user.id,
+        filename="fail_test.txt",
+        stored_path=str(txt_path),
+        file_type="txt",
+        size_bytes=len(txt_content.encode("utf-8")),
+        file_hash=file_hash,
+    )
+    
+    # Simulate failure by using a non-existent stored_path for processing
+    fake_path = str(temp_uploads / "nonexistent.txt")
+    
+    # Process should fail
+    with pytest.raises(FileNotFoundError):
+        _process_document(doc.id, test_user.id, fake_path, "txt", "fail_test.txt")
+    
+    # Verify document is marked as error
+    updated_doc = doc_repo.get_by_id(doc.id, test_user.id)
+    assert updated_doc.status == "error"
+    
+    # Verify file was deleted
+    assert not Path(fake_path).exists()  # fake_path doesn't exist anyway
+    
+    # Verify no chunks were left in SQLite
+    chunks = chunk_repo.list_for_document(doc.id, test_user.id)
+    assert len(chunks) == 0, "Chunks should be cleaned up on failure"
+    
+    # Verify no vectors in ChromaDB
+    vs = vector_service.get_vector_service()
+    results = vs.query(test_user.id, embedding_service.embed_query("test"), top_k=5)
+    # The failed document's vectors should not be there
+    doc_vectors = [r for r in results if r["metadata"].get("document_id") == doc.id]
+    assert len(doc_vectors) == 0, "ChromaDB vectors should be cleaned up on failure"
+
+
+def test_document_delete_cleans_everything(temp_db, temp_chroma, temp_uploads, test_user):
+    """Test that document delete removes file, chunks, and vectors."""
+    import hashlib
+    
+    txt_content = "Document to be deleted."
+    txt_path = temp_uploads / "delete_test.txt"
+    txt_path.write_text(txt_content, encoding="utf-8")
+    
+    file_hash = hashlib.sha256(txt_content.encode("utf-8")).hexdigest()
+    
+    doc_repo = DocumentRepository()
+    chunk_repo = ChunkRepository()
+    
+    # Create and process a document
+    doc = doc_repo.create(
+        user_id=test_user.id,
+        filename="delete_test.txt",
+        stored_path=str(txt_path),
+        file_type="txt",
+        size_bytes=len(txt_content.encode("utf-8")),
+        file_hash=file_hash,
+    )
+    
+    # Process successfully
+    _process_document(doc.id, test_user.id, str(txt_path), "txt", "delete_test.txt")
+    
+    # Verify everything exists
+    updated_doc = doc_repo.get_by_id(doc.id, test_user.id)
+    assert updated_doc.status == "ready"
+    chunks_before = chunk_repo.list_for_document(doc.id, test_user.id)
+    assert len(chunks_before) > 0
+    
+    vs = vector_service.get_vector_service()
+    results_before = vs.query(test_user.id, embedding_service.embed_query("deleted"), top_k=5)
+    doc_vectors_before = [r for r in results_before if r["metadata"].get("document_id") == doc.id]
+    assert len(doc_vectors_before) > 0
+    
+    # Delete the document
+    doc_repo.delete(doc.id, test_user.id)
+    
+    # Verify file is deleted
+    assert not Path(txt_path).exists()
+    
+    # Verify chunks are deleted
+    chunks_after = chunk_repo.list_for_document(doc.id, test_user.id)
+    assert len(chunks_after) == 0
+    
+    # Verify vectors are deleted
+    results_after = vs.query(test_user.id, embedding_service.embed_query("deleted"), top_k=5)
+    doc_vectors_after = [r for r in results_after if r["metadata"].get("document_id") == doc.id]
+    assert len(doc_vectors_after) == 0
+    
+    # Verify document is deleted
+    deleted_doc = doc_repo.get_by_id(doc.id, test_user.id)
+    assert deleted_doc is None

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import List, Optional
 
 from app.database.database import get_connection
@@ -169,10 +170,43 @@ class DocumentRepository(BaseRepository):
             conn.close()
 
     def delete(self, doc_id: int, user_id: int) -> None:
+        """Delete document, its chunks, ChromaDB vectors, and the stored file."""
+        import os
+        from app.services import vector_service
+        from app.utils.config import UPLOAD_DIR
+
         conn = self._connect()
         try:
+            # Get stored_path before deleting
+            row = conn.execute(
+                "SELECT stored_path FROM documents WHERE id = ? AND user_id = ?", (doc_id, user_id)
+            ).fetchone()
+            stored_path = row["stored_path"] if row else None
+
+            # Delete chunks and get chroma_ids
+            from app.database.repositories import ChunkRepository
+            chunk_repo = ChunkRepository()
+            chroma_ids = chunk_repo.delete_for_document(doc_id, user_id)
+
+            # Delete vectors from ChromaDB
+            if chroma_ids:
+                vs = vector_service.get_vector_service()
+                vs.collection.delete(ids=chroma_ids)
+
+            # Delete document
             conn.execute("DELETE FROM documents WHERE id = ? AND user_id = ?", (doc_id, user_id))
             conn.commit()
+
+            # Delete stored file
+            if stored_path:
+                path = Path(stored_path)
+                if path.exists():
+                    path.unlink(missing_ok=True)
+                    # Try to remove empty user directory
+                    try:
+                        path.parent.rmdir()
+                    except OSError:
+                        pass  # Directory not empty or doesn't exist
         finally:
             conn.close()
 

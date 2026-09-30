@@ -44,6 +44,36 @@ def _save_uploaded_file(uploaded_file, user_id: int, original_filename: str) -> 
     return str(stored_path), len(data)
 
 
+def _cleanup_failed_document(doc_id: int, user_id: int, stored_path: str) -> None:
+    """Clean up partial data (chunks, vectors, file) when document processing fails.
+    Keeps the document row but marks it as error."""
+    from app.database.repositories import DocumentRepository, ChunkRepository
+    from app.services import vector_service
+    from app.utils.config import UPLOAD_DIR
+    from pathlib import Path
+
+    doc_repo = DocumentRepository()
+    chunk_repo = ChunkRepository()
+    vs = vector_service.get_vector_service()
+
+    # Delete chunks and get chroma_ids
+    chroma_ids = chunk_repo.delete_for_document(doc_id, user_id)
+
+    # Delete vectors from ChromaDB
+    if chroma_ids:
+        vs.collection.delete(ids=chroma_ids)
+
+    # Delete stored file
+    path = Path(stored_path)
+    if path.exists():
+        path.unlink(missing_ok=True)
+        # Try to remove empty user directory
+        try:
+            path.parent.rmdir()
+        except OSError:
+            pass
+
+
 def _process_document(doc_id: int, user_id: int, stored_path: str, file_type: str, filename: str) -> None:
     """Extract text, chunk, embed, store in vector DB, extract events."""
     doc_repo = DocumentRepository()
@@ -98,6 +128,8 @@ def _process_document(doc_id: int, user_id: int, stored_path: str, file_type: st
         doc_repo.set_text(doc_id, user_id, preview, len(chunks))
 
     except Exception as e:
+        # Clean up partial data (chunks, vectors, file)
+        _cleanup_failed_document(doc_id, user_id, stored_path)
         doc_repo.update_status(doc_id, user_id, "error", str(e))
         raise
 
