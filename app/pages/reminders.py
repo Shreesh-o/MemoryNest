@@ -61,20 +61,25 @@ def render() -> None:
                     if not text:
                         st.warning("Document has no text preview")
                     else:
-                        events = event_service.extract_events(text)
-                        if not events:
-                            st.info("No events found")
-                        else:
-                            for e in events:
-                                ev = ev_repo.create(
-                                    user_id=user.id,
-                                    event_text=e["event_text"],
-                                    document_id=doc.id,
-                                    event_date=e.get("event_date"),
-                                    raw_date=e.get("raw_date"),
-                                )
-                            st.success(f"Extracted {len(events)} event(s)")
-                            st.rerun()
+                        try:
+                            events = event_service.extract_events(text)
+                            if not events:
+                                st.info("No events found")
+                            else:
+                                for e in events:
+                                    ev = ev_repo.create(
+                                        user_id=user.id,
+                                        event_text=e["event_text"],
+                                        document_id=doc.id,
+                                        event_date=e.get("event_date"),
+                                        raw_date=e.get("raw_date"),
+                                    )
+                                st.success(f"Extracted {len(events)} event(s)")
+                                st.rerun()
+                        except Exception as e:
+                            import logging
+                            logging.exception("Event extraction failed for doc %s", doc.id)
+                            st.error(f"Extraction failed: {e}")
 
     with tab_pending:
         st.subheader("Events awaiting confirmation")
@@ -88,20 +93,25 @@ def render() -> None:
                     col1, col2, col3 = st.columns(3)
                     with col1:
                         if st.button("Confirm", key=f"conf_{e.id}"):
-                            ev_repo.set_status(e.id, user.id, "confirmed")
-                            if e.event_date:
-                                remind_at = f"{e.event_date} 09:00:00"
-                            else:
-                                remind_at = datetime.now().strftime("%Y-%m-%d 09:00:00")
-                            rem_repo.create(
-                                user_id=user.id,
-                                event_id=e.id,
-                                remind_at=remind_at,
-                                subject=f"Reminder: {e.event_text[:60]}",
-                                body=f"Event: {e.event_text}\nDate: {e.event_date or 'TBD'}\nRaw: {e.raw_date or 'N/A'}",
-                            )
-                            st.success("Confirmed and reminder scheduled")
-                            st.rerun()
+                            try:
+                                ev_repo.set_status(e.id, user.id, "confirmed")
+                                if e.event_date:
+                                    remind_at = f"{e.event_date} 09:00:00"
+                                else:
+                                    remind_at = datetime.now().strftime("%Y-%m-%d 09:00:00")
+                                rem_repo.create(
+                                    user_id=user.id,
+                                    event_id=e.id,
+                                    remind_at=remind_at,
+                                    subject=f"Reminder: {e.event_text[:60]}",
+                                    body=f"Event: {e.event_text}\nDate: {e.event_date or 'TBD'}\nRaw: {e.raw_date or 'N/A'}",
+                                )
+                                st.success("Confirmed and reminder scheduled")
+                                st.rerun()
+                            except Exception as exc:
+                                import logging
+                                logging.exception("Confirm event failed for event %s", e.id)
+                                st.error(f"Confirm failed: {exc}")
                     with col2:
                         if st.button("Skip", key=f"skip_{e.id}"):
                             ev_repo.set_status(e.id, user.id, "skipped")
@@ -153,14 +163,19 @@ def render() -> None:
                     col1, col2, col3 = st.columns(3)
                     with col1:
                         if st.button("Send now", key=f"send_{r.id}"):
-                            ok, detail = email_service.send_reminder_email(r.subject or "", r.body or "")
-                            if ok:
-                                rem_repo.set_status(r.id, user.id, "sent", datetime.now().isoformat())
-                                st.success("Email sent")
-                            else:
-                                rem_repo.set_status(r.id, user.id, "failed")
-                                st.error(f"Failed: {detail}")
-                            st.rerun()
+                            try:
+                                ok, detail = email_service.send_reminder_email(r.subject or "", r.body or "")
+                                if ok:
+                                    rem_repo.set_status(r.id, user.id, "sent", datetime.now().isoformat())
+                                    st.success("Email sent")
+                                else:
+                                    rem_repo.set_status(r.id, user.id, "failed")
+                                    st.error(f"Failed: {detail}")
+                                st.rerun()
+                            except Exception as exc:
+                                import logging
+                                logging.exception("Send reminder failed for reminder %s", r.id)
+                                st.error(f"Send failed: {exc}")
                     with col2:
                         if st.button("Cancel", key=f"can_{r.id}", type="secondary"):
                             rem_repo.set_status(r.id, user.id, "cancelled")
@@ -188,10 +203,15 @@ def render() -> None:
                     st.info("No due reminders")
                 else:
                     for r in due:
-                        ok, detail = email_service.send_reminder_email(r.subject or "", r.body or "")
-                        if ok:
-                            rem_repo.set_status(r.id, user.id, "sent", datetime.now().isoformat())
-                            st.success(f"Sent: {r.subject}")
-                        else:
-                            rem_repo.set_status(r.id, user.id, "failed")
-                            st.error(f"Failed {r.subject}: {detail}")
+                        try:
+                            ok, detail = email_service.send_reminder_email(r.subject or "", r.body or "")
+                            if ok:
+                                rem_repo.set_status(r.id, user.id, "sent", datetime.now().isoformat())
+                                st.success(f"Sent: {r.subject}")
+                            else:
+                                rem_repo.set_status(r.id, user.id, "failed")
+                                st.error(f"Failed {r.subject}: {detail}")
+                        except Exception as exc:
+                            import logging
+                            logging.exception("Bulk send failed for reminder %s", r.id)
+                            st.error(f"Send failed for {r.subject}: {exc}")

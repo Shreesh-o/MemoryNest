@@ -52,7 +52,13 @@ def render() -> None:
             # Get full text from chunks (we don't store full text in DB, only preview)
             # For now, use the text_preview as source - in production, we'd reconstruct from chunks
             full_text = doc.text_preview or "No text preview available"
-            summary_text = summary_service.summarize_document(full_text)
+            try:
+                summary_text = summary_service.summarize_document(full_text)
+            except Exception as exc:
+                import logging
+                logging.exception("Summary generation failed for doc %s", doc.id)
+                st.error(f"Summary generation failed: {exc}")
+                summary_text = None
 
         if summary_text:
             s = sum_repo.create(doc.id, user.id, summary_text)

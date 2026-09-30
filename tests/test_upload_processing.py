@@ -5,9 +5,9 @@ from __future__ import annotations
 import pytest
 
 from app.database.database import init_db
-from app.database.repositories import DocumentRepository, ChunkRepository, UserRepository
+from app.database.repositories import DocumentRepository, ChunkRepository, UserRepository, EventRepository
 from app.pages.upload import _process_document
-from app.services import extraction_service, chunking_service, embedding_service, vector_service
+from app.services import extraction_service, chunking_service, embedding_service, vector_service, event_service
 
 
 @pytest.fixture
@@ -187,3 +187,42 @@ def test_process_document_invalid_type(temp_db, temp_chroma, temp_uploads, test_
     updated_doc = doc_repo.get_by_id(doc.id, test_user.id)
     assert updated_doc.status == "error"
     assert updated_doc.error_message is not None
+
+
+def test_process_document_extracts_events(temp_db, temp_chroma, temp_uploads, test_user):
+    """Test that processing a document with a clear date creates event rows."""
+    # TXT content with a clear date
+    txt_content = "Submission deadline: 15 October 2026. Please submit by this date."
+    
+    txt_path = temp_uploads / "deadline.txt"
+    txt_path.write_text(txt_content, encoding="utf-8")
+    
+    # Create document record
+    doc_repo = DocumentRepository()
+    doc = doc_repo.create(
+        user_id=test_user.id,
+        filename="deadline.txt",
+        stored_path=str(txt_path),
+        file_type="txt",
+        size_bytes=len(txt_content.encode("utf-8")),
+    )
+    
+    # Process the document
+    _process_document(doc.id, test_user.id, str(txt_path), "txt", "deadline.txt")
+    
+    # Verify document status is "ready"
+    updated_doc = doc_repo.get_by_id(doc.id, test_user.id)
+    assert updated_doc.status == "ready"
+    
+    # Verify at least one event was created for this user
+    ev_repo = EventRepository()
+    events = ev_repo.list_for_user(test_user.id)
+    assert len(events) >= 1
+    
+    # Verify the event has the expected date
+    found = False
+    for e in events:
+        if e.event_date == "2026-10-15" or "October" in (e.raw_date or ""):
+            found = True
+            break
+    assert found, "Expected an event with date 2026-10-15 or raw_date containing 'October'"

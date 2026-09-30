@@ -37,8 +37,15 @@ def render() -> None:
         # Get RAG answer
         with st.chat_message("assistant"):
             with st.spinner("Thinking..."):
-                result = rag_service.rag_answer(user.id, prompt)
-            st.markdown(result.answer)
+                try:
+                    result = rag_service.rag_answer(user.id, prompt)
+                except Exception as exc:
+                    import logging
+                    logging.exception("RAG query failed for user %s", user.id)
+                    st.error(f"Query failed: {exc}")
+                    result = None
+            if result:
+                st.markdown(result.answer)
             if result.sources:
                 with st.expander("Sources"):
                     for s in result.sources:

@@ -5,11 +5,19 @@ Run with:  streamlit run app/main.py
 
 from __future__ import annotations
 
+import logging
 import os
 import sys
 
 # Ensure project root is on sys.path so 'app' imports work when Streamlit runs from app/
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Configure logging once
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    datefmt="%H:%M:%S",
+)
 
 import streamlit as st
 

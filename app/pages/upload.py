@@ -126,6 +126,8 @@ def render() -> None:
                     _process_document(doc.id, user.id, stored_path, file_type, uploaded.name)
                     st.success(f"✅ {uploaded.name} processed ({doc.chunk_count} chunks)")
                 except Exception as e:
+                    import logging
+                    logging.exception("Upload processing failed for %s", uploaded.name)
                     st.error(f"❌ {uploaded.name}: {e}")
 
         st.rerun()

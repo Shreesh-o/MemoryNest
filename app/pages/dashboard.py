@@ -34,7 +34,6 @@ def render() -> None:
     pending_events = ev_repo.list_for_user(user.id, status="pending")
     confirmed_events = ev_repo.list_for_user(user.id, status="confirmed")
     due_reminders = rem_repo.due_scheduled(user.id, datetime.now().isoformat())
-    scheduled_reminders = rem_repo.list_for_user(user.id, status="scheduled")
 
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Documents", len(ready_docs), f"{len(docs) - len(ready_docs)} processing")
