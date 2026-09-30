@@ -64,3 +64,40 @@ def test_ocr_image(sample_image):
 def test_extract_routes_image_to_ocr(sample_image):
     text = extraction_service.extract_text(sample_image, "image")
     assert "meeting" in text.lower()
+
+
+def test_extract_pdf_ocr_fallback(tmp_path):
+    """Test OCR fallback for image-only PDF (scanned PDF)."""
+    from PIL import Image, ImageDraw, ImageFont
+    import pymupdf as fitz
+
+    # Create an image with text
+    img = Image.new("RGB", (800, 400), "white")
+    draw = ImageDraw.Draw(img)
+    try:
+        font = ImageFont.load_default(size=32)
+    except TypeError:
+        font = ImageFont.load_default()
+    draw.text((50, 50), "Scanned document", fill="black", font=font)
+    draw.text((50, 120), "Invoice #INV-2026-001", fill="black", font=font)
+    draw.text((50, 190), "Date: 15 October 2026", fill="black", font=font)
+    draw.text((50, 260), "Amount: $1,250.00", fill="black", font=font)
+
+    # Save as PNG first
+    img_path = tmp_path / "invoice.png"
+    img.save(str(img_path))
+
+    # Create PDF with the image (no text layer)
+    pdf_path = tmp_path / "scanned_invoice.pdf"
+    doc = fitz.open()
+    page = doc.new_page(width=800, height=400)
+    page.insert_image(page.rect, filename=str(img_path))
+    doc.save(str(pdf_path))
+    doc.close()
+
+    # Extract text - should use OCR fallback
+    text = extraction_service.extract_text(pdf_path, "pdf")
+    assert "Scanned document" in text
+    assert "INV-2026-001" in text or "2026" in text
+    assert "15 October 2026" in text or "October" in text
+    assert "1250" in text or "1,250" in text or "1250.00" in text

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import io
 from pathlib import Path
 
 from app.services import ocr_service
@@ -33,15 +34,53 @@ def _extract_pdf(path: Path) -> str:
     import pymupdf as fitz  # PyMuPDF
 
     parts = []
+    tesseract_available = False
+    try:
+        import pytesseract
+        from PIL import Image
+        import shutil
+        if shutil.which("tesseract") is not None:
+            tesseract_available = True
+    except ImportError:
+        tesseract_available = False
+
     with fitz.open(path) as doc:
-        for page in doc:
-            parts.append(page.get_text("text"))
-    text = "\n".join(parts).strip()
+        for page_num, page in enumerate(doc):
+            # Try to extract text from page
+            page_text = page.get_text("text").strip()
+
+            # If page has very little text (threshold: < 50 chars), try OCR
+            if len(page_text) < 50 and tesseract_available:
+                try:
+                    # Render page to image at 300 DPI for good OCR quality
+                    pix = page.get_pixmap(dpi=300)
+                    img_data = pix.tobytes("png")
+                    from PIL import Image
+                    img = Image.open(io.BytesIO(img_data))
+                    if img.mode not in ("RGB", "L"):
+                        img = img.convert("RGB")
+                    import pytesseract
+                    ocr_text = pytesseract.image_to_string(img)
+                    if ocr_text.strip():
+                        parts.append(f"[Page {page_num + 1} OCR]\n{ocr_text.strip()}")
+                        continue
+                except Exception:
+                    # OCR failed, fall back to whatever text we got
+                    pass
+
+            if page_text:
+                parts.append(f"[Page {page_num + 1}]\n{page_text}")
+
+    text = "\n\n".join(parts).strip()
     if not text:
-        # Scanned PDF without a text layer — flag it clearly.
+        if not tesseract_available:
+            raise RuntimeError(
+                "PDF contains no extractable text and Tesseract OCR is not available. "
+                "Install Tesseract: pacman -S tesseract tesseract-data-eng"
+            )
         raise RuntimeError(
-            "PDF contains no extractable text layer. If this is a scanned PDF, "
-            "save the pages as images and upload them instead (OCR will apply)."
+            "PDF contains no extractable text. If this is a scanned PDF, "
+            "ensure Tesseract is installed for OCR fallback."
         )
     return text
 
@@ -63,6 +102,7 @@ def _extract_docx(path: Path) -> str:
 
 
 def _extract_txt(path: Path) -> str:
+    import io
     raw = path.read_bytes()
     for encoding in ("utf-8", "utf-16", "latin-1"):
         try:
