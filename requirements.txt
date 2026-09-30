@@ -10,4 +10,5 @@ bcrypt>=4.1
 python-dotenv>=1.0
 pyttsx3>=2.90
 requests>=2.31
+icalendar>=5.0
 pytest>=8.0
