@@ -296,3 +296,98 @@ def create_old_schema_db(db_path: pathlib.Path) -> None:
 
     conn.commit()
     conn.close()
+
+
+def test_fresh_vs_migrated_db_equal(tmp_path):
+    """Assert that init_db on a fresh DB yields the same tables/indexes as
+    migrating an old-schema DB, confirming the SCHEMA + migration are consistent."""
+    import sqlite3
+    import pathlib
+
+    # 1. Fresh DB: run init_db on a new empty path (starting with old schema)
+    fresh_db = pathlib.Path(str(tmp_path) / "fresh.db")
+    create_old_schema_db(fresh_db)  # start with old schema (no file_hash)
+    from app.database.database import init_db
+    init_db(fresh_db)
+
+    # Capture tables and indexes from fresh DB
+    fresh_conn = sqlite3.connect(str(fresh_db))
+    fresh_tables = set(row[0] for row in fresh_conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name != 'sqlite_sequence'"
+    ).fetchall())
+    fresh_indexes = set(row[0] for row in fresh_conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='index'"
+    ).fetchall())
+    fresh_conn.close()
+
+    # 2. Migrated DB: create old-schema DB and run init_db
+    migrated_db = pathlib.Path(str(tmp_path) / "migrated.db")
+    create_old_schema_db(migrated_db)
+    from app.database.database import init_db
+    init_db(migrated_db)
+
+    # Capture tables and indexes from migrated DB
+    migrated_conn = sqlite3.connect(str(migrated_db))
+    migrated_tables = set(row[0] for row in migrated_conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name != 'sqlite_sequence'"
+    ).fetchall())
+    migrated_indexes = set(row[0] for row in migrated_conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='index'"
+    ).fetchall())
+    migrated_conn.close()
+
+    # 3. Assert equality
+    assert fresh_tables == migrated_tables, (
+        f"Tables mismatch: fresh={fresh_tables}, migrated={migrated_tables}"
+    )
+    assert fresh_indexes == migrated_indexes, (
+        f"Indexes mismatch: fresh={fresh_indexes}, migrated={migrated_indexes}"
+    )
+
+
+
+def test_fresh_vs_migrated_db_equal(tmp_path):
+    """Assert that init_db on a fresh DB yields the same tables/indexes as
+    migrating an old-schema DB, confirming the SCHEMA + migration are consistent."""
+    import sqlite3
+    import pathlib
+
+    # 1. Fresh DB: run init_db on a new empty path (starting with old schema)
+    fresh_db = tmp_path / "fresh.db"
+    create_old_schema_db(fresh_db)  # start with old schema (no file_hash)
+    from app.database.database import init_db
+    init_db(fresh_db)
+
+    # Capture tables and indexes from fresh DB
+    fresh_conn = sqlite3.connect(str(fresh_db))
+    fresh_tables = set(row[0] for row in fresh_conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name != 'sqlite_sequence'"
+    ).fetchall())
+    fresh_indexes = set(row[0] for row in fresh_conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='index'"
+    ).fetchall())
+    fresh_conn.close()
+
+    # 2. Migrated DB: create old-schema DB and run init_db
+    migrated_db = tmp_path / "migrated.db"
+    create_old_schema_db(migrated_db)
+    from app.database.database import init_db
+    init_db(migrated_db)
+
+    # Capture tables and indexes from migrated DB
+    migrated_conn = sqlite3.connect(str(migrated_db))
+    migrated_tables = set(row[0] for row in migrated_conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name != 'sqlite_sequence'"
+    ).fetchall())
+    migrated_indexes = set(row[0] for row in migrated_conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='index'"
+    ).fetchall())
+    migrated_conn.close()
+
+    # 3. Assert equality
+    assert fresh_tables == migrated_tables, (
+        f"Tables mismatch: fresh={fresh_tables}, migrated={migrated_tables}"
+    )
+    assert fresh_indexes == migrated_indexes, (
+        f"Indexes mismatch: fresh={fresh_indexes}, migrated={migrated_indexes}"
+    )
