@@ -7,41 +7,30 @@ from pathlib import Path
 
 import pytest
 
-from app.database.database import init_db
 from app.database.repositories import DocumentRepository, ChunkRepository, UserRepository, EventRepository
 from app.services import extraction_service, chunking_service, embedding_service, vector_service, event_service
 
 
 @pytest.fixture
-def temp_db(tmp_path, monkeypatch):
-    """Create a temporary database for testing."""
-    db_path = tmp_path / "test.db"
-    init_db(db_path)
-    monkeypatch.setattr("app.database.database.DB_PATH", db_path)
-    return db_path
+def temp_db():
+    """Fresh per-test DB from the autouse test_storage fixture (conftest.py)."""
+    import app.utils.config as config_module
+    return config_module.DB_PATH
 
 
 @pytest.fixture
-def temp_chroma(tmp_path, monkeypatch):
-    """Create a temporary ChromaDB directory."""
-    chroma_path = tmp_path / "chroma_test"
-    monkeypatch.setattr("app.services.vector_service.CHROMA_DIR", chroma_path)
-    # Reset singleton properly
-    from app.services import vector_service
-    vector_service.VectorService._instance = None
-    # Force reinitialization by removing _initialized from any existing instance
-    if hasattr(vector_service.VectorService, '_initialized'):
-        delattr(vector_service.VectorService, '_initialized')
-    return chroma_path
+def temp_chroma():
+    """Per-test Chroma dir from the autouse test_storage fixture."""
+    import app.utils.config as config_module
+    return config_module.CHROMA_DIR
 
 
 @pytest.fixture
-def temp_uploads(tmp_path, monkeypatch):
-    """Create a temporary upload directory."""
-    upload_path = tmp_path / "uploads"
-    upload_path.mkdir(parents=True, exist_ok=True)
-    monkeypatch.setattr("app.utils.config.UPLOAD_DIR", upload_path)
-    return upload_path
+def temp_uploads():
+    """Per-test upload dir from the autouse test_storage fixture."""
+    import app.utils.config as config_module
+    config_module.UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    return config_module.UPLOAD_DIR
 
 
 @pytest.fixture

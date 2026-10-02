@@ -6,55 +6,31 @@ import sqlite3
 from pathlib import Path
 
 
-_db_path_override: Path | None = None
-
-
 def _get_db_path() -> Path:
-    """Get the database path from config, reloading config to pick up env var changes."""
+    """Resolve the database path from config at call time.
+
+    Config is reloaded so environment-variable overrides (e.g. DB_PATH set by
+    tests or .env) are always honored, even when the config module was
+    imported earlier in the process.
+    """
     import importlib
     import app.utils.config
     importlib.reload(app.utils.config)
     return app.utils.config.DB_PATH
 
 
-# Backward compatibility: expose DB_PATH as a module-level property
-_DB_PATH_OVERRIDE: Path | None = None
-
-
-@property
-def DB_PATH() -> Path:
-    """Get the database path (allows monkeypatching for tests)."""
-    if _DB_PATH_OVERRIDE is not None:
-        return _DB_PATH_OVERRIDE
-    return _get_db_path()
-
-
-@DB_PATH.setter
-def DB_PATH(value: Path) -> None:
-    global _DB_PATH_OVERRIDE
-    _DB_PATH_OVERRIDE = value
-
-
 def get_connection(db_path: Path | None = None) -> sqlite3.Connection:
-    """Return a connection with row access by column name and FK enforcement."""
-    path = db_path or _get_db_path()
-    _ensure_dirs()
+    """Return a connection with row access by column name and FK enforcement.
+
+    Pass an explicit ``db_path`` to bypass the configured path (used by
+    tests and scripts); otherwise the path is resolved from config.
+    """
+    path = Path(db_path) if db_path is not None else _get_db_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(str(path), isolation_level="DEFERRED")
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     return conn
-
-
-def _ensure_dirs() -> None:
-    """Create all runtime directories if they do not exist yet."""
-    _get_db_path().parent.mkdir(parents=True, exist_ok=True)
-    import importlib
-    import app.utils.config
-    importlib.reload(app.utils.config)
-    import app.utils.config as config_module
-    config_module.UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-    config_module.CHROMA_DIR.mkdir(parents=True, exist_ok=True)
-    config_module.AUDIO_DIR.mkdir(parents=True, exist_ok=True)
 
 
 SCHEMA = """
@@ -167,6 +143,10 @@ CREATE INDEX IF NOT EXISTS idx_reminders_user ON reminders(user_id, status, remi
 
 def init_db(db_path: Path | None = None) -> None:
     """Create all tables if they do not exist. Run migrations for existing databases."""
+    import importlib
+    import app.utils.config
+    importlib.reload(app.utils.config)
+    app.utils.config.ensure_dirs()
     conn = get_connection(db_path)
     try:
         conn.executescript(SCHEMA)

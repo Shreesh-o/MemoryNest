@@ -1,121 +1,65 @@
-"""Shared fixtures that generate real sample files (PDF/DOCX/TXT/image)."""
+"""Shared pytest fixtures for MemoryNest.
+
+Every test runs against per-test temp storage (SQLite, Chroma, uploads,
+audio) so the suite can never touch the real data/ folder.
+"""
 
 from __future__ import annotations
 
-import os
-import importlib
-import tempfile
-import shutil
 from pathlib import Path
 
 import pytest
 
-import app.utils.config as config_module
-
-
-# Configure test environment BEFORE any module imports
-def pytest_configure(config):
-    """Set up test environment before test collection."""
-    # Create temporary directories for testing
-    test_base = Path(tempfile.mkdtemp(prefix="memorynest_test_"))
-    
-    os.environ["DB_PATH"] = str(test_base / "memorynest.db")
-    os.environ["CHROMA_DIR"] = str(test_base / "chroma")
-    os.environ["UPLOAD_DIR"] = str(test_base / "uploads")
-    os.environ["AUDIO_DIR"] = str(test_base / "audio")
-    os.environ["MOCK_LLM"] = "1"  # Use mock LLM for tests
-    
-    # Reload config module to pick up new env vars
-    importlib.reload(config_module)
-
-
-def pytest_sessionfinish(session, exitstatus):
-    """Clean up after all tests finish."""
-    import app.utils.config as config_module
-    if hasattr(config_module, '_cleanup'):
-        config_module._cleanup()
-
-
 # Guard: fail if any test touches the real data/ folder
 REAL_DATA_DIR = Path("/home/shreesh/MemoryNest/data").resolve()
-REAL_UPLOADS_DIR = REAL_DATA_DIR / "uploads"
-REAL_CHROMA_DIR = REAL_DATA_DIR / "chroma"
-REAL_DB_PATH = REAL_DATA_DIR / "memorynest.db"
 
 
-# Pre-test check: fail immediately if test tries to use real data paths
-def _check_real_data_access(path: Path):
+def _check_real_data_access(path: Path) -> None:
     try:
         resolved = path.resolve()
-        if REAL_DATA_DIR in resolved.parents or resolved == REAL_DATA_DIR:
-            pytest.fail(f"Test attempted to access real data directory: {resolved}")
     except (OSError, ValueError):
-        pass
+        return
+    if resolved == REAL_DATA_DIR or REAL_DATA_DIR in resolved.parents:
+        pytest.fail(f"Test attempted to access real data directory: {resolved}")
 
 
-# Per-test check: fail immediately if test tries to use real data paths
 @pytest.fixture(autouse=True)
 def _check_real_data_access_during_test():
     yield
-    # Check after test runs if real data was modified
     import app.utils.config as config_module
     for attr in ("DB_PATH", "CHROMA_DIR", "UPLOAD_DIR", "AUDIO_DIR"):
-        path = getattr(config_module, attr)
-        _check_real_data_access(path)
+        _check_real_data_access(Path(getattr(config_module, attr)))
 
 
-# Session-scoped fixture: set up test environment BEFORE any module imports
-@pytest.fixture(scope="session", autouse=True)
-def setup_test_environment():
-    """Set up test environment variables and reload config before any tests run."""
-    # Create temporary directories for testing
-    import tempfile
-    test_base = Path(tempfile.mkdtemp(prefix="memorynest_test_"))
-    
-    os.environ["DB_PATH"] = str(test_base / "memorynest.db")
-    os.environ["CHROMA_DIR"] = str(test_base / "chroma")
-    os.environ["UPLOAD_DIR"] = str(test_base / "uploads")
-    os.environ["AUDIO_DIR"] = str(test_base / "audio")
-    os.environ["MOCK_LLM"] = "1"  # Use mock LLM for tests
-    
-    # Reload config module to pick up new env vars
+@pytest.fixture(autouse=True)
+def test_storage(tmp_path, monkeypatch):
+    """Redirect DB, Chroma, uploads, and audio to per-test temp dirs.
+
+    Uses the same mechanism as the app: environment variables + config
+    reload, so every call-time path resolution (get_connection,
+    upload._get_config, config.ensure_dirs, ...) lands in tmp_path.
+    Also initializes a fresh database for each test.
+    """
+    monkeypatch.setenv("DB_PATH", str(tmp_path / "memorynest.db"))
+    monkeypatch.setenv("CHROMA_DIR", str(tmp_path / "chroma"))
+    monkeypatch.setenv("UPLOAD_DIR", str(tmp_path / "uploads"))
+    monkeypatch.setenv("AUDIO_DIR", str(tmp_path / "audio"))
+    monkeypatch.setenv("MOCK_LLM", "1")
+
     import importlib
     import app.utils.config as config_module
     importlib.reload(config_module)
-    
+
+    from app.database.database import init_db
+    init_db()
+
+    # VectorService captures CHROMA_DIR when its singleton is first created;
+    # point it at this test's dir and reset the singleton.
+    from app.services import vector_service
+    monkeypatch.setattr(vector_service, "CHROMA_DIR", config_module.CHROMA_DIR)
+    monkeypatch.setattr(vector_service.VectorService, "_instance", None)
+
     yield
-    
-    # Cleanup temp directory after all tests
-    import shutil
-    shutil.rmtree(test_base, ignore_errors=True)
-
-
-# Guard: fail if any test touches the real data/ folder
-REAL_DATA_DIR = Path("/home/shreesh/MemoryNest/data").resolve()
-REAL_UPLOADS_DIR = REAL_DATA_DIR / "uploads"
-REAL_CHROMA_DIR = REAL_DATA_DIR / "chroma"
-REAL_DB_PATH = REAL_DATA_DIR / "memorynest.db"
-
-
-# Pre-test check: fail immediately if test tries to use real data paths
-def _check_real_data_access(path: Path):
-    try:
-        resolved = path.resolve()
-        if REAL_DATA_DIR in resolved.parents or resolved == REAL_DATA_DIR:
-            pytest.fail(f"Test attempted to access real data directory: {resolved}")
-    except (OSError, ValueError):
-        pass
-
-
-# Per-test check: fail immediately if test tries to use real data paths
-@pytest.fixture(autouse=True)
-def _check_real_data_access_during_test():
-    yield
-    # Check after test runs if real data was modified
-    import app.utils.config as config_module
-    for attr in ("DB_PATH", "CHROMA_DIR", "UPLOAD_DIR", "AUDIO_DIR"):
-        path = getattr(config_module, attr)
-        _check_real_data_access(path)
 
 
 @pytest.fixture(scope="session")
