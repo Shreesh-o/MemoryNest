@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import time
 from typing import Optional
@@ -16,6 +17,7 @@ _MOCK_RESPONSE = (
 )
 
 _ollama_available_cache: Optional[bool] = None
+MOCK_MODE_ACTIVE = False
 
 
 def is_ollama_available(timeout: float = 2.0) -> bool:
@@ -41,10 +43,21 @@ def generate(
     temperature: float = 0.1,
     max_tokens: int = 512,
 ) -> str:
-    """Generate text from Ollama. Falls back to mock if unavailable or MOCK_LLM=1."""
-    if os.environ.get("MOCK_LLM") == "1" or not is_ollama_available():
-        return _MOCK_RESPONSE
+    """Generate text from Ollama.
 
+    - MOCK_LLM=1 enables mock mode (with warning flag for the UI).
+    - If Ollama is unavailable and MOCK_LLM is not set, raises RuntimeError.
+    - Otherwise performs the real HTTP call.
+    """
+    global MOCK_MODE_ACTIVE
+    if os.environ.get("MOCK_LLM") == "1":
+        MOCK_MODE_ACTIVE = True
+        logging.warning("Mock LLM mode is active: answers are not real.")
+        return _MOCK_RESPONSE
+    if not is_ollama_available():
+        raise RuntimeError(
+            f"Ollama is not running at {OLLAMA_HOST}. Start it with: ollama serve"
+        )
     payload = {
         "model": OLLAMA_MODEL,
         "prompt": prompt,
@@ -56,7 +69,6 @@ def generate(
     }
     if system:
         payload["system"] = system
-
     try:
         # Model load can take ~7s on CPU; give generous timeout
         r = requests.post(f"{OLLAMA_HOST}/api/generate", json=payload, timeout=180)
@@ -64,4 +76,4 @@ def generate(
         data = r.json()
         return data.get("response", "").strip()
     except Exception as e:
-        return f"[LLM error: {e}]"
+        raise RuntimeError(f"LLM request failed: {e}") from None
