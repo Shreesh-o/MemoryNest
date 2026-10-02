@@ -3,12 +3,21 @@
 from __future__ import annotations
 
 import hashlib
+import os
 from pathlib import Path
 
 import pytest
 
 from app.database.repositories import DocumentRepository, ChunkRepository, UserRepository, EventRepository
 from app.services import extraction_service, chunking_service, embedding_service, vector_service, event_service
+
+
+def _assert_no_partial_data(doc_id: int, user_id: int, stored_path: Path) -> None:
+    """No chunk rows, no vectors, no file left behind for a failed document."""
+    assert ChunkRepository().list_for_document(doc_id, user_id) == []
+    vs = vector_service.get_vector_service()
+    assert vs.collection.get(where={"document_id": doc_id})["ids"] == []
+    assert not stored_path.exists()
 
 
 @pytest.fixture
@@ -415,3 +424,92 @@ def test_document_delete_cleans_everything(temp_db, temp_chroma, temp_uploads, t
     # Verify document is deleted
     deleted_doc = doc_repo.get_by_id(doc.id, test_user.id)
     assert deleted_doc is None
+
+
+def test_corrupt_pdf_marked_error_and_cleaned(tmp_path, test_user):
+    """A corrupt PDF renamed to .pdf ends with status='error', no partial data.
+
+    _process_document must raise (so render() takes its st.error branch, not
+    st.success), mark the row 'error', and leave nothing in SQLite/Chroma/disk.
+    """
+    corrupt = tmp_path / "corrupt.pdf"
+    corrupt.write_bytes(os.urandom(512))
+
+    doc_repo = DocumentRepository()
+    doc = doc_repo.create(
+        user_id=test_user.id,
+        filename="corrupt.pdf",
+        stored_path=str(corrupt),
+        file_type="pdf",
+        size_bytes=corrupt.stat().st_size,
+    )
+
+    from app.pages.upload import _process_document
+    with pytest.raises(Exception):
+        _process_document(doc.id, test_user.id, str(corrupt), "pdf", "corrupt.pdf")
+
+    updated = doc_repo.get_by_id(doc.id, test_user.id)
+    assert updated.status == "error"
+    assert updated.error_message and len(updated.error_message) > 0
+    _assert_no_partial_data(doc.id, test_user.id, corrupt)
+
+
+def test_embedding_failure_marks_error_and_cleans(tmp_path, monkeypatch, test_user):
+    """A simulated embedding failure ends with status='error', no partial data."""
+    def boom(texts):
+        raise RuntimeError("embedding backend unavailable")
+
+    monkeypatch.setattr(embedding_service, "embed_texts", boom)
+
+    txt = tmp_path / "embed_fail.txt"
+    txt.write_text("Some content that would have been embedded.", encoding="utf-8")
+
+    doc_repo = DocumentRepository()
+    doc = doc_repo.create(
+        user_id=test_user.id,
+        filename="embed_fail.txt",
+        stored_path=str(txt),
+        file_type="txt",
+        size_bytes=txt.stat().st_size,
+    )
+
+    from app.pages.upload import _process_document
+    with pytest.raises(RuntimeError, match="embedding backend unavailable"):
+        _process_document(doc.id, test_user.id, str(txt), "txt", "embed_fail.txt")
+
+    updated = doc_repo.get_by_id(doc.id, test_user.id)
+    assert updated.status == "error"
+    assert "embedding backend unavailable" in updated.error_message
+    _assert_no_partial_data(doc.id, test_user.id, txt)
+
+
+def test_chroma_failure_marks_error_and_cleans(tmp_path, monkeypatch, test_user):
+    """A simulated Chroma failure ends with status='error', no partial data.
+
+    Chunk rows are written before add_chunks, so they must be cleaned up too.
+    """
+    def boom(*args, **kwargs):
+        raise RuntimeError("chroma store unavailable")
+
+    monkeypatch.setattr(vector_service.VectorService, "add_chunks", boom)
+
+    txt = tmp_path / "chroma_fail.txt"
+    txt.write_text("Content for the chroma failure test.", encoding="utf-8")
+
+    doc_repo = DocumentRepository()
+    doc = doc_repo.create(
+        user_id=test_user.id,
+        filename="chroma_fail.txt",
+        stored_path=str(txt),
+        file_type="txt",
+        size_bytes=txt.stat().st_size,
+    )
+
+    from app.pages.upload import _process_document
+    with pytest.raises(RuntimeError, match="chroma store unavailable"):
+        _process_document(doc.id, test_user.id, str(txt), "txt", "chroma_fail.txt")
+
+    updated = doc_repo.get_by_id(doc.id, test_user.id)
+    assert updated.status == "error"
+    assert "chroma store unavailable" in updated.error_message
+    _assert_no_partial_data(doc.id, test_user.id, txt)

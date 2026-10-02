@@ -518,6 +518,18 @@ class EventRepository(BaseRepository):
         finally:
             conn.close()
 
+    def delete_for_document(self, document_id: int, user_id: int) -> None:
+        """Delete all events extracted from a document (reminders cascade)."""
+        conn = self._connect()
+        try:
+            conn.execute(
+                "DELETE FROM events WHERE document_id = ? AND user_id = ?",
+                (document_id, user_id),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
 
 class ReminderRepository(BaseRepository):
     def create(

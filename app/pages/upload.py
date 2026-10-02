@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 import uuid
 from pathlib import Path
 import importlib
 
 import streamlit as st
 
-from app.database.database import init_db
-from app.database.repositories import DocumentRepository, ChunkRepository
+from app.database.repositories import DocumentRepository, ChunkRepository, EventRepository
 from app.services import (
     extraction_service,
     ocr_service,
@@ -26,6 +26,8 @@ from app.utils.validators import (
     validate_size,
     file_type_for,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _get_config():
@@ -65,46 +67,49 @@ def _save_uploaded_file(uploaded_file, user_id: int, original_filename: str) -> 
     return str(stored_path), len(data)
 
 
-def _cleanup_failed_document(doc_id: int, user_id: int, stored_path: str) -> None:
-    """Clean up partial data (chunks, vectors, file) when document processing fails.
-    Keeps the document row but marks it as error."""
-    from app.database.repositories import DocumentRepository, ChunkRepository
-    from app.services import vector_service
-    from pathlib import Path
+def _cleanup_failed_document(doc_id: int, user_id: int, stored_path: str, reason: str) -> None:
+    """Clean up partial data from a failed document and mark it as 'error'.
 
+    Removes the partial chunk rows, their Chroma vectors, any partially
+    created events, and the stored file. The document row is kept and set
+    to status='error' with a readable reason, so no row is ever left stuck
+    at 'uploaded'/'extracting'.
+    """
     doc_repo = DocumentRepository()
     chunk_repo = ChunkRepository()
+    ev_repo = EventRepository()
     vs = vector_service.get_vector_service()
 
-    # Delete chunks and get chroma_ids
     chroma_ids = chunk_repo.delete_for_document(doc_id, user_id)
-
-    # Delete vectors from ChromaDB
     if chroma_ids:
-        vs.collection.delete(ids=chroma_ids)
+        try:
+            vs.collection.delete(ids=chroma_ids)
+        except Exception:
+            logger.warning("Could not delete Chroma vectors for doc %s", doc_id, exc_info=True)
 
-    # Delete stored file
+    ev_repo.delete_for_document(doc_id, user_id)
+
     path = Path(stored_path)
     if path.exists():
         path.unlink(missing_ok=True)
-        # Try to remove empty user directory
         try:
             path.parent.rmdir()
         except OSError:
             pass  # Directory not empty or doesn't exist
 
+    try:
+        doc_repo.update_status(doc_id, user_id, "error", reason)
+    except Exception:
+        logger.exception("Could not mark document %s as error", doc_id)
+
 
 def _process_document(doc_id: int, user_id: int, stored_path: str, file_type: str, filename: str) -> None:
-    """Extract text, chunk, embed, store in vector DB, extract events."""
-    import sys
-    print(f"DEBUG _process_document ENTRY: doc_id={doc_id}, user_id={user_id}, file_type={file_type}", flush=True)
-    sys.stdout.flush()
-    print("DEBUG _process_document: after imports", flush=True)
-    sys.stdout.flush()
-    from app.database.repositories import DocumentRepository, ChunkRepository
-    from app.services import vector_service
-    from app.database.repositories import EventRepository
+    """Extract text, chunk, embed, store in vector DB, extract events.
 
+    On any failure the partial data is cleaned up, the document row is
+    marked 'error' with a readable reason, and the original exception is
+    re-raised so the UI reports the failure instead of a success.
+    """
     doc_repo = DocumentRepository()
     chunk_repo = ChunkRepository()
     vs = vector_service.get_vector_service()
@@ -112,17 +117,13 @@ def _process_document(doc_id: int, user_id: int, stored_path: str, file_type: st
     try:
         doc_repo.update_status(doc_id, user_id, "extracting")
         text = extraction_service.extract_text(stored_path, file_type)
-        print(f"DEBUG _process_document: extracted text length = {len(text)}", flush=True)
+        logger.debug("doc %s: extracted %d chars of text", doc_id, len(text))
 
-        # Chunk
         chunks = chunking_service.chunk_text(text, max_tokens=_get_chunk_size(), overlap_tokens=_get_chunk_overlap())
-        print(f"DEBUG: chunks count = {len(chunks)}", flush=True)
+        logger.debug("doc %s: %d chunks", doc_id, len(chunks))
 
-        # Embed
-        chunk_texts = [c.text for c in chunks]
-        embeddings = embedding_service.embed_texts(chunk_texts)
+        embeddings = embedding_service.embed_texts([c.text for c in chunks])
 
-        # Prepare for vector DB
         vector_chunks = []
         for i, (chunk, emb) in enumerate(zip(chunks, embeddings)):
             chroma_id = f"doc-{doc_id}-chunk-{i}"
@@ -135,15 +136,11 @@ def _process_document(doc_id: int, user_id: int, stored_path: str, file_type: st
                     "embedding": emb,
                 }
             )
-            # Save chunk metadata to SQL
             chunk_repo.create(doc_id, user_id, chunk.index, chunk.text, chunk.token_count, chroma_id)
 
-        # Store in vector DB
         vs.add_chunks(user_id, doc_id, filename, vector_chunks)
 
-        # Extract events
         events = event_service.extract_events(text)
-        from app.database.repositories import EventRepository
         ev_repo = EventRepository()
         for e in events:
             ev_repo.create(
@@ -154,42 +151,15 @@ def _process_document(doc_id: int, user_id: int, stored_path: str, file_type: st
                 raw_date=e.get("raw_date"),
             )
 
-        # Update document status
         preview = text[:500]
-        print(f"DEBUG _process_document: calling set_text with preview={repr(preview)}, chunks={len(chunks)}", flush=True)
-        import sys
-        sys.stdout.flush()
         doc_repo.set_text(doc_id, user_id, preview, len(chunks))
-        print(f"DEBUG _process_document: set_text returned", flush=True)
-        sys.stdout.flush()
+        logger.debug("doc %s: ready with %d chunks", doc_id, len(chunks))
 
     except Exception as e:
-        # Clean up partial data (chunks, vectors, file)
-        from app.database.repositories import DocumentRepository, ChunkRepository
-        from app.services import vector_service
-        from app.utils.config import UPLOAD_DIR
-        from pathlib import Path
-
-        doc_repo = DocumentRepository()
-        chunk_repo = ChunkRepository()
-        vs = vector_service.get_vector_service()
-
-        # Delete chunks and get chroma_ids
-        chroma_ids = chunk_repo.delete_for_document(doc_id, user_id)
-
-        # Delete vectors from ChromaDB
-        if chroma_ids:
-            vs.collection.delete(ids=chroma_ids)
-
-        # Delete stored file
-        path = Path(stored_path)
-        if path.exists():
-            path.unlink(missing_ok=True)
-            # Try to remove empty user directory
-            try:
-                path.parent.rmdir()
-            except OSError:
-                pass  # Directory not empty or doesn't exist
+        reason = f"{type(e).__name__}: {e}"
+        logger.exception("Document processing failed for %s (doc %s): %s", filename, doc_id, reason)
+        _cleanup_failed_document(doc_id, user_id, stored_path, reason)
+        raise
 
 
 def render() -> None:
@@ -246,15 +216,18 @@ def render() -> None:
             # 7. Create document record with hash
             doc = doc_repo.create(user.id, original_name, stored_path, file_type, size, file_hash=file_hash)
 
-            # 8. Process synchronously (for MVP; could be async later)
+            # 8. Process synchronously (for MVP; could be async later).
+            #    _process_document re-raises after marking the row 'error'
+            #    and cleaning up, so failures land in st.error below.
             with st.spinner(f"Processing {original_name}..."):
                 try:
                     _process_document(doc.id, user.id, stored_path, file_type, original_name)
-                    st.success(f"✅ {original_name} processed ({doc.chunk_count} chunks)")
                 except Exception as e:
-                    import logging
-                    logging.exception("Upload processing failed for %s", original_name)
-                    st.error(f"❌ {original_name}: {e}")
+                    st.error(f"❌ {original_name}: processing failed — {e}")
+                    continue
+                processed = doc_repo.get_by_id(doc.id, user.id)
+                chunk_count = processed.chunk_count if processed else 0
+                st.success(f"✅ {original_name} processed ({chunk_count} chunks)")
 
         st.rerun()
 
