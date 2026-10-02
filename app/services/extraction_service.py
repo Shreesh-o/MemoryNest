@@ -11,7 +11,7 @@ from app.services import ocr_service
 def extract_text(stored_path: str | Path, file_type: str) -> str:
     """Extract text from a stored file.
 
-    file_type is one of: pdf, docx, txt, image.
+    file_type is one of: pdf, docx, txt, image, png, jpg, jpeg, tiff, tif, bmp.
     Raises ValueError for unknown types and RuntimeError for unreadable files.
     """
     path = Path(stored_path)
@@ -25,7 +25,7 @@ def extract_text(stored_path: str | Path, file_type: str) -> str:
         return _extract_docx(path)
     if ft == "txt":
         return _extract_txt(path)
-    if ft == "image":
+    if ft in ("image", "png", "jpg", "jpeg", "tiff", "tif", "bmp"):
         return ocr_service.ocr_image(path)
     raise ValueError(f"Unsupported file type: {file_type}")
 

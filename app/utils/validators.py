@@ -10,12 +10,12 @@ ALLOWED_EXTENSIONS = {
     ".pdf": "pdf",
     ".docx": "docx",
     ".txt": "txt",
-    ".png": "image",
-    ".jpg": "image",
-    ".jpeg": "image",
-    ".tiff": "image",
-    ".tif": "image",
-    ".bmp": "image",
+    ".png": "png",
+    ".jpg": "jpg",
+    ".jpeg": "jpg",
+    ".tiff": "tiff",
+    ".tif": "tif",
+    ".bmp": "bmp",
 }
 
 # Magic bytes signatures for allowed file types
@@ -23,10 +23,10 @@ ALLOWED_MIME_TYPES = {
     "application/pdf": "pdf",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
     "text/plain": "txt",
-    "image/png": "image",
-    "image/jpeg": "image",
-    "image/tiff": "image",
-    "image/bmp": "image",
+    "image/png": "png",
+    "image/jpeg": "jpg",
+    "image/tiff": "tiff",
+    "image/bmp": "bmp",
 }
 
 
@@ -41,8 +41,10 @@ def validate_filename(filename: str) -> Tuple[bool, str]:
 
 def sanitize_filename(filename: str) -> str:
     """Sanitize filename: remove path separators, '..', limit length."""
-    # Remove path separators and normalize
-    name = Path(filename).name
+    # Handle both Unix and Windows path separators
+    name = filename.replace("\\", "/")
+    # Get just the filename part (after last /)
+    name = name.split("/")[-1]
     # Remove any remaining path traversal attempts
     name = name.replace("..", "")
     # Limit length (keep extension)

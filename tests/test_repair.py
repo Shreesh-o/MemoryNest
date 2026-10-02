@@ -125,6 +125,7 @@ def test_repair_orphan_files(temp_db, temp_chroma, temp_uploads, test_user):
     # Run repair dry run
     env = os.environ.copy()
     env["UPLOAD_DIR"] = str(temp_uploads)
+    env["CHROMA_DIR"] = str(temp_chroma)
     result = subprocess.run([
         sys.executable, "scripts/repair.py", "--db-path", str(temp_db),
     ], capture_output=True, text=True, cwd="/home/shreesh/MemoryNest", env=env)
@@ -173,6 +174,7 @@ def test_repair_chunks_without_document(temp_db, temp_chroma, temp_uploads, test
     # Run repair dry run
     env = os.environ.copy()
     env["UPLOAD_DIR"] = str(temp_uploads)
+    env["CHROMA_DIR"] = str(temp_chroma)
     result = subprocess.run([
         sys.executable, "scripts/repair.py", "--db-path", str(temp_db),
     ], capture_output=True, text=True, cwd="/home/shreesh/MemoryNest", env=env)

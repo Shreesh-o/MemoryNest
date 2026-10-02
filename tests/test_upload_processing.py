@@ -9,7 +9,6 @@ import pytest
 
 from app.database.database import init_db
 from app.database.repositories import DocumentRepository, ChunkRepository, UserRepository, EventRepository
-from app.pages.upload import _process_document
 from app.services import extraction_service, chunking_service, embedding_service, vector_service, event_service
 
 
@@ -55,6 +54,8 @@ def test_user(temp_db):
 
 def test_process_txt_document(temp_db, temp_chroma, temp_uploads, test_user):
     """Test processing a simple TXT file."""
+    from app.pages.upload import _process_document
+    
     # Create a test TXT file
     txt_content = """This is a test document.
 It has multiple lines of text.
@@ -75,6 +76,7 @@ Meeting scheduled for 2026-10-15 at 10:00 AM."""
     )
     
     # Process the document
+    from app.pages.upload import _process_document
     _process_document(doc.id, test_user.id, str(txt_path), "txt", "test.txt")
     
     # Verify document status is "ready"
@@ -103,6 +105,7 @@ Meeting scheduled for 2026-10-15 at 10:00 AM."""
 def test_process_docx_document(temp_db, temp_chroma, temp_uploads, test_user):
     """Test processing a simple DOCX file."""
     import docx
+    from app.pages.upload import _process_document
     
     # Create a test DOCX file
     docx_path = temp_uploads / "test.docx"
@@ -123,6 +126,7 @@ def test_process_docx_document(temp_db, temp_chroma, temp_uploads, test_user):
     )
     
     # Process the document
+    from app.pages.upload import _process_document
     _process_document(doc.id, test_user.id, str(docx_path), "docx", "test.docx")
     
     # Verify document status is "ready"
@@ -158,6 +162,7 @@ def test_process_document_failure_marks_failed(temp_db, temp_chroma, temp_upload
     )
     
     # Process should fail and mark document as failed
+    from app.pages.upload import _process_document
     with pytest.raises(FileNotFoundError):
         _process_document(doc.id, test_user.id, fake_path, "txt", "nonexistent.txt")
     
@@ -183,6 +188,7 @@ def test_process_document_invalid_type(temp_db, temp_chroma, temp_uploads, test_
         size_bytes=12,
     )
     
+    from app.pages.upload import _process_document
     with pytest.raises(ValueError):
         _process_document(doc.id, test_user.id, str(txt_path), "invalid_type", "test.txt")
     
@@ -211,6 +217,7 @@ def test_process_document_extracts_events(temp_db, temp_chroma, temp_uploads, te
     )
     
     # Process the document
+    from app.pages.upload import _process_document
     _process_document(doc.id, test_user.id, str(txt_path), "txt", "deadline.txt")
     
     # Verify document status is "ready"
@@ -340,6 +347,7 @@ def test_failure_cleanup_removes_partial_data(temp_db, temp_chroma, temp_uploads
     fake_path = str(temp_uploads / "nonexistent.txt")
     
     # Process should fail
+    from app.pages.upload import _process_document
     with pytest.raises(FileNotFoundError):
         _process_document(doc.id, test_user.id, fake_path, "txt", "fail_test.txt")
     
@@ -386,6 +394,7 @@ def test_document_delete_cleans_everything(temp_db, temp_chroma, temp_uploads, t
     )
     
     # Process successfully
+    from app.pages.upload import _process_document
     _process_document(doc.id, test_user.id, str(txt_path), "txt", "delete_test.txt")
     
     # Verify everything exists

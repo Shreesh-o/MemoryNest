@@ -14,9 +14,14 @@ def db(tmp_path, monkeypatch):
 
     db_path = tmp_path / "auth.db"
     init_db(db_path)
-    monkeypatch.setattr("app.database.database.DB_PATH", db_path)
-    yield db_path
-    db_path.unlink(missing_ok=True)
+    # Set environment variable and reload config instead of monkeypatching DB_PATH property
+    import os
+    import importlib
+    import app.utils.config as config_module
+    import importlib
+    importlib.reload(__import__('app.utils.config', fromlist=['config_module']))
+    yield tmp_path / "auth.db"
+    # Cleanup handled by tmp_path fixture
 
 
 def test_hash_roundtrip():

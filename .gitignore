@@ -30,3 +30,5 @@ models/
 .idea/
 .vscode/
 *.swp
+data_backup_*/
+*.bak*
