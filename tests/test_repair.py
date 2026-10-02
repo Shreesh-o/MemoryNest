@@ -135,7 +135,6 @@ def test_repair_orphan_files(temp_db, temp_chroma, temp_uploads, test_user):
 def test_repair_chunks_without_document(temp_db, temp_chroma, temp_uploads, test_user):
     """Test repair script detects and fixes chunks without document."""
     import hashlib
-    from app.database.repositories import ChunkRepository
     from app.database.repositories import DocumentRepository
     
     # Create a document and process it

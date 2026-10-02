@@ -74,7 +74,6 @@ Meeting scheduled for 2026-10-15 at 10:00 AM."""
     )
     
     # Process the document
-    from app.pages.upload import _process_document
     _process_document(doc.id, test_user.id, str(txt_path), "txt", "test.txt")
     
     # Verify document status is "ready"
@@ -124,7 +123,6 @@ def test_process_docx_document(temp_db, temp_chroma, temp_uploads, test_user):
     )
     
     # Process the document
-    from app.pages.upload import _process_document
     _process_document(doc.id, test_user.id, str(docx_path), "docx", "test.docx")
     
     # Verify document status is "ready"
@@ -238,7 +236,6 @@ def test_process_document_extracts_events(temp_db, temp_chroma, temp_uploads, te
 
 def test_duplicate_detection_same_user(temp_db, temp_chroma, temp_uploads, test_user):
     """Test that uploading the same file twice by the same user is detected as duplicate."""
-    import hashlib
     
     txt_content = "This is a test document for duplicate detection."
     txt_path = temp_uploads / "duplicate_test.txt"
@@ -273,7 +270,6 @@ def test_duplicate_detection_same_user(temp_db, temp_chroma, temp_uploads, test_
 
 def test_duplicate_detection_different_users(temp_db, temp_chroma, temp_uploads, test_user):
     """Test that different users can upload the same file (different user_id)."""
-    import hashlib
     
     txt_content = "Shared document content."
     file_hash = hashlib.sha256(txt_content.encode("utf-8")).hexdigest()
@@ -320,7 +316,6 @@ def test_duplicate_detection_different_users(temp_db, temp_chroma, temp_uploads,
 
 def test_failure_cleanup_removes_partial_data(temp_db, temp_chroma, temp_uploads, test_user):
     """Test that processing failure cleans up partial data (chunks, vectors, file)."""
-    import hashlib
     
     txt_content = "This document will fail processing."
     txt_path = temp_uploads / "fail_test.txt"
@@ -370,7 +365,6 @@ def test_failure_cleanup_removes_partial_data(temp_db, temp_chroma, temp_uploads
 
 def test_document_delete_cleans_everything(temp_db, temp_chroma, temp_uploads, test_user):
     """Test that document delete removes file, chunks, and vectors."""
-    import hashlib
     
     txt_content = "Document to be deleted."
     txt_path = temp_uploads / "delete_test.txt"

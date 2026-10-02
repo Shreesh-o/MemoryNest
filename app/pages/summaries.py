@@ -54,10 +54,10 @@ def render() -> None:
             full_text = doc.text_preview or "No text preview available"
             try:
                 summary_text = summary_service.summarize_document(full_text)
-            except Exception as exc:
+            except RuntimeError as e:
                 import logging
                 logging.exception("Summary generation failed for doc %s", doc.id)
-                st.error(f"Summary generation failed: {exc}")
+                st.error(str(e))
                 summary_text = None
 
         if summary_text:

@@ -76,10 +76,10 @@ def render() -> None:
                                     )
                                 st.success(f"Extracted {len(events)} event(s)")
                                 st.rerun()
-                        except Exception as e:
+                        except RuntimeError as e:
                             import logging
                             logging.exception("Event extraction failed for doc %s", doc.id)
-                            st.error(f"Extraction failed: {e}")
+                            st.error(str(e))
 
     with tab_pending:
         st.subheader("Events awaiting confirmation")

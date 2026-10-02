@@ -17,7 +17,11 @@ _MOCK_RESPONSE = (
 )
 
 _ollama_available_cache: Optional[bool] = None
-MOCK_MODE_ACTIVE = False
+
+
+def is_mock_mode() -> bool:
+    """Return True when MOCK_LLM=1 is set, evaluated at call time."""
+    return os.environ.get("MOCK_LLM") == "1"
 
 
 def is_ollama_available(timeout: float = 2.0) -> bool:
@@ -45,13 +49,12 @@ def generate(
 ) -> str:
     """Generate text from Ollama.
 
-    - MOCK_LLM=1 enables mock mode (with warning flag for the UI).
+    - is_mock_mode() is evaluated at call time; if True, a mock response
+      is returned and a warning is logged for the UI sidebar.
     - If Ollama is unavailable and MOCK_LLM is not set, raises RuntimeError.
     - Otherwise performs the real HTTP call.
     """
-    global MOCK_MODE_ACTIVE
-    if os.environ.get("MOCK_LLM") == "1":
-        MOCK_MODE_ACTIVE = True
+    if is_mock_mode():
         logging.warning("Mock LLM mode is active: answers are not real.")
         return _MOCK_RESPONSE
     if not is_ollama_available():

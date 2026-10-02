@@ -282,7 +282,6 @@ def test_upload_batch_rejected_file_does_not_stop_valid_files(tmp_path, monkeypa
 
     # Create a PNG with text that OCR can recognize
     import fitz
-    from PIL import Image, ImageDraw, ImageFont
     valid_png = tmp_path / "valid.png"
     img = Image.new('RGB', (400, 200), color='white')
     draw = ImageDraw.Draw(img)
@@ -348,7 +347,6 @@ def test_upload_batch_rejected_file_does_not_stop_valid_files(tmp_path, monkeypa
             continue
 
         # Save and process
-        from app.pages.upload import _save_uploaded_file, _process_document
         from app.database.repositories import DocumentRepository
         doc_repo = DocumentRepository()
 
