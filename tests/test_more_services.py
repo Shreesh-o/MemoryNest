@@ -33,18 +33,23 @@ def test_tts_unavailable(monkeypatch):
     monkeypatch.setattr(tts_mod, "_get_engine", lambda: None)
     monkeypatch.setattr(tts_mod, "_tts_engine", None)
     monkeypatch.setattr(tts_mod, "_tts_available", False)
+    monkeypatch.setattr(tts_mod, "_check_espeak", lambda: False)
+    tts_mod.reset_cache()
 
-    result = tts_service.synthesize_to_file("hello")
-    assert result is None
-    assert tts_service.tts_available() is False
+    try:
+        tts_service.synthesize_to_file("hello")
+        assert False, "Expected RuntimeError"
+    except RuntimeError as e:
+        assert "Audio generation failed" in str(e)
 
 
 def test_tts_available(monkeypatch):
     # When espeak-ng is available, synthesis should produce a file
     # This test runs with real pyttsx3 (espeak-ng is installed on the system)
-    result = tts_service.synthesize_to_file("test")
+    tts_service.reset_cache()
     if tts_service.tts_available():
-        assert result is not None
+        result = tts_service.synthesize_to_file("test")
+        assert isinstance(result, str)
         assert result.endswith(".wav")
     else:
         pytest.skip("espeak-ng not available in this environment")
