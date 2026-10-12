@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
+from datetime import datetime
 from typing import List, Optional
 
 import dateparser
 
 from app.services import llm_service
+
+logger = logging.getLogger(__name__)
 
 _DATE_REGEXES = [
     # ISO and common formats
@@ -18,16 +22,61 @@ _DATE_REGEXES = [
     r"\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* \d{1,2},? \d{4}\b",  # Oct 15, 2026
     r"\b\d{1,2} (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* \d{4}\b",  # 15 Oct 2026
     r"\b(?:January|February|March|April|May|June|July|August|September|October|November|December) \d{1,2},? \d{4}\b",
-    # Relative/worded dates (dateparser handles these)
+    # Ordinal formats: 26th October, 5th Nov
+    r"\b\d{1,2}(?:st|nd|rd|th) (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*(?:uary|uary|ruary|ch|il|ust|ember|ember|ember)?\b",
+    r"\b\d{1,2}(?:st|nd|rd|th) (?:January|February|March|April|May|June|July|August|September|October|November|December)\b",
+    # Month + day without year: October 30, Oct 15
+    r"\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* \d{1,2}\b",
+    r"\b(?:January|February|March|April|May|June|July|August|September|October|November|December) \d{1,2}\b",
+    # Relative dates
+    r"\b(?:tomorrow|today|next week|next month|next year|yesterday)\b",
 ]
 
 _COMPILED_REGEXES = [re.compile(rx, re.IGNORECASE) for rx in _DATE_REGEXES]
+
+# Dateparser settings for Indian date formats
+dateparser_settings = {
+    "DATE_ORDER": "DMY",
+    "PREFER_DATES_FROM": "future",
+    "TIMEZONE": "Asia/Kolkata",
+}
+
+
+def _get_relative_base() -> datetime:
+    return datetime.now()
+
+
+def _parse_date(raw: str) -> Optional[datetime]:
+    """Parse a date string using dateparser with appropriate settings.
+
+    For ISO dates (YYYY-MM-DD), DATE_ORDER doesn't affect them.
+    For slash dates (DM/YM), DMY ordering is needed for Indian format.
+    For month+day without year, dateparser infers the year.
+    For relative dates, RELATIVE_BASE is set to now.
+    """
+    # Check if it's an ISO date (YYYY-MM-DD) - don't use DATE_ORDER for these
+    if re.match(r"^\d{4}-\d{1,2}-\d{1,2}$", raw):
+        parsed = dateparser.parse(raw, languages=["en"], settings={
+            "PREFER_DATES_FROM": "future",
+            "TIMEZONE": "Asia/Kolkata",
+        })
+    else:
+        parsed = dateparser.parse(raw, languages=["en"], settings=dateparser_settings)
+    return parsed
+
+
+def _is_past_date(parsed: datetime) -> bool:
+    """Check if a parsed date is in the past (relative to now)."""
+    now = datetime.now()
+    return parsed < now
 
 
 def _extract_with_regex(text: str) -> List[dict]:
     """Find date-like spans in text using regex, parse with dateparser."""
     events = []
     sentences = re.split(r"(?<=[.!?])\s+|\n+", text)
+    logger.info("Event extraction: %d chars, %d candidate lines", len(text), len(sentences))
+
     for sent in sentences:
         sent = sent.strip()
         if not sent:
@@ -35,8 +84,11 @@ def _extract_with_regex(text: str) -> List[dict]:
         for rx in _COMPILED_REGEXES:
             for m in rx.finditer(sent):
                 raw = m.group(0)
-                parsed = dateparser.parse(raw, languages=["en"])
+                parsed = _parse_date(raw)
                 if parsed:
+                    if _is_past_date(parsed):
+                        logger.info("Dropped past date: %s -> %s (before today)", raw, parsed.date().isoformat())
+                        continue
                     events.append(
                         {
                             "event_text": sent[:500],
@@ -47,6 +99,7 @@ def _extract_with_regex(text: str) -> List[dict]:
                     break  # one date per sentence is enough
             if events and events[-1]["event_text"] == sent[:500]:
                 break
+    logger.info("Regex extraction found %d events", len(events))
     return events
 
 

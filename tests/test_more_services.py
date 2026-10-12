@@ -78,6 +78,44 @@ def test_event_extraction_no_dates():
     assert isinstance(events, list)
 
 
+def test_event_extraction_indian_date_formats(monkeypatch):
+    """All 8 lines from BUG 2 produce events with the correct date."""
+    from datetime import datetime
+    from unittest.mock import patch
+
+    lines = [
+        "Submission deadline: 15 October 2026",
+        "Project review on 20 Oct 2026 at 3 PM",
+        "Exam: 25/10/2026",
+        "Report due 2026-11-02",
+        "Viva on Monday 26th October",
+        "Fee payment last date - 5th Nov",
+        "Meeting tomorrow at 5 pm",
+        "Assignment submission by October 30",
+    ]
+    expected_dates = [
+        "2026-10-15",
+        "2026-10-20",
+        "2026-10-25",
+        "2026-11-02",
+        "2026-10-26",
+        "2026-11-05",
+        "2026-10-13",  # tomorrow from 2026-10-12
+        "2026-10-30",
+    ]
+
+    text = "\n".join(lines)
+    with patch.object(event_service, "datetime") as mock_dt:
+        mock_dt.now.return_value = datetime(2026, 10, 12)
+        events = event_service.extract_events(text)
+
+    assert len(events) == 8, f"Expected 8 events, got {len(events)}"
+
+    found_dates = [e["event_date"] for e in events]
+    for expected, line in zip(expected_dates, lines):
+        assert expected in found_dates, f"Missing date {expected} for line: {line}"
+
+
 def test_email_config_missing(monkeypatch):
     monkeypatch.delenv("EMAIL_USERNAME", raising=False)
     monkeypatch.delenv("EMAIL_APP_PASSWORD", raising=False)
