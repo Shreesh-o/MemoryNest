@@ -260,10 +260,12 @@ def synthesize_with_espeak_ng(
                 "-p", "50",     # pitch 50
                 "-w", tmp_path,
             ]
-            result = subprocess.run(
+            subprocess.run(
                 cmd, input=text, capture_output=True, text=True, timeout=60
             )
-            if result.returncode != 0 or not Path(tmp_path).exists():
+            if subprocess.run(
+                cmd, input=text, capture_output=True, text=True, timeout=60
+            ).returncode != 0 or not Path(tmp_path).exists():
                 # Clean up and try next variant
                 if Path(tmp_path).exists():
                     Path(tmp_path).unlink(missing_ok=True)
@@ -527,7 +529,7 @@ def _synthesize_with_edge(text: str, output_path: str) -> bool:
             
             # Convert MP3 to WAV with ffmpeg
             wav_path = Path(output_path).with_suffix(".wav")
-            result = subprocess.run(
+            subprocess.run(
                 ["ffmpeg", "-i", output_path,
                  "-ar", "16000", "-ac", "1", "-y", str(wav_path)],
                 capture_output=True, timeout=30,

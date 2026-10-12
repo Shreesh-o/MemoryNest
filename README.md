@@ -1,164 +1,92 @@
-# MemoryNest
+# MemoryNest — Personal Knowledge Manager
 
-Personal knowledge management with local RAG. Upload documents (PDF, DOCX, TXT, images), extract text (OCR for images), embed with sentence-transformers, store in ChromaDB, and ask natural-language questions answered by a local Ollama LLM with source citations.
+MemoryNest is a local, privacy-first web app for storing, searching, and summarizing personal documents and images. Upload PDFs, DOCX files, TXT files, and images (via OCR) — all processing happens offline on your machine. Ask natural-language questions via RAG, generate audio summaries, and extract calendar events with email reminders.
+
+## Objectives
+
+1. **Centralized storage** — Upload and index PDFs, DOCX, TXT, and images (OCR) in a SQLite + ChromaDB-backed portal, each user isolated by `user_id`.
+2. **Extraction from PDF/DOCX/scanned files** — PyMuPDF, python-docx, and Tesseract OCR extract text from all supported types; chunking splits text into ~450-character segments with 50-character overlap.
+3. **Semantic search and RAG question answering** — Sentence-transformers embed queries/retrieved chunks; a local Ollama LLM answers with citations; a similarity gate refuses low-confidence answers.
+4. **Text and audio summaries** — Map-reduce summarization of long documents; TTS (edge-tts or espeak-ng) renders summaries as WAV; the Summaries page adds a download button.
+5. **Important dates/deadlines with calendar reminders** — Regex + dateparser extract events from any document text; confirmed events export to .ics; on-demand "Check now" button triggers email via Gmail SMTP (app password) or local calendar .ics download.
 
 ## Features
 
-- **Document ingestion**: PDF (PyMuPDF), DOCX (python-docx), TXT, images (Tesseract OCR)
-- **Chunking**: sentence-aware, ~450 tokens with ~50 token overlap
-- **Embeddings**: all-MiniLM-L6-v2 via sentence-transformers (CPU)
-- **Vector DB**: ChromaDB local persistent mode
-- **RAG**: top-5 retrieval, similarity threshold gate, LLM answers with citations
-- **Local LLM**: Ollama with qwen2.5:3b-instruct (or llama3.2:3b)
-- **Conversation history**: per-user, searchable
-- **Summaries**: map-reduce for long documents
-- **TTS**: offline pyttsx3 (needs espeak-ng)
-- **Event extraction**: regex + dateparser, LLM fallback
-- **Email reminders**: Gmail SMTP with app password, on-demand "check" button
-- **Calendar export**: .ics file download for confirmed events and scheduled reminders
-- **Auth**: username/password with bcrypt, Streamlit session state
+- Document ingestion: PDF (PyMuPDF), DOCX (python-docx), TXT, images (Tesseract OCR)
+- Chunking: sentence-aware, ~450 characters with 50-character overlap
+- Embeddings: all-MiniLM-L6-v2 via sentence-transformers (CPU-only)
+- Vector DB: ChromaDB local persistent mode, user-id filtered
+- RAG: top-5 retrieval, similarity threshold gate, LLM answers with citations
+- Local LLM: Ollama with qwen2.5:3b-instruct (3B, CPU-compatible)
+- Conversation history: per-user, searchable, per-session
+- Summaries: map-reduce for long documents; TTS renders audio; download button
+- Event extraction: regex + dateparser, LLM fallback; .ics export for confirmed events
+- Email reminders: Gmail SMTP with app password, on-demand "check" button
+- Auth: username/password with bcrypt, Streamlit session state
 
-## Quick Start
+## Tech Stack
 
-### Prerequisites (Arch/Omarchy)
+- **Frontend**: Streamlit (Python)
+- **Backend**: Python, SQLite, ChromaDB
+- **LLM**: Ollama (qwen2.5:3b-instruct, 3B)
+- **Embeddings**: sentence-transformers all-MiniLM-L6-v2
+- **OCR**: Tesseract (via pytesseract)
+- **TTS**: edge-tts (online, MP3→WAV w/ ffmpeg) / espeak-ng (offline) / pyttsx3 (fallback)
+- **Email**: smtplib (Gmail SMTP, app password)
+- **OCR**: Tesseract (system package)
+- **Charts/Reports**: None (data-focused app)
+
+## Setup (Linux)
 
 ```bash
 # System packages
-sudo pacman -S tesseract tesseract-data-eng espeak-ng
+sudo apt-get install tesseract-ocr espeak-ng ffmpeg
 
-# Ollama (if not installed)
+# Ollama
 curl -fsSL https://ollama.ai/install.sh | sh
-ollama pull qwen2.5:3b-instruct  # or llama3.2:3b
-```
+ollama pull qwen2.5:3b-instruct
 
-### Install
-
-```bash
-git clone <this-repo>
-cd MemoryNest
-python -m venv .venv
+# Python venv
+python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
-# Edit .env with your email credentials (optional, for reminders)
-```
 
-### Run
-
-```bash
+# Run
 streamlit run app/main.py
 ```
 
-Open http://localhost:8501. Register an account, upload documents, then ask questions on the **Ask (RAG)** page.
+Open http://localhost:8501. Register, upload documents, then ask questions on the **Ask (RAG)** page.
 
-## Configuration
+## Voice Options
 
-All settings via `.env` (copy from `.env.example`):
+- **auto** (default): tries edge-tts → espeak-ng → pyttsx3, stopping at the first that works
+- **edge**: online via edge-tts; needs internet (10 s timeout); MP3→WAV conversion with ffmpeg; voice `en-IN-NeerjaNeural`
+- **espeak-ng**: offline, lower quality (raspy/robotic); CLI flags `-s 150 -g 3 -p 50`
+- **pyttsx3**: fallback only (not installed in venv)
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `OLLAMA_HOST` | `http://localhost:11434` | Ollama API endpoint |
-| `OLLAMA_MODEL` | `qwen2.5:3b-instruct` | Model to use |
-| `EMBEDDING_MODEL` | `all-MiniLM-L6-v2` | Sentence-transformers model |
-| `DB_PATH` | `data/memorynest.db` | SQLite database |
-| `CHROMA_DIR` | `data/chroma` | ChromaDB persistence |
-| `UPLOAD_DIR` | `data/uploads` | Stored uploads |
-| `AUDIO_DIR` | `data/audio` | TTS output |
-| `RAG_TOP_K` | `5` | Retrieval count |
-| `RAG_MIN_SIMILARITY` | `0.30` | Min cosine similarity to answer |
-| `CHUNK_SIZE` | `450` | Target tokens per chunk |
-| `CHUNK_OVERLAP` | `50` | Overlap tokens |
-| `EMAIL_HOST` | `smtp.gmail.com` | SMTP host |
-| `EMAIL_PORT` | `587` | SMTP port |
-| `EMAIL_USERNAME` | | Gmail address |
-| `EMAIL_APP_PASSWORD` | | Gmail app password |
-| `RECIPIENT_EMAIL` | | Where reminders are sent |
+## Known Limitations
 
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Streamlit Frontend                        │
-│  ┌─────────┬─────────┬─────────┬─────────┬────────────────┐ │
-│  │Dashboard│ Upload  │Documents│  Ask    │ History/       │ │
-│  │         │         │         │ (RAG)   │ Summaries/     │ │
-│  │         │         │         │         │ Reminders      │ │
-│  └────┬────┴────┬────┴────┬────┴────┬────┴────────┬──────┘ │
-└───────┼─────────┼─────────┼─────────┼─────────────┼────────┘
-        │         │         │         │             │
-        ▼         ▼         ▼         ▼             ▼
-┌─────────────────────────────────────────────────────────────┐
-│                      Service Layer                           │
-│  ┌──────────┐ ┌─────────┐ ┌──────────┐ ┌────────────────┐  │
-│  │Extract   │ │Chunking │ │Embedding │ │Vector (Chroma) │  │
-│  │(PDF/DOCX│ │(sentence│ │(MiniLM)  │ │(cosine, user_id)│  │
-│  │ TXT/OCR)│ │ aware)  │ │          │ │                │  │
-│  └────┬─────┘ └────┬────┘ └────┬─────┘ └───────┬────────┘  │
-│       │            │           │               │           │
-│       ▼            ▼           ▼               ▼           │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │                    RAG Pipeline                        │  │
-│  │  query → embed → retrieve → threshold → LLM → answer  │  │
-│  └──────────────────────────────────────────────────────┘  │
-│       │                    │                    │           │
-│       ▼                    ▼                    ▼           │
-│  ┌──────────┐        ┌──────────┐         ┌──────────┐     │
-│  │Summary   │        │  Event   │         │  Email   │     │
-│  │(map-red) │        │ extraction│        │ reminders│     │
-│  └──────────┘        └──────────┘         └──────────┘     │
-└─────────────────────────────────────────────────────────────┘
-        │                    │                    │
-        ▼                    ▼                    ▼
-┌─────────────────────────────────────────────────────────────┐
-│                      Storage Layer                           │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐   │
-│  │  SQLite      │  │  ChromaDB    │  │  Filesystem      │   │
-│  │  (metadata,  │  │  (vectors,   │  │  (uploads/,      │   │
-│  │   chunks,    │  │   user_id    │  │   audio/)        │   │
-│  │   events,    │  │   filter)    │  │                  │   │
-│  │   reminders) │  │              │  │                  │   │
-│  └──────────────┘  └──────────────┘  └──────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
-```
-
-Security: Every user's data is isolated by `user_id` — all SQL tables and Chroma metadata carry `user_id`, and every query filters on it.
-
-## Project Structure
-
-```
-memorynest/
-├── app/
-│   ├── main.py              # Streamlit entry, auth gate, navigation
-│   ├── pages/               # 7 pages: dashboard, upload, documents, chat, history, summaries, reminders
-│   ├── services/            # Core logic: extraction, OCR, chunking, embedding, vector, RAG, LLM, summary, TTS, events, email
-│   ├── database/            # SQLite schema, models, repositories
-│   └── utils/               # Config, security (bcrypt), validators, auth helpers
-├── data/                    # Runtime data (gitignored)
-├── tests/                   # pytest unit tests (50+)
-├── requirements.txt
-├── .env.example
-└── README.md
-```
-
-## Testing
-
-```bash
-pytest tests/ -q
-# 50 tests covering: DB CRUD, auth, extraction, OCR, chunking, embeddings, vector, RAG, summary, TTS, events, email
-```
+- Processing is synchronous — the UI freezes during extraction/summarization/TTS
+- No background scheduler — reminders are on-demand via a "Check now" button
+- Requires local Ollama; 3B model (`qwen2.5:3b-instruct`) is the smallest recommended
+- Scanned-document OCR quality depends on scan resolution and contrast
+- Email reminders need Gmail app password; no other providers configured
 
 ## Future Scope
 
-These features are explicitly **not implemented** in this build but are designed for:
+- Knowledge Graph (Neo4j): entities/relations extracted from documents, graph-RAX traversals
+- WhatsApp notifications: replace/supplement email with WhatsApp Business API
+- Google Calendar sync: two-way sync via Calendar API (currently .ics export only)
+- PostgreSQL: replace SQLite for multi-user concurrency
+- Docker/Compose: containerize Ollama, Chroma, and the app
+- Background scheduler: APScheduler/cron for automatic reminder checks
+- Audio/video input: not planned — text/image only
+- Multi-modal RCLIP: image embeddings alongside text for visual search
 
-- **Knowledge Graph (Neo4j)**: Entities/relationships extracted from documents, stored in Neo4j alongside vectors. Would enable graph-RAG traversals (e.g., "what projects is person X involved in?"). The current `Event` table is a lightweight precursor — could be expanded to a full entity/relation store.
-- **WhatsApp notifications**: Replace/supplement email with WhatsApp Business API or a self-hosted bridge (e.g., whatsapp-web.js). Requires external service integration.
-- **Google Calendar sync**: Two-way sync of confirmed events/reminders via Calendar API. Current implementation provides .ics file export for manual import into Google Calendar, Outlook, or phone calendars. Direct API sync needs OAuth flow.
-- **PostgreSQL**: Replace SQLite for multi-user concurrency and horizontal scaling. Current schema is portable.
-- **Docker/Compose**: Containerize Ollama, Chroma, and the app for reproducible deployment. Current design is single-process + local services.
-- **Background scheduler**: APScheduler/cron for automatic reminder checks. Current MVP uses an on-demand button.
-- **Audio/video input**: Not planned — text/image only.
-- **Multi-modal RAG**: Image embeddings (CLIP) alongside text for visual search.
+## Screenshots
+
+![Screenshots](docs/screenshots/)
 
 ## License
 

@@ -33,3 +33,4 @@ models/
 data_backup_*/
 *.bak*
 data_old/
+AUDIT_REPORT.md

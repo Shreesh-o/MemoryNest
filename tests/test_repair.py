@@ -89,14 +89,14 @@ def test_repair_orphan_vectors(temp_db, temp_chroma, temp_uploads, test_user):
     env["CHROMA_DIR"] = str(temp_chroma)
     result = subprocess.run([
         sys.executable, "scripts/repair.py", "--db-path", str(temp_db),
-    ], capture_output=True, text=True, cwd="/home/shreesh/MemoryNest", env=env)
+    ], capture_output=True, text=True, cwd=str(Path(__file__).resolve().parents[1]), env=env)
     
     assert "orphan" in result.stdout.lower()
     
     # Run repair with fix
     result = subprocess.run([
         sys.executable, "scripts/repair.py", "--fix", "--yes", "--db-path", str(temp_db),
-    ], capture_output=True, text=True, cwd="/home/shreesh/MemoryNest", env=env)
+    ], capture_output=True, text=True, cwd=str(Path(__file__).resolve().parents[1]), env=env)
     
     # Verify orphan vector was removed
     vs = vector_service.get_vector_service()
@@ -119,14 +119,14 @@ def test_repair_orphan_files(temp_db, temp_chroma, temp_uploads, test_user):
     env["CHROMA_DIR"] = str(temp_chroma)
     result = subprocess.run([
         sys.executable, "scripts/repair.py", "--db-path", str(temp_db),
-    ], capture_output=True, text=True, cwd="/home/shreesh/MemoryNest", env=env)
+    ], capture_output=True, text=True, cwd=str(Path(__file__).resolve().parents[1]), env=env)
     
     assert "orphan" in result.stdout.lower()
     
     # Run repair with fix
     result = subprocess.run([
         sys.executable, "scripts/repair.py", "--fix", "--yes", "--db-path", str(temp_db),
-    ], capture_output=True, text=True, cwd="/home/shreesh/MemoryNest", env=env)
+    ], capture_output=True, text=True, cwd=str(Path(__file__).resolve().parents[1]), env=env)
     
     # Verify orphan file was removed
     assert not orphan_file.exists()
@@ -167,14 +167,14 @@ def test_repair_chunks_without_document(temp_db, temp_chroma, temp_uploads, test
     env["CHROMA_DIR"] = str(temp_chroma)
     result = subprocess.run([
         sys.executable, "scripts/repair.py", "--db-path", str(temp_db),
-    ], capture_output=True, text=True, cwd="/home/shreesh/MemoryNest", env=env)
+    ], capture_output=True, text=True, cwd=str(Path(__file__).resolve().parents[1]), env=env)
     
     assert "chunk" in result.stdout.lower()
     
     # Run repair with fix
     result = subprocess.run([
         sys.executable, "scripts/repair.py", "--fix", "--yes", "--db-path", str(temp_db),
-    ], capture_output=True, text=True, cwd="/home/shreesh/MemoryNest", env=env)
+    ], capture_output=True, text=True, cwd=str(Path(__file__).resolve().parents[1]), env=env)
     
     # Verify orphan chunks were removed
     chunk_repo = ChunkRepository()
@@ -195,7 +195,7 @@ def test_repair_default_db_path_from_config(temp_db, temp_chroma, temp_uploads, 
     assert env["DB_PATH"] == str(temp_db)  # the autouse fixture's DB
     result = subprocess.run(
         [sys.executable, "scripts/repair.py"],
-        capture_output=True, text=True, cwd="/home/shreesh/MemoryNest", env=env,
+        capture_output=True, text=True, cwd=str(Path(__file__).resolve().parents[1]), env=env,
     )
 
     # Dry run on the config default: no crash, path shown, issue found
@@ -215,7 +215,7 @@ def test_repair_fix_refused_without_yes(temp_db, temp_chroma, temp_uploads, test
     env = os.environ.copy()
     result = subprocess.run(
         [sys.executable, "scripts/repair.py", "--fix", "--db-path", str(temp_db)],
-        capture_output=True, text=True, cwd="/home/shreesh/MemoryNest", env=env,
+        capture_output=True, text=True, cwd=str(Path(__file__).resolve().parents[1]), env=env,
     )
 
     assert result.returncode == 2
@@ -233,7 +233,7 @@ def test_repair_fix_with_yes(temp_db, temp_chroma, temp_uploads, test_user):
     env = os.environ.copy()
     result = subprocess.run(
         [sys.executable, "scripts/repair.py", "--fix", "--yes", "--db-path", str(temp_db)],
-        capture_output=True, text=True, cwd="/home/shreesh/MemoryNest", env=env,
+        capture_output=True, text=True, cwd=str(Path(__file__).resolve().parents[1]), env=env,
     )
 
     assert result.returncode == 0

@@ -11,7 +11,8 @@ from pathlib import Path
 import pytest
 
 # Guard: fail if any test touches the real data/ folder
-REAL_DATA_DIR = Path("/home/shreesh/MemoryNest/data").resolve()
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+DATA_DIR = PROJECT_ROOT / "data"
 
 
 def _check_real_data_access(path: Path) -> None:
@@ -19,7 +20,7 @@ def _check_real_data_access(path: Path) -> None:
         resolved = path.resolve()
     except (OSError, ValueError):
         return
-    if resolved == REAL_DATA_DIR or REAL_DATA_DIR in resolved.parents:
+    if resolved == DATA_DIR or DATA_DIR in resolved.parents:
         pytest.fail(f"Test attempted to access real data directory: {resolved}")
 
 

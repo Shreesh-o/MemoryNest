@@ -11,7 +11,7 @@ User → Streamlit UI (7 pages)
          ↓
     Auth (bcrypt + session)
          ↓
-    Services (11 modules)
+    Services (12 modules)
          ↓
     ┌─────────────────────────────────────┐
     │  SQLite (metadata, users, chunks)   │
@@ -45,7 +45,7 @@ memorynest/
 │   │   ├── rag_service.py          # Query → embed → retrieve → LLM
 │   │   ├── llm_service.py          # Ollama client (+ mock)
 │   │   ├── summary_service.py      # Map-reduce summarization
-│   │   ├── tts_service.py          # pyttsx3 (offline)
+│   │   ├── tts_service.py          # piper/edge/espeak/pyttsx3 TTS
 │   │   ├── event_service.py        # Regex + dateparser + LLM fallback
 │   │   ├── email_service.py        # SMTP (Gmail app password)
 │   │   └── ics_service.py          # .ics calendar export
@@ -58,7 +58,7 @@ memorynest/
 │   ├── uploads/
 │   ├── audio/
 │   └── chroma/
-├── tests/                   # 51 unit tests
+├── tests/                   # 112 unit tests
 ├── requirements.txt
 ├── .env.example
 └── README.md
@@ -66,7 +66,7 @@ memorynest/
 
 ---
 
-## 3. Database Tables (9)
+## 2. Database Tables (9)
 
 | Table | Purpose | Key Fields |
 |-------|---------|------------|
@@ -84,7 +84,7 @@ memorynest/
 
 ---
 
-## 4. Services (What Each Does)
+## 3. Services (What Each Does)
 
 | Service | Input → Output | Dependencies |
 |---------|---------------|--------------|
@@ -96,56 +96,54 @@ memorynest/
 | `rag_service` | question → RAGResult(answer, sources) | embedding + vector + llm |
 | `llm_service` | prompt → response | Ollama HTTP API (qwen2.5:3b-instruct) |
 | `summary_service` | full_text → summary | llm + chunking (map-reduce) |
-| `tts_service` | text → .wav path | pyttsx3 (needs espeak-ng) |
+| `tts_service` | text → .wav path | piper (neural, offline) / edge-tts (online, MP3→WAV w/ ffmpeg) / espeak-ng (offline) / pyttsx3 (fallback) |
 | `event_service` | text → List[event] | regex + dateparser + LLM fallback |
 | `email_service` | subject, body → (success, detail) | smtplib (Gmail) |
 | `ics_service` | events list → .ics bytes | icalendar |
 
 ---
 
-## 5. Pages (User-Facing)
+## 4. Pages (User-Facing)
 
 | Page | Key Features |
 |------|--------------|
 | Dashboard | Counts, upcoming deadlines, pending events, due reminders, recent chats |
 | Upload | Multi-file, validation, sync processing, status updates |
 | Documents | List with preview, delete (cascades to Chroma + chunks) |
-| Chat (Ask) | Streaming chat UI, RAG answers with expandable source citations |
+| Chat (Ask) | Streaming chat UI, RAG answers with citations |
 | History | Conversation list, keyword search, load/delete |
 | Summaries | Pick doc → generate (map-reduce) → view + TTS play |
 | Reminders | 3 tabs: Extract from doc / Pending confirm / Scheduled + "Check now" + .ics export |
 
 ---
 
-## 6. Config (via `.env`)
-
+## 5. Config (via `.env`)
 ```
-OLLAMA_HOST, OLLAMA_MODEL
-EMBEDDING_MODEL
-DB_PATH, CHROMA_DIR, UPLOAD_DIR, AUDIO_DIR
-RAG_TOP_K, RAG_MIN_SIMILARITY (0.30), CHUNK_SIZE (450), CHUNK_OVERLAP (50)
+OLLAMA_HOST, OLLAMA_MODEL, EMBEDDING_MODEL, DB_PATH, CHROMA_DIR, UPLOAD_DIR, AUDIO_DIR
+RAG_TOP_K, RAG_MIN_SIMILARITY, CHUNK_SIZE, CHUNK_OVERLAP
 EMAIL_HOST, EMAIL_PORT, EMAIL_USERNAME, EMAIL_APP_PASSWORD, RECIPIENT_EMAIL
+TTS_ENGINE, TTS_VOICE
 ```
 
 ---
 
-## 7. What's Explicitly OUT of Scope (Future Scope)
+## 6. What's Explicitly OUT of Scope (Future Scope)
 
-- Neo4j / Knowledge Graph
+- Knowledge Graph (Neo4j)
 - WhatsApp notifications
 - **Direct Google Calendar API sync** — .ics file export is implemented for manual import
 - PostgreSQL / Docker / docker-compose
-- Background scheduler (APScheduler/cron) — uses on-demand button instead
+- **Background scheduler** (APScheduler/cron) — uses on-demand button instead
 - Audio/video input
 - Multi-modal RAG (CLIP for images)
 
 ---
 
-## 8. Decision Points for You
+## 7. Decision Points for You
 
 | Component | Can Remove? | Impact |
 |-----------|-------------|--------|
-| TTS (pyttsx3) | Yes | Remove `tts_service.py`, Summaries page "Play" button, `espeak-ng` dep |
+| TTS (piper/edge/espeak/pyttsx3) | Yes | Remove `tts_service.py`, Summaries page "Play" button, audio output |
 | Email reminders | Yes | Remove `email_service.py`, Reminders tab 3, SMTP config |
 | Event extraction | Yes | Remove `event_service.py`, Reminders tab 1+2, LLM fallback call |
 | Summaries (map-reduce) | Yes | Remove `summary_service.py`, Summaries page |
@@ -159,7 +157,7 @@ EMAIL_HOST, EMAIL_PORT, EMAIL_USERNAME, EMAIL_APP_PASSWORD, RECIPIENT_EMAIL
 
 ---
 
-## 9. Minimal Viable Subset (If Cutting Hard)
+## 8. Minimal Viable Subset (If Cutting Hard)
 
 Keep only:
 - `main.py` (auth + nav)
@@ -169,6 +167,20 @@ Keep only:
 - `rag_service.py` + `llm_service.py`
 - `chat.py`
 - `database/` (users, documents, chunks, conversations, messages)
-- SQLite + ChromaDB
+- `utils/` (config, bcrypt, validators, auth helpers)
 
 Removes: summaries, TTS, events, reminders, email, history, documents page, OCR, DOCX.
+
+---
+
+## 8. Future Scope
+
+- Knowledge Graph (Neo4j): entities/relations extracted from documents, graph-RAX traversals
+- WhatsApp notifications: replace/supplement email with WhatsApp Business API
+- Google Calendar sync: two-way sync via Calendar API (currently .ics export only)
+- PostgreSQL: replace SQLite for multi-user concurrency and horizontal scaling
+- Docker/Compose: containerize Ollama, Chroma, and the app for reproducible deployment
+- Background scheduler: APScheduler/cron for automatic reminder checks
+- Audio/video input: not planned — text/image only
+- Multi-modal RAG: CLIP embeddings alongside text for visual search
+
