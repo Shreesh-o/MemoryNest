@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import chromadb
-import logging
 from chromadb.config import Settings
 
 from app.utils.config import CHROMA_DIR, EMBEDDING_MODEL
@@ -13,8 +12,6 @@ class VectorService:
     """Thin wrapper around Chroma's PersistentClient with a single collection."""
 
     _instance = None
-
-    logger = logging.getLogger(__name__)
 
     def __new__(cls):
         if cls._instance is None:
@@ -111,11 +108,11 @@ class VectorService:
                     if attempt == 0:
                         continue  # retry
                     # Both attempts failed: log error
-                    self.logger.error(
-                        "Chroma vector cleanup incomplete for doc %s; run scripts/repair.py --fix",  # noqa: F821
+                    logger.error(
+                        "Chroma vector cleanup incomplete for doc %s; run scripts/repair.py --fix",
                         document_id,
                         exc_info=True
-                    )  # noqa: F821
+                    )
             else:
                 break  # nothing to delete
 

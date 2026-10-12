@@ -190,14 +190,29 @@ class DocumentRepository(BaseRepository):
             ).fetchone()
             stored_path = row["stored_path"] if row else None
 
-            # Delete vectors from ChromaDB FIRST, using VectorService (with retry).
-            # If this fails, raise RuntimeError before any SQLite change so nothing is half-deleted.
-            vs = vector_service.get_vector_service()
-            vs.delete_document(doc_id, user_id)
-
-            # Delete chunks from SQLite
+            # Delete chunks from SQLite, save chroma_ids for later
             from app.database.repositories import ChunkRepository
             chunk_repo = ChunkRepository()
+            # Get chroma_ids without deleting SQL rows yet
+            chroma_ids = [
+                r["chroma_id"]
+                for r in conn.execute(
+                    "SELECT chroma_id FROM document_chunks WHERE document_id = ? AND user_id = ?",
+                    (doc_id, user_id),
+                ).fetchall()
+            ]
+
+            # Delete vectors from ChromaDB FIRST, using VectorService (with retry)
+            # If this fails, raise without touching SQLite rows so nothing is half-deleted
+            vs = vector_service.get_vector_service()
+            try:
+                vs.delete_document(doc_id, user_id)
+            except RuntimeError as e:
+                # Vector cleanup failed - do NOT proceed with SQL deletions
+                raise  # Re-raise; caller will handle the error
+
+            # Only proceed if vector deletion succeeded
+            # Delete chunks from SQLite
             chunk_repo.delete_for_document(doc_id, user_id)
 
             # Delete document
