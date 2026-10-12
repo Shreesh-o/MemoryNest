@@ -106,7 +106,6 @@ def test_grouping_by_char_limit():
 def test_end_to_end_utf16_tts():
     """End-to-end: TXT containing dates saved as UTF-16 goes through extraction and produces events."""
     from app.services import event_service, extraction_service
-    from pathlib import Path
     import tempfile
 
     # Create a TXT file with a date, saved as UTF-16 with BOM

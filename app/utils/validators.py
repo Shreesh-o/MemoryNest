@@ -60,6 +60,7 @@ def _try_decode_text(file_bytes: bytes) -> str | None:
     Returns decoded text with BOM stripped, or None if all fail.
     Order: utf-8-sig, utf-8, utf-16, cp1252.
     """
+    file_bytes = bytes(file_bytes)
     for encoding in ("utf-8-sig", "utf-8", "utf-16", "cp1252"):
         try:
             text = file_bytes.decode(encoding)
@@ -94,6 +95,7 @@ def validate_file_content(file_bytes: bytes, filename: str = "") -> Tuple[bool, 
     originally correct or empty. The real fix is in the caller (upload.py) which now
     passes the original filename.
     """
+    file_bytes = bytes(file_bytes)
     from filetype import guess as _guess_type
 
     ext = Path(filename).suffix.lower() if filename else ""

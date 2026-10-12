@@ -178,31 +178,6 @@ def merge_wavs_with_silence(
     # Read first file params
     nchannels, sampwidth, framerate = _read_wav_info(wav_paths[0])
 
-    with wave.open(str(output_path), "wb") as out:
-        out.setnchannels(nchannels)
-        out.setsampwidth(sampwidth)
-        out.setframerate(framerate)
-
-        for i, wav_path in enumerate(wav_paths):
-            with wave.open(str(wav_path), "rb") as inp:
-                frames = inp.readframes(inp.getnframes())
-                out.writeframes(frames)
-            # Add silence after all but the last file
-            if i < len(wav_paths) - 1:
-                _add_silence_ms(wav_path, silence_ms)
-                # Re-read the modified file to get its new length for appending
-                # Actually, we append silence to the original file, then read the
-                # original portion for merging. This is tricky; instead, we'll
-                # read the original frames before modifying.
-                # For simplicity, we'll just add silence metadata in the output.
-                # Actually, let's just append the original frames + silence.
-                # Read original frames first
-                pass
-
-    # Better approach: read all original frames first, then merge with silence
-    # Reset and redo with proper silence insertion
-    logger.info("Merging %d WAV files with %dms silence between each", len(wav_paths), silence_ms)
-
     # Read all original frames
     all_frames: List[bytes] = []
     for p in wav_paths:
@@ -221,8 +196,8 @@ def merge_wavs_with_silence(
             if i < len(all_frames) - 1:
                 # Write silence buffer
                 n_frames = int(silence_ms * framerate / 1000)
-                silence_samples = b"\x00" * (n_frames * sampwidth * nchannels)
-                out.writeframes(silence_frames)
+                silence_buf = b"\x00" * (n_frames * sampwidth * nchannels)
+                out.writeframes(silence_buf)
 
 
 def synthesize_with_piper(
@@ -272,7 +247,6 @@ def synthesize_with_espeak_ng(
     # Try a few voice variants
     voice_variants = ["en-us+f3", "en-gb", "en"]
     success = False
-    chosen_file = None
 
     for idx, voice in enumerate(voice_variants):
         tmp_path = f"/tmp/tts_sample_{idx}.wav"
@@ -301,7 +275,6 @@ def synthesize_with_espeak_ng(
                 import shutil
                 shutil.copy2(tmp_path, output_path)
                 success = True
-                chosen_file = tmp_path
                 logger.info("espeak-ng variant %d (%s) succeeded, %d bytes", idx, voice, Path(tmp_path).stat().st_size)
                 break
             else:
