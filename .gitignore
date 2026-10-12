@@ -32,3 +32,4 @@ models/
 *.swp
 data_backup_*/
 *.bak*
+data_old/

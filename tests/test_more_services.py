@@ -28,12 +28,9 @@ def test_summarize_long_map_reduce(monkeypatch):
 
 
 def test_tts_unavailable(monkeypatch):
-    # Mock pyttsx3.init to raise an exception, simulating missing espeak-ng
+    # Mock tts_available to simulate no TTS engine available, simulating missing engines
     import app.services.tts_service as tts_mod
-    monkeypatch.setattr(tts_mod, "_get_engine", lambda: None)
-    monkeypatch.setattr(tts_mod, "_tts_engine", None)
-    monkeypatch.setattr(tts_mod, "_tts_available", False)
-    monkeypatch.setattr(tts_mod, "_check_espeak", lambda: False)
+    monkeypatch.setattr(tts_mod, "tts_available", lambda: False)
     tts_mod.reset_cache()
 
     try:
