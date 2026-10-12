@@ -120,7 +120,7 @@ def test_init_db_on_fresh_database():
         cursor = conn.execute(
             "SELECT name FROM sqlite_master WHERE type='table'"
         ).fetchall()
-        table_names = {row[0] for row in cursor.fetchall()}
+        table_names = {row[0] for row in cursor}
         assert "users" in table_names
         assert "documents" in table_names
         conn.close()
