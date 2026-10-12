@@ -82,10 +82,41 @@ def _cleanup_failed_document(doc_id: int, user_id: int, stored_path: str, reason
 
     chroma_ids = chunk_repo.delete_for_document(doc_id, user_id)
     if chroma_ids:
-        try:
-            vs.collection.delete(ids=chroma_ids)
-        except Exception:
-            logger.warning("Could not delete Chroma vectors for doc %s", doc_id, exc_info=True)
+        # Retry once on failure; if both attempts fail, verify and log error
+        deleted = False
+        for attempt in range(2):
+            try:
+                vs.collection.delete(ids=chroma_ids)
+                deleted = True
+                break
+            except Exception:
+                if attempt == 0:
+                    continue  # retry
+                # Both attempts failed: verify remaining vectors and log error
+                try:
+                    res = vs.collection.get(
+                        where={"document_id": doc_id},
+                        include=[]
+                    )
+                    remaining_ids = set(res.get("ids", []))
+                except Exception:
+                    remaining_ids = set()
+                if remaining_ids:
+                    logger.error(
+                        "Chroma vector cleanup incomplete for doc %s; run scripts/repair.py --fix",
+                        doc_id,
+                        exc_info=True
+                    )
+                else:
+                    logger.info("All Chroma vectors cleaned for doc %s (some may have been absent)", doc_id)
+                # Mark document with incomplete cleanup reason
+                try:
+                    doc_repo = DocumentRepository()
+                    cleanup_reason = f"{reason}; vector cleanup incomplete; run scripts/repair.py --fix"
+                    doc_repo.update_status(doc_id, user_id, "error", cleanup_reason)
+                except Exception:
+                    logger.exception("Could not update doc status with vector cleanup reason")
+        # End vector cleanup retry block
 
     ev_repo.delete_for_document(doc_id, user_id)
 

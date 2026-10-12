@@ -95,12 +95,26 @@ class VectorService:
         """Delete all chunks belonging to a document (and user)."""
         # Chroma doesn't support compound where with AND directly in delete?
         # We can query first to get IDs, then delete by IDs.
-        res = self.collection.get(
-            where={"$and": [{"document_id": document_id}, {"user_id": user_id}]},
-            include=[],
-        )
-        if res["ids"]:
-            self.collection.delete(ids=res["ids"])
+        for attempt in range(2):
+            res = self.collection.get(
+                where={"$and": [{"document_id": document_id}, {"user_id": user_id}]},
+                include=[],
+            )
+            if res["ids"]:
+                try:
+                    self.collection.delete(ids=res["ids"])
+                    break
+                except Exception:
+                    if attempt == 0:
+                        continue  # retry
+                    # Both attempts failed: log error
+                    logger.error(
+                        "Chroma vector cleanup incomplete for doc %s; run scripts/repair.py --fix",
+                        document_id,
+                        exc_info=True
+                    )
+            else:
+                break  # nothing to delete
 
     def delete_user(self, user_id: int) -> None:
         """Delete all chunks for a user."""
