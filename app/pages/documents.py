@@ -4,8 +4,7 @@ from __future__ import annotations
 
 import streamlit as st
 
-from app.database.repositories import DocumentRepository, ChunkRepository
-from app.services import vector_service
+from app.database.repositories import DocumentRepository
 
 
 def render() -> None:
@@ -13,8 +12,6 @@ def render() -> None:
     st.header("📁 Your Documents")
 
     doc_repo = DocumentRepository()
-    chunk_repo = ChunkRepository()
-    vs = vector_service.get_vector_service()
 
     docs = doc_repo.list_for_user(user.id)
     if not docs:
@@ -32,30 +29,17 @@ def render() -> None:
             col1, col2 = st.columns(2)
             with col1:
                 if st.button("Delete", key=f"del_doc_{d.id}", type="secondary"):
-                    # Delete chunks from vector DB
-                    chroma_ids = chunk_repo.delete_for_document(d.id, user.id)
-                    vector_failed = False
-                    if chroma_ids:
-                        try:
-                            vs.delete_document(d.id, user.id)
-                        except Exception:
-                            vector_failed = True
-                            logger.error(
-                                "Chroma vector deletion failed for doc %s; run scripts/repair.py --fix",
-                                d.id,
-                                exc_info=True
-                            )
-                    # Delete from SQL only if vector deletion succeeded
-                    if not vector_failed:
+                    try:
+                        # One path: vectors first, then chunks, row, and file.
                         doc_repo.delete(d.id, user.id)
-                    if vector_failed:
+                    except RuntimeError:
                         st.error(
-                            "Document deletion failed — vector cleanup incomplete; "
-                            "run scripts/repair.py --fix to remove orphaned vectors"
+                            "Document was NOT deleted: vector cleanup failed. "
+                            "Nothing was removed. Try again, or run "
+                            "scripts/repair.py --fix"
                         )
                     else:
-                        st.success("Document deleted")
-                    st.rerun()
+                        st.rerun()
             with col2:
                 if d.status == "error" and st.button("Retry extraction", key=f"retry_{d.id}"):
                     st.info("Retry not yet implemented")

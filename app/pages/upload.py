@@ -83,11 +83,9 @@ def _cleanup_failed_document(doc_id: int, user_id: int, stored_path: str, reason
     chroma_ids = chunk_repo.delete_for_document(doc_id, user_id)
     if chroma_ids:
         # Retry once on failure; if both attempts fail, verify and log error
-        deleted = False
         for attempt in range(2):
             try:
                 vs.collection.delete(ids=chroma_ids)
-                deleted = True
                 break
             except Exception:
                 if attempt == 0:

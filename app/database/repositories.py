@@ -175,8 +175,10 @@ class DocumentRepository(BaseRepository):
     def delete(self, doc_id: int, user_id: int) -> None:
         """Delete document, its chunks, ChromaDB vectors, and the stored file.
 
-        Vector deletion is attempted first with retry. If it fails, the exception
-        propagates without touching SQLite rows, so nothing is half-deleted.
+        Vector deletion happens FIRST via VectorService.delete_document.
+        If it fails, RuntimeError propagates without touching SQLite rows,
+        so nothing is half-deleted. Chunk rows, the document row, and the
+        stored file are preserved for the repair script.
         """
         import os
         from app.services import vector_service
@@ -190,29 +192,15 @@ class DocumentRepository(BaseRepository):
             ).fetchone()
             stored_path = row["stored_path"] if row else None
 
-            # Delete chunks from SQLite, save chroma_ids for later
+            # Delete vectors from ChromaDB FIRST, using VectorService (with retry).
+            # If this fails, raise RuntimeError before any SQLite change so nothing
+            # is half-deleted. Chunk rows below will be preserved.
+            vs = vector_service.get_vector_service()
+            vs.delete_document(doc_id, user_id)
+
+            # Delete chunks from SQLite
             from app.database.repositories import ChunkRepository
             chunk_repo = ChunkRepository()
-            # Get chroma_ids without deleting SQL rows yet
-            chroma_ids = [
-                r["chroma_id"]
-                for r in conn.execute(
-                    "SELECT chroma_id FROM document_chunks WHERE document_id = ? AND user_id = ?",
-                    (doc_id, user_id),
-                ).fetchall()
-            ]
-
-            # Delete vectors from ChromaDB FIRST, using VectorService (with retry)
-            # If this fails, raise without touching SQLite rows so nothing is half-deleted
-            vs = vector_service.get_vector_service()
-            try:
-                vs.delete_document(doc_id, user_id)
-            except RuntimeError as e:
-                # Vector cleanup failed - do NOT proceed with SQL deletions
-                raise  # Re-raise; caller will handle the error
-
-            # Only proceed if vector deletion succeeded
-            # Delete chunks from SQLite
             chunk_repo.delete_for_document(doc_id, user_id)
 
             # Delete document
