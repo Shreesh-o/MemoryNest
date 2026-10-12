@@ -104,14 +104,22 @@ def _extract_docx(path: Path) -> str:
 def _extract_txt(path: Path) -> str:
     import io
     raw = path.read_bytes()
-    for encoding in ("utf-8", "utf-16", "latin-1"):
+    # Try decoding orders: utf-8-sig strips BOM automatically,
+    # then utf-8, utf-16 (BOM-detected), cp1252, latin-1 (fallback)
+    text = None
+    for encoding in ("utf-8-sig", "utf-8", "utf-16", "cp1252", "latin-1"):
         try:
             text = raw.decode(encoding)
+            # Ensure BOM is stripped (utf-8-sig should do this, but be safe)
+            if text.startswith("\ufeff"):
+                text = text[1:]
             break
         except (UnicodeError, UnicodeDecodeError):
             continue
-    else:
+    if text is None:
         raise RuntimeError("Could not decode text file in any supported encoding.")
+    # Normalize line endings CRLF -> LF
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
     text = text.strip()
     if not text:
         raise RuntimeError("Text file is empty.")

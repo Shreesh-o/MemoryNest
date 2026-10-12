@@ -152,17 +152,24 @@ def test_validate_file_content_docx():
 
 
 def test_validate_file_content_txt():
-    # filetype needs enough text content to detect as text/plain
-    txt_content = b"This is a plain text file with enough content for detection.\n" * 10
+    # .txt files are accepted if they contain no NUL bytes and can be decoded as text.
+    # Minimal text content should be accepted.
+    txt_content = b"Hello world\n"
     from app.utils.validators import validate_file_content
-    ok, reason, ftype = validate_file_content(txt_content)
-    if not ok:
-        # filetype might not detect minimal text as text/plain, that's OK
-        # The important thing is it doesn't crash and returns a reasonable result
-        assert not ok
-        assert "Could not determine" in reason or "not allowed" in reason.lower()
-    else:
-        assert ftype == "txt"
+    ok, reason, ftype = validate_file_content(txt_content, "test.txt")
+    assert ok, f"Expected txt to be accepted, got: {reason}"
+    assert ftype == "txt"
+
+    # .txt file with NUL bytes (binary disguised as .txt) should be rejected
+    binary_disguise = b"Hello\x00world\n"
+    ok, reason, ftype = validate_file_content(binary_disguise, "test.txt")
+    assert not ok
+    assert "Binary" in reason or "not allowed" in reason
+
+    # Very short text still accepted
+    ok, reason, ftype = validate_file_content(b"X", "test.txt")
+    assert ok
+    assert ftype == "txt"
 
 
 def test_validate_file_content_png():
