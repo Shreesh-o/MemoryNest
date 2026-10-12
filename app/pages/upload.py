@@ -82,41 +82,56 @@ def _cleanup_failed_document(doc_id: int, user_id: int, stored_path: str, reason
 
     chroma_ids = chunk_repo.delete_for_document(doc_id, user_id)
     if chroma_ids:
-        # Retry once on failure; if both attempts fail, verify and log error
-        deleted = False
-        for attempt in range(2):
+        # Use VectorService.delete_document (with retry + RuntimeError on failure)
+        try:
+            vs.delete_document(doc_id, user_id)
+        except RuntimeError:
+            # Vector cleanup failed — keep chunk rows in SQLite so repair.py can finish the job,
+            # delete the stored file, and mark the document 'error'
             try:
-                vs.collection.delete(ids=chroma_ids)
-                deleted = True
-                break
+                doc_repo = DocumentRepository()
+                chunk_repo.delete_for_document(doc_id, user_id)
             except Exception:
-                if attempt == 0:
-                    continue  # retry
-                # Both attempts failed: verify remaining vectors and log error
-                try:
-                    res = vs.collection.get(
-                        where={"document_id": doc_id},
-                        include=[]
-                    )
-                    remaining_ids = set(res.get("ids", []))
-                except Exception:
-                    remaining_ids = set()
-                if remaining_ids:
-                    logger.error(
-                        "Chroma vector cleanup incomplete for doc %s; run scripts/repair.py --fix",
-                        doc_id,
-                        exc_info=True
-                    )
-                else:
-                    logger.info("All Chroma vectors cleaned for doc %s (some may have been absent)", doc_id)
-                # Mark document with incomplete cleanup reason
-                try:
-                    doc_repo = DocumentRepository()
-                    cleanup_reason = f"{reason}; vector cleanup incomplete; run scripts/repair.py --fix"
-                    doc_repo.update_status(doc_id, user_id, "error", cleanup_reason)
-                except Exception:
-                    logger.exception("Could not update doc status with vector cleanup reason")
-        # End vector cleanup retry block
+                pass  # chunks may already be gone; that's OK for repair
+            # Delete the stored file so no orphaned data remains on disk
+            try:
+                path = Path(stored_path)
+                if path.exists():
+                    path.unlink(missing_ok=True)
+            except Exception:
+                pass  # file already gone or inaccessible
+            # Mark document 'error' with incomplete-cleanup reason
+            try:
+                doc_repo = DocumentRepository()
+                cleanup_reason = f"{reason}; vector cleanup incomplete; run scripts/repair.py --fix"
+                doc_repo.update_status(doc_id, user_id, "error", cleanup_reason)
+            except Exception:
+                logger.exception("Could not update doc status with vector cleanup reason")
+            logger.error(
+                "Chroma vector cleanup incomplete for doc %s; run scripts/repair.py --fix",
+                doc_id,
+                exc_info=True
+            )
+            # Do NOT proceed to events/file cleanup below — vector failure takes priority
+            return
+        # Vector deletion succeeded: proceed to clean up events and the stored file
+        try:
+            ev_repo.delete_for_document(doc_id, user_id)
+        except Exception:
+            logger.warning("Could not delete events for doc %s", doc_id)
+        # Delete the stored file
+        try:
+            path = Path(stored_path)
+            if path.exists():
+                path.unlink(missing_ok=True)
+        except Exception:
+            pass  # file already gone or inaccessible
+        # Mark document 'error' with the original reason (cleanup succeeded)
+        try:
+            doc_repo = DocumentRepository()
+            doc_repo.update_status(doc_id, user_id, "error", reason)
+        except Exception:
+            logger.exception("Could not update doc status after successful vector cleanup")
 
     ev_repo.delete_for_document(doc_id, user_id)
 
