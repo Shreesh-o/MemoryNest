@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 TTS_ENGINE = os.environ.get("TTS_ENGINE", "auto").lower()
 TTS_VOICE = os.environ.get("TTS_VOICE", "en_US-lessac-medium")
 
-VALID_ENGINES = {"auto", "piper", "espeak", "pyttsx3"}
+VALID_ENGINES = {"auto", "piper", "edge", "espeak", "pyttsx3"}
 
 # ---------------------------------------------------------------------------
 # Text cleaning
@@ -433,6 +433,23 @@ def synthesize_to_file(text: str, filename: str | None = None) -> str:
                     logger.info("Used espeak-ng engine for TTS")
                     return output_path
 
+
+    # --- edge engine ---
+    if engine in ("auto", "edge"):
+        # Check if edge-tts is available
+        import edge_tts
+        try:
+            # Simple edge-tts synthesis
+            import asyncio
+            async def _edge_synth():
+                communicate = edge_tts.Communicate(text, "en-IN-NeerjaNeural")
+                await communicate.save(output_path)
+            _edge_synth()
+            if Path(output_path).exists() and Path(output_path).stat().st_size > 1024:
+                logger.info("Used edge-tts engine for TTS")
+                return output_path
+        except ImportError:
+            pass
     # --- espeak-ng engine ---
     if engine in ("auto", "espeak"):
         ok = synthesize_with_espeak_ng(text, output_path)
@@ -492,6 +509,41 @@ def tts_available() -> bool:
 
     return False
 
+
+
+def _synthesize_with_edge(text: str, output_path: str) -> bool:
+    """Synthesize text using edge-tts engine.
+
+    Uses edge-tts package to generate audio, converts MP3 to WAV with ffmpeg.
+    """
+    import edge_tts
+    import asyncio
+    import subprocess
+    
+    try:
+        async def _inner():
+            communicate = edge_tts.Communicate(text, "en-IN-NeerjaNeural")
+            await communicate.save(output_path)  # saves as .mp3
+            
+            # Convert MP3 to WAV with ffmpeg
+            wav_path = Path(output_path).with_suffix(".wav")
+            result = subprocess.run(
+                ["ffmpeg", "-i", output_path,
+                 "-ar", "16000", "-ac", "1", "-y", str(wav_path)],
+                capture_output=True, timeout=30,
+            )
+            if Path(wav_path).exists() and Path(wav_path).stat().st_size > 1024:
+                Path(output_path).unlink(missing_ok=True)
+                return True
+            if Path(output_path).exists() and Path(output_path).stat().st_size > 1024:
+                return True
+            return False
+        
+        asyncio.run(_inner())
+        return True
+    except Exception as e:
+        logger.error("Edge TTS failed: %s", e)
+        return False
 
 def reset_cache() -> None:
     """Reset any cached state (for testing)."""
