@@ -5,7 +5,33 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
-from app.utils.config import DB_PATH, ensure_dirs
+
+def _get_db_path() -> Path:
+    """Resolve the database path from config at call time.
+
+    Config is reloaded so environment-variable overrides (e.g. DB_PATH set by
+    tests or .env) are always honored, even when the config module was
+    imported earlier in the process.
+    """
+    import importlib
+    import app.utils.config
+    importlib.reload(app.utils.config)
+    return app.utils.config.DB_PATH
+
+
+def get_connection(db_path: Path | None = None) -> sqlite3.Connection:
+    """Return a connection with row access by column name and FK enforcement.
+
+    Pass an explicit ``db_path`` to bypass the configured path (used by
+    tests and scripts); otherwise the path is resolved from config.
+    """
+    path = Path(db_path) if db_path is not None else _get_db_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(str(path), isolation_level="DEFERRED")
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
+    return conn
+
 
 SCHEMA = """
 PRAGMA foreign_keys = ON;
@@ -15,7 +41,7 @@ CREATE TABLE IF NOT EXISTS users (
     username TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
     email TEXT,
-    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS documents (
@@ -29,7 +55,7 @@ CREATE TABLE IF NOT EXISTS documents (
     error_message TEXT,
     text_preview TEXT,
     chunk_count INTEGER NOT NULL DEFAULT 0,
-    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS document_chunks (
@@ -47,8 +73,8 @@ CREATE TABLE IF NOT EXISTS conversations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     title TEXT,
-    created_at TEXT NOT NULL DEFAULT (datetime('now')),
-    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS messages (
@@ -58,7 +84,7 @@ CREATE TABLE IF NOT EXISTS messages (
     role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
     content TEXT NOT NULL,
     sources TEXT,
-    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS summaries (
@@ -66,7 +92,7 @@ CREATE TABLE IF NOT EXISTS summaries (
     document_id INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     summary_text TEXT NOT NULL,
-    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS events (
@@ -78,7 +104,7 @@ CREATE TABLE IF NOT EXISTS events (
     raw_date TEXT,
     status TEXT NOT NULL DEFAULT 'pending'
         CHECK (status IN ('pending', 'confirmed', 'skipped')),
-    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS reminders (
@@ -92,7 +118,7 @@ CREATE TABLE IF NOT EXISTS reminders (
     status TEXT NOT NULL DEFAULT 'scheduled'
         CHECK (status IN ('scheduled', 'sent', 'failed', 'cancelled')),
     sent_at TEXT,
-    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS notification_logs (
@@ -102,7 +128,7 @@ CREATE TABLE IF NOT EXISTS notification_logs (
     kind TEXT NOT NULL,
     success INTEGER NOT NULL,
     detail TEXT,
-    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_documents_user ON documents(user_id);
@@ -115,18 +141,12 @@ CREATE INDEX IF NOT EXISTS idx_reminders_user ON reminders(user_id, status, remi
 """
 
 
-def get_connection(db_path: Path | None = None) -> sqlite3.Connection:
-    """Return a connection with row access by column name and FK enforcement."""
-    path = db_path or DB_PATH
-    ensure_dirs()
-    conn = sqlite3.connect(str(path))
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
-    return conn
-
-
 def init_db(db_path: Path | None = None) -> None:
     """Create all tables if they do not exist. Run migrations for existing databases."""
+    import importlib
+    import app.utils.config
+    importlib.reload(app.utils.config)
+    app.utils.config.ensure_dirs()
     conn = get_connection(db_path)
     try:
         conn.executescript(SCHEMA)

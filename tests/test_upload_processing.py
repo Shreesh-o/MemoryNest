@@ -3,46 +3,43 @@
 from __future__ import annotations
 
 import hashlib
+import os
 from pathlib import Path
 
 import pytest
 
-from app.database.database import init_db
 from app.database.repositories import DocumentRepository, ChunkRepository, UserRepository, EventRepository
-from app.pages.upload import _process_document
 from app.services import extraction_service, chunking_service, embedding_service, vector_service, event_service
 
 
-@pytest.fixture
-def temp_db(tmp_path, monkeypatch):
-    """Create a temporary database for testing."""
-    db_path = tmp_path / "test.db"
-    init_db(db_path)
-    monkeypatch.setattr("app.database.database.DB_PATH", db_path)
-    return db_path
+def _assert_no_partial_data(doc_id: int, user_id: int, stored_path: Path) -> None:
+    """No chunk rows, no vectors, no file left behind for a failed document."""
+    assert ChunkRepository().list_for_document(doc_id, user_id) == []
+    vs = vector_service.get_vector_service()
+    assert vs.collection.get(where={"document_id": doc_id})["ids"] == []
+    assert not stored_path.exists()
 
 
 @pytest.fixture
-def temp_chroma(tmp_path, monkeypatch):
-    """Create a temporary ChromaDB directory."""
-    chroma_path = tmp_path / "chroma_test"
-    monkeypatch.setattr("app.services.vector_service.CHROMA_DIR", chroma_path)
-    # Reset singleton properly
-    from app.services import vector_service
-    vector_service.VectorService._instance = None
-    # Force reinitialization by removing _initialized from any existing instance
-    if hasattr(vector_service.VectorService, '_initialized'):
-        delattr(vector_service.VectorService, '_initialized')
-    return chroma_path
+def temp_db():
+    """Fresh per-test DB from the autouse test_storage fixture (conftest.py)."""
+    import app.utils.config as config_module
+    return config_module.DB_PATH
 
 
 @pytest.fixture
-def temp_uploads(tmp_path, monkeypatch):
-    """Create a temporary upload directory."""
-    upload_path = tmp_path / "uploads"
-    upload_path.mkdir(parents=True, exist_ok=True)
-    monkeypatch.setattr("app.utils.config.UPLOAD_DIR", upload_path)
-    return upload_path
+def temp_chroma():
+    """Per-test Chroma dir from the autouse test_storage fixture."""
+    import app.utils.config as config_module
+    return config_module.CHROMA_DIR
+
+
+@pytest.fixture
+def temp_uploads():
+    """Per-test upload dir from the autouse test_storage fixture."""
+    import app.utils.config as config_module
+    config_module.UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    return config_module.UPLOAD_DIR
 
 
 @pytest.fixture
@@ -55,6 +52,8 @@ def test_user(temp_db):
 
 def test_process_txt_document(temp_db, temp_chroma, temp_uploads, test_user):
     """Test processing a simple TXT file."""
+    from app.pages.upload import _process_document
+    
     # Create a test TXT file
     txt_content = """This is a test document.
 It has multiple lines of text.
@@ -103,6 +102,7 @@ Meeting scheduled for 2026-10-15 at 10:00 AM."""
 def test_process_docx_document(temp_db, temp_chroma, temp_uploads, test_user):
     """Test processing a simple DOCX file."""
     import docx
+    from app.pages.upload import _process_document
     
     # Create a test DOCX file
     docx_path = temp_uploads / "test.docx"
@@ -158,6 +158,7 @@ def test_process_document_failure_marks_failed(temp_db, temp_chroma, temp_upload
     )
     
     # Process should fail and mark document as failed
+    from app.pages.upload import _process_document
     with pytest.raises(FileNotFoundError):
         _process_document(doc.id, test_user.id, fake_path, "txt", "nonexistent.txt")
     
@@ -183,6 +184,7 @@ def test_process_document_invalid_type(temp_db, temp_chroma, temp_uploads, test_
         size_bytes=12,
     )
     
+    from app.pages.upload import _process_document
     with pytest.raises(ValueError):
         _process_document(doc.id, test_user.id, str(txt_path), "invalid_type", "test.txt")
     
@@ -211,6 +213,7 @@ def test_process_document_extracts_events(temp_db, temp_chroma, temp_uploads, te
     )
     
     # Process the document
+    from app.pages.upload import _process_document
     _process_document(doc.id, test_user.id, str(txt_path), "txt", "deadline.txt")
     
     # Verify document status is "ready"
@@ -233,7 +236,6 @@ def test_process_document_extracts_events(temp_db, temp_chroma, temp_uploads, te
 
 def test_duplicate_detection_same_user(temp_db, temp_chroma, temp_uploads, test_user):
     """Test that uploading the same file twice by the same user is detected as duplicate."""
-    import hashlib
     
     txt_content = "This is a test document for duplicate detection."
     txt_path = temp_uploads / "duplicate_test.txt"
@@ -268,7 +270,6 @@ def test_duplicate_detection_same_user(temp_db, temp_chroma, temp_uploads, test_
 
 def test_duplicate_detection_different_users(temp_db, temp_chroma, temp_uploads, test_user):
     """Test that different users can upload the same file (different user_id)."""
-    import hashlib
     
     txt_content = "Shared document content."
     file_hash = hashlib.sha256(txt_content.encode("utf-8")).hexdigest()
@@ -315,7 +316,6 @@ def test_duplicate_detection_different_users(temp_db, temp_chroma, temp_uploads,
 
 def test_failure_cleanup_removes_partial_data(temp_db, temp_chroma, temp_uploads, test_user):
     """Test that processing failure cleans up partial data (chunks, vectors, file)."""
-    import hashlib
     
     txt_content = "This document will fail processing."
     txt_path = temp_uploads / "fail_test.txt"
@@ -340,6 +340,7 @@ def test_failure_cleanup_removes_partial_data(temp_db, temp_chroma, temp_uploads
     fake_path = str(temp_uploads / "nonexistent.txt")
     
     # Process should fail
+    from app.pages.upload import _process_document
     with pytest.raises(FileNotFoundError):
         _process_document(doc.id, test_user.id, fake_path, "txt", "fail_test.txt")
     
@@ -364,7 +365,6 @@ def test_failure_cleanup_removes_partial_data(temp_db, temp_chroma, temp_uploads
 
 def test_document_delete_cleans_everything(temp_db, temp_chroma, temp_uploads, test_user):
     """Test that document delete removes file, chunks, and vectors."""
-    import hashlib
     
     txt_content = "Document to be deleted."
     txt_path = temp_uploads / "delete_test.txt"
@@ -386,6 +386,7 @@ def test_document_delete_cleans_everything(temp_db, temp_chroma, temp_uploads, t
     )
     
     # Process successfully
+    from app.pages.upload import _process_document
     _process_document(doc.id, test_user.id, str(txt_path), "txt", "delete_test.txt")
     
     # Verify everything exists
@@ -417,3 +418,92 @@ def test_document_delete_cleans_everything(temp_db, temp_chroma, temp_uploads, t
     # Verify document is deleted
     deleted_doc = doc_repo.get_by_id(doc.id, test_user.id)
     assert deleted_doc is None
+
+
+def test_corrupt_pdf_marked_error_and_cleaned(tmp_path, test_user):
+    """A corrupt PDF renamed to .pdf ends with status='error', no partial data.
+
+    _process_document must raise (so render() takes its st.error branch, not
+    st.success), mark the row 'error', and leave nothing in SQLite/Chroma/disk.
+    """
+    corrupt = tmp_path / "corrupt.pdf"
+    corrupt.write_bytes(os.urandom(512))
+
+    doc_repo = DocumentRepository()
+    doc = doc_repo.create(
+        user_id=test_user.id,
+        filename="corrupt.pdf",
+        stored_path=str(corrupt),
+        file_type="pdf",
+        size_bytes=corrupt.stat().st_size,
+    )
+
+    from app.pages.upload import _process_document
+    with pytest.raises(Exception):
+        _process_document(doc.id, test_user.id, str(corrupt), "pdf", "corrupt.pdf")
+
+    updated = doc_repo.get_by_id(doc.id, test_user.id)
+    assert updated.status == "error"
+    assert updated.error_message and len(updated.error_message) > 0
+    _assert_no_partial_data(doc.id, test_user.id, corrupt)
+
+
+def test_embedding_failure_marks_error_and_cleans(tmp_path, monkeypatch, test_user):
+    """A simulated embedding failure ends with status='error', no partial data."""
+    def boom(texts):
+        raise RuntimeError("embedding backend unavailable")
+
+    monkeypatch.setattr(embedding_service, "embed_texts", boom)
+
+    txt = tmp_path / "embed_fail.txt"
+    txt.write_text("Some content that would have been embedded.", encoding="utf-8")
+
+    doc_repo = DocumentRepository()
+    doc = doc_repo.create(
+        user_id=test_user.id,
+        filename="embed_fail.txt",
+        stored_path=str(txt),
+        file_type="txt",
+        size_bytes=txt.stat().st_size,
+    )
+
+    from app.pages.upload import _process_document
+    with pytest.raises(RuntimeError, match="embedding backend unavailable"):
+        _process_document(doc.id, test_user.id, str(txt), "txt", "embed_fail.txt")
+
+    updated = doc_repo.get_by_id(doc.id, test_user.id)
+    assert updated.status == "error"
+    assert "embedding backend unavailable" in updated.error_message
+    _assert_no_partial_data(doc.id, test_user.id, txt)
+
+
+def test_chroma_failure_marks_error_and_cleans(tmp_path, monkeypatch, test_user):
+    """A simulated Chroma failure ends with status='error', no partial data.
+
+    Chunk rows are written before add_chunks, so they must be cleaned up too.
+    """
+    def boom(*args, **kwargs):
+        raise RuntimeError("chroma store unavailable")
+
+    monkeypatch.setattr(vector_service.VectorService, "add_chunks", boom)
+
+    txt = tmp_path / "chroma_fail.txt"
+    txt.write_text("Content for the chroma failure test.", encoding="utf-8")
+
+    doc_repo = DocumentRepository()
+    doc = doc_repo.create(
+        user_id=test_user.id,
+        filename="chroma_fail.txt",
+        stored_path=str(txt),
+        file_type="txt",
+        size_bytes=txt.stat().st_size,
+    )
+
+    from app.pages.upload import _process_document
+    with pytest.raises(RuntimeError, match="chroma store unavailable"):
+        _process_document(doc.id, test_user.id, str(txt), "txt", "chroma_fail.txt")
+
+    updated = doc_repo.get_by_id(doc.id, test_user.id)
+    assert updated.status == "error"
+    assert "chroma store unavailable" in updated.error_message
+    _assert_no_partial_data(doc.id, test_user.id, txt)

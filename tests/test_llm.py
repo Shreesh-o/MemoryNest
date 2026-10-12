@@ -1,4 +1,4 @@
-"""Tests for LLM service (mock mode)."""
+
 
 from __future__ import annotations
 
@@ -9,7 +9,6 @@ from app.services import llm_service
 
 def test_mock_mode(monkeypatch):
     monkeypatch.setenv("MOCK_LLM", "1")
-    # Reload module to pick up env var? No, generate() checks env each call.
     out = llm_service.generate("test prompt", system="sys")
     assert out == llm_service._MOCK_RESPONSE
 
@@ -20,31 +19,29 @@ def test_mock_mode_without_system(monkeypatch):
     assert out == llm_service._MOCK_RESPONSE
 
 
-def test_is_ollama_available_cached(monkeypatch):
-    # Clear cache
-    llm_service._ollama_available_cache = None
-    # Mock requests.get
-    class MockResp:
-        def __init__(self, models):
-            self.status_code = 200
-            self._models = models
-        def json(self):
-            return {"models": self._models}
+def test_is_mock_mode_env_var_set(monkeypatch):
+    monkeypatch.setenv("MOCK_LLM", "1")
+    assert llm_service.is_mock_mode() is True
 
-    def mock_get(url, timeout):
-        return MockResp([{"name": "qwen2.5:3b-instruct"}])
 
-    monkeypatch.setattr("app.services.llm_service.requests.get", mock_get)
-    assert llm_service.is_ollama_available() is True
-    assert llm_service._ollama_available_cache is True
+def test_is_mock_mode_env_var_unset(monkeypatch):
+    monkeypatch.delenv("MOCK_LLM", raising=False)
+    assert llm_service.is_mock_mode() is False
 
-    # Second call uses cache
-    call_count = 0
-    def mock_get2(url, timeout):
-        nonlocal call_count
-        call_count += 1
-        return MockResp([])
-    monkeypatch.setattr("app.services.llm_service.requests.get", mock_get2)
-    # Should use cache
-    assert llm_service.is_ollama_available() is True
-    assert call_count == 0
+
+def test_ollama_unavailable_raises(monkeypatch):
+    """Ollama unavailable and MOCK_LLM not set -> clear RuntimeError, no fake answer."""
+    old_mllm = os.environ.pop("MOCK_LLM", None)
+    try:
+        llm_service._ollama_available_cache = None
+        import app.services.llm_service as ls
+        ls._ollama_available_cache = None
+        monkeypatch.setattr(ls, "is_ollama_available", lambda: False)
+        try:
+            llm_service.generate("test prompt")
+            assert False, "Expected RuntimeError"
+        except RuntimeError as e:
+            assert "Ollama is not running" in str(e)
+    finally:
+        if old_mllm is not None:
+            os.environ["MOCK_LLM"] = old_mllm

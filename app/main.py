@@ -22,6 +22,7 @@ logging.basicConfig(
 import streamlit as st
 
 from app.database.database import init_db
+from app.services import llm_service
 from app.utils import config
 from app.utils.auth import login, register
 
@@ -84,6 +85,8 @@ def main() -> None:
 
     st.sidebar.title("🧠 MemoryNest")
     st.sidebar.caption(f"Logged in as **{user.username}**")
+    if llm_service.is_mock_mode():
+        st.sidebar.warning("Mock LLM mode: answers are not real")
     if st.sidebar.button("Log out"):
         _logout()
 

@@ -148,13 +148,16 @@ class DocumentRepository(BaseRepository):
     def set_text(self, doc_id: int, user_id: int, preview: str, chunk_count: int) -> None:
         conn = self._connect()
         try:
+            print(f"DEBUG set_text: doc_id={doc_id}, user_id={user_id}, preview={repr(preview)}, chunk_count={chunk_count}")
             conn.execute(
                 """UPDATE documents
                    SET text_preview = ?, chunk_count = ?, status = 'ready'
                    WHERE id = ? AND user_id = ?""",
                 (preview, chunk_count, doc_id, user_id),
             )
+            print(f"DEBUG set_text: rows affected = {conn.total_changes}")
             conn.commit()
+            print("DEBUG set_text: commit done")
         finally:
             conn.close()
 
@@ -511,6 +514,18 @@ class EventRepository(BaseRepository):
         conn = self._connect()
         try:
             conn.execute("DELETE FROM events WHERE id = ? AND user_id = ?", (event_id, user_id))
+            conn.commit()
+        finally:
+            conn.close()
+
+    def delete_for_document(self, document_id: int, user_id: int) -> None:
+        """Delete all events extracted from a document (reminders cascade)."""
+        conn = self._connect()
+        try:
+            conn.execute(
+                "DELETE FROM events WHERE document_id = ? AND user_id = ?",
+                (document_id, user_id),
+            )
             conn.commit()
         finally:
             conn.close()

@@ -9,39 +9,30 @@ from pathlib import Path
 
 import pytest
 
-from app.database.database import init_db
 from app.database.repositories import DocumentRepository, ChunkRepository, UserRepository
 from app.services import vector_service, embedding_service
 
 
 @pytest.fixture
-def temp_db(tmp_path, monkeypatch):
-    """Create a temporary database for testing."""
-    db_path = tmp_path / "test.db"
-    init_db(db_path)
-    monkeypatch.setattr("app.database.database.DB_PATH", db_path)
-    return db_path
+def temp_db():
+    """Fresh per-test DB from the autouse test_storage fixture (conftest.py)."""
+    import app.utils.config as config_module
+    return config_module.DB_PATH
 
 
 @pytest.fixture
-def temp_chroma(tmp_path, monkeypatch):
-    """Create a temporary ChromaDB directory."""
-    chroma_path = tmp_path / "chroma_test"
-    monkeypatch.setattr("app.services.vector_service.CHROMA_DIR", chroma_path)
-    from app.services import vector_service
-    vector_service.VectorService._instance = None
-    if hasattr(vector_service.VectorService, '_initialized'):
-        delattr(vector_service.VectorService, '_initialized')
-    return chroma_path
+def temp_chroma():
+    """Per-test Chroma dir from the autouse test_storage fixture."""
+    import app.utils.config as config_module
+    return config_module.CHROMA_DIR
 
 
 @pytest.fixture
-def temp_uploads(tmp_path, monkeypatch):
-    """Create a temporary upload directory."""
-    upload_path = tmp_path / "uploads"
-    upload_path.mkdir(parents=True, exist_ok=True)
-    monkeypatch.setattr("app.utils.config.UPLOAD_DIR", upload_path)
-    return upload_path
+def temp_uploads():
+    """Per-test upload dir from the autouse test_storage fixture."""
+    import app.utils.config as config_module
+    config_module.UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    return config_module.UPLOAD_DIR
 
 
 @pytest.fixture
@@ -104,7 +95,7 @@ def test_repair_orphan_vectors(temp_db, temp_chroma, temp_uploads, test_user):
     
     # Run repair with fix
     result = subprocess.run([
-        sys.executable, "scripts/repair.py", "--fix", "--db-path", str(temp_db),
+        sys.executable, "scripts/repair.py", "--fix", "--yes", "--db-path", str(temp_db),
     ], capture_output=True, text=True, cwd="/home/shreesh/MemoryNest", env=env)
     
     # Verify orphan vector was removed
@@ -125,6 +116,7 @@ def test_repair_orphan_files(temp_db, temp_chroma, temp_uploads, test_user):
     # Run repair dry run
     env = os.environ.copy()
     env["UPLOAD_DIR"] = str(temp_uploads)
+    env["CHROMA_DIR"] = str(temp_chroma)
     result = subprocess.run([
         sys.executable, "scripts/repair.py", "--db-path", str(temp_db),
     ], capture_output=True, text=True, cwd="/home/shreesh/MemoryNest", env=env)
@@ -133,7 +125,7 @@ def test_repair_orphan_files(temp_db, temp_chroma, temp_uploads, test_user):
     
     # Run repair with fix
     result = subprocess.run([
-        sys.executable, "scripts/repair.py", "--fix", "--db-path", str(temp_db),
+        sys.executable, "scripts/repair.py", "--fix", "--yes", "--db-path", str(temp_db),
     ], capture_output=True, text=True, cwd="/home/shreesh/MemoryNest", env=env)
     
     # Verify orphan file was removed
@@ -143,7 +135,6 @@ def test_repair_orphan_files(temp_db, temp_chroma, temp_uploads, test_user):
 def test_repair_chunks_without_document(temp_db, temp_chroma, temp_uploads, test_user):
     """Test repair script detects and fixes chunks without document."""
     import hashlib
-    from app.database.repositories import ChunkRepository
     from app.database.repositories import DocumentRepository
     
     # Create a document and process it
@@ -173,6 +164,7 @@ def test_repair_chunks_without_document(temp_db, temp_chroma, temp_uploads, test
     # Run repair dry run
     env = os.environ.copy()
     env["UPLOAD_DIR"] = str(temp_uploads)
+    env["CHROMA_DIR"] = str(temp_chroma)
     result = subprocess.run([
         sys.executable, "scripts/repair.py", "--db-path", str(temp_db),
     ], capture_output=True, text=True, cwd="/home/shreesh/MemoryNest", env=env)
@@ -181,7 +173,7 @@ def test_repair_chunks_without_document(temp_db, temp_chroma, temp_uploads, test
     
     # Run repair with fix
     result = subprocess.run([
-        sys.executable, "scripts/repair.py", "--fix", "--db-path", str(temp_db),
+        sys.executable, "scripts/repair.py", "--fix", "--yes", "--db-path", str(temp_db),
     ], capture_output=True, text=True, cwd="/home/shreesh/MemoryNest", env=env)
     
     # Verify orphan chunks were removed
@@ -190,3 +182,60 @@ def test_repair_chunks_without_document(temp_db, temp_chroma, temp_uploads, test
     # Document was deleted, so doc_id should not exist
     # The orphan chunks should have been cleaned up
     assert len(chunks) == 0
+
+
+def test_repair_default_db_path_from_config(temp_db, temp_chroma, temp_uploads, test_user):
+    """Without --db-path, repair.py uses the DB path from config (env DB_PATH)."""
+    # Create a known issue: an orphan file
+    orphan = temp_uploads / str(test_user.id) / "stray_default.txt"
+    orphan.parent.mkdir(parents=True, exist_ok=True)
+    orphan.write_text("stray file with no document row")
+
+    env = os.environ.copy()
+    assert env["DB_PATH"] == str(temp_db)  # the autouse fixture's DB
+    result = subprocess.run(
+        [sys.executable, "scripts/repair.py"],
+        capture_output=True, text=True, cwd="/home/shreesh/MemoryNest", env=env,
+    )
+
+    # Dry run on the config default: no crash, path shown, issue found
+    assert result.returncode == 1
+    assert "NameError" not in result.stderr
+    assert str(temp_db) in result.stdout
+    assert "Orphan files: 1" in result.stdout
+    assert orphan.exists()  # dry run must not delete
+
+
+def test_repair_fix_refused_without_yes(temp_db, temp_chroma, temp_uploads, test_user):
+    """--fix without --yes is refused (exit 2) and changes nothing."""
+    orphan = temp_uploads / str(test_user.id) / "stray_no_yes.txt"
+    orphan.parent.mkdir(parents=True, exist_ok=True)
+    orphan.write_text("stray")
+
+    env = os.environ.copy()
+    result = subprocess.run(
+        [sys.executable, "scripts/repair.py", "--fix", "--db-path", str(temp_db)],
+        capture_output=True, text=True, cwd="/home/shreesh/MemoryNest", env=env,
+    )
+
+    assert result.returncode == 2
+    assert "--yes" in result.stdout
+    assert str(temp_db) in result.stdout  # path shown before refusing
+    assert orphan.exists()  # nothing was changed
+
+
+def test_repair_fix_with_yes(temp_db, temp_chroma, temp_uploads, test_user):
+    """--fix --yes applies fixes and exits 0 when nothing remains."""
+    orphan = temp_uploads / str(test_user.id) / "stray_yes.txt"
+    orphan.parent.mkdir(parents=True, exist_ok=True)
+    orphan.write_text("stray")
+
+    env = os.environ.copy()
+    result = subprocess.run(
+        [sys.executable, "scripts/repair.py", "--fix", "--yes", "--db-path", str(temp_db)],
+        capture_output=True, text=True, cwd="/home/shreesh/MemoryNest", env=env,
+    )
+
+    assert result.returncode == 0
+    assert "Issues remaining after fix: 0" in result.stdout
+    assert not orphan.exists()

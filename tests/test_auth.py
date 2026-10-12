@@ -9,14 +9,10 @@ from app.utils.security import hash_password, verify_password
 
 
 @pytest.fixture()
-def db(tmp_path, monkeypatch):
-    from app.database.database import init_db
-
-    db_path = tmp_path / "auth.db"
-    init_db(db_path)
-    monkeypatch.setattr("app.database.database.DB_PATH", db_path)
-    yield db_path
-    db_path.unlink(missing_ok=True)
+def db():
+    """Fresh per-test DB, set up by the autouse test_storage fixture in conftest.py."""
+    import app.utils.config as config_module
+    return config_module.DB_PATH
 
 
 def test_hash_roundtrip():

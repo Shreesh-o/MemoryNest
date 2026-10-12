@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import pytest
 
-from app.database.database import init_db
 from app.database.repositories import (
     ConversationRepository,
     EventRepository,
@@ -19,16 +18,8 @@ from app.database.repositories import (
 
 
 @pytest.fixture()
-def db(tmp_path):
-    db_path = tmp_path / "test.db"
-    init_db(db_path)
-    return db_path
-
-
-@pytest.fixture()
-def repos(db, monkeypatch):
-    monkeypatch.setattr("app.database.database.DB_PATH", db)
-
+def repos():
+    """The autouse test_storage fixture already created a fresh DB under tmp_path."""
     user = UserRepository().create("alice", "hash-alice", "alice@example.com")
     return {
         "user": user,

@@ -39,10 +39,10 @@ def render() -> None:
             with st.spinner("Thinking..."):
                 try:
                     result = rag_service.rag_answer(user.id, prompt)
-                except Exception as exc:
+                except RuntimeError as e:
                     import logging
                     logging.exception("RAG query failed for user %s", user.id)
-                    st.error(f"Query failed: {exc}")
+                    st.error(str(e))
                     result = None
             if result:
                 st.markdown(result.answer)

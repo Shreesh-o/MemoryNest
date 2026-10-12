@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+
 import streamlit as st
 
 from app.database.repositories import DocumentRepository, SummaryRepository
@@ -10,7 +12,7 @@ from app.services import summary_service, tts_service
 
 def render() -> None:
     user = st.session_state.user
-    st.header("📝 Document Summaries")
+    st.header("\U0001F4DD Document Summaries")
 
     doc_repo = DocumentRepository()
     sum_repo = SummaryRepository()
@@ -34,14 +36,25 @@ def render() -> None:
         for s in existing:
             with st.expander(f"Summary from {s.created_at[:16]}"):
                 st.markdown(s.summary_text)
-                if st.button("🔊 Play", key=f"tts_{s.id}"):
+                if st.button("\U0001F50A Play", key=f"tts_{s.id}"):
                     if tts_service.tts_available():
                         with st.spinner("Generating audio..."):
-                            path = tts_service.synthesize_to_file(s.summary_text)
-                            if path:
-                                st.audio(path)
-                            else:
-                                st.error("TTS generation failed")
+                            try:
+                                path = tts_service.synthesize_to_file(s.summary_text)
+                                if path and os.path.exists(path) and os.path.getsize(path) > 0:
+                                    st.audio(path)
+                                    with open(path, "rb") as f:
+                                        st.download_button(
+                                            label="Download WAV",
+                                            data=f,
+                                            file_name=os.path.basename(path),
+                                            mime="audio/wav",
+                                            key=f"dl_{s.id}",
+                                        )
+                                else:
+                                    st.error("Audio file was not created")
+                            except RuntimeError as e:
+                                st.error(str(e))
                     else:
                         st.warning("TTS unavailable (install espeak-ng: pacman -S espeak-ng)")
 
@@ -54,10 +67,10 @@ def render() -> None:
             full_text = doc.text_preview or "No text preview available"
             try:
                 summary_text = summary_service.summarize_document(full_text)
-            except Exception as exc:
+            except RuntimeError as e:
                 import logging
                 logging.exception("Summary generation failed for doc %s", doc.id)
-                st.error(f"Summary generation failed: {exc}")
+                st.error(str(e))
                 summary_text = None
 
         if summary_text:

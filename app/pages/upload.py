@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 import uuid
 from pathlib import Path
+import importlib
 
 import streamlit as st
 
-from app.database.database import init_db
-from app.database.repositories import DocumentRepository, ChunkRepository
+from app.database.repositories import DocumentRepository, ChunkRepository, EventRepository
 from app.services import (
     extraction_service,
     ocr_service,
@@ -18,7 +19,6 @@ from app.services import (
     vector_service,
     event_service,
 )
-from app.utils.config import UPLOAD_DIR, CHUNK_SIZE, CHUNK_OVERLAP, MAX_FILE_SIZE_BYTES
 from app.utils.validators import (
     validate_filename,
     sanitize_filename,
@@ -27,10 +27,33 @@ from app.utils.validators import (
     file_type_for,
 )
 
+logger = logging.getLogger(__name__)
+
+
+def _get_config():
+    """Get the current config module (handles reloads)."""
+    return importlib.reload(importlib.import_module("app.utils.config"))
+
+
+def _get_upload_dir() -> Path:
+    return _get_config().UPLOAD_DIR
+
+
+def _get_chunk_size() -> int:
+    return _get_config().CHUNK_SIZE
+
+
+def _get_chunk_overlap() -> int:
+    return _get_config().CHUNK_OVERLAP
+
+
+def _get_max_file_size_bytes() -> int:
+    return _get_config().MAX_FILE_SIZE_BYTES
+
 
 def _save_uploaded_file(uploaded_file, user_id: int, original_filename: str) -> tuple[str, int]:
     """Save uploaded file to disk under user_id folder, return (stored_path, size)."""
-    user_dir = UPLOAD_DIR / str(user_id)
+    user_dir = _get_upload_dir() / str(user_id)
     user_dir.mkdir(parents=True, exist_ok=True)
 
     # Sanitize and keep original extension
@@ -44,38 +67,49 @@ def _save_uploaded_file(uploaded_file, user_id: int, original_filename: str) -> 
     return str(stored_path), len(data)
 
 
-def _cleanup_failed_document(doc_id: int, user_id: int, stored_path: str) -> None:
-    """Clean up partial data (chunks, vectors, file) when document processing fails.
-    Keeps the document row but marks it as error."""
-    from app.database.repositories import DocumentRepository, ChunkRepository
-    from app.services import vector_service
-    from app.utils.config import UPLOAD_DIR
-    from pathlib import Path
+def _cleanup_failed_document(doc_id: int, user_id: int, stored_path: str, reason: str) -> None:
+    """Clean up partial data from a failed document and mark it as 'error'.
 
+    Removes the partial chunk rows, their Chroma vectors, any partially
+    created events, and the stored file. The document row is kept and set
+    to status='error' with a readable reason, so no row is ever left stuck
+    at 'uploaded'/'extracting'.
+    """
     doc_repo = DocumentRepository()
     chunk_repo = ChunkRepository()
+    ev_repo = EventRepository()
     vs = vector_service.get_vector_service()
 
-    # Delete chunks and get chroma_ids
     chroma_ids = chunk_repo.delete_for_document(doc_id, user_id)
-
-    # Delete vectors from ChromaDB
     if chroma_ids:
-        vs.collection.delete(ids=chroma_ids)
+        try:
+            vs.collection.delete(ids=chroma_ids)
+        except Exception:
+            logger.warning("Could not delete Chroma vectors for doc %s", doc_id, exc_info=True)
 
-    # Delete stored file
+    ev_repo.delete_for_document(doc_id, user_id)
+
     path = Path(stored_path)
     if path.exists():
         path.unlink(missing_ok=True)
-        # Try to remove empty user directory
         try:
             path.parent.rmdir()
         except OSError:
-            pass
+            pass  # Directory not empty or doesn't exist
+
+    try:
+        doc_repo.update_status(doc_id, user_id, "error", reason)
+    except Exception:
+        logger.exception("Could not mark document %s as error", doc_id)
 
 
 def _process_document(doc_id: int, user_id: int, stored_path: str, file_type: str, filename: str) -> None:
-    """Extract text, chunk, embed, store in vector DB, extract events."""
+    """Extract text, chunk, embed, store in vector DB, extract events.
+
+    On any failure the partial data is cleaned up, the document row is
+    marked 'error' with a readable reason, and the original exception is
+    re-raised so the UI reports the failure instead of a success.
+    """
     doc_repo = DocumentRepository()
     chunk_repo = ChunkRepository()
     vs = vector_service.get_vector_service()
@@ -83,15 +117,13 @@ def _process_document(doc_id: int, user_id: int, stored_path: str, file_type: st
     try:
         doc_repo.update_status(doc_id, user_id, "extracting")
         text = extraction_service.extract_text(stored_path, file_type)
+        logger.debug("doc %s: extracted %d chars of text", doc_id, len(text))
 
-        # Chunk
-        chunks = chunking_service.chunk_text(text, max_tokens=CHUNK_SIZE, overlap_tokens=CHUNK_OVERLAP)
+        chunks = chunking_service.chunk_text(text, max_tokens=_get_chunk_size(), overlap_tokens=_get_chunk_overlap())
+        logger.debug("doc %s: %d chunks", doc_id, len(chunks))
 
-        # Embed
-        chunk_texts = [c.text for c in chunks]
-        embeddings = embedding_service.embed_texts(chunk_texts)
+        embeddings = embedding_service.embed_texts([c.text for c in chunks])
 
-        # Prepare for vector DB
         vector_chunks = []
         for i, (chunk, emb) in enumerate(zip(chunks, embeddings)):
             chroma_id = f"doc-{doc_id}-chunk-{i}"
@@ -104,15 +136,11 @@ def _process_document(doc_id: int, user_id: int, stored_path: str, file_type: st
                     "embedding": emb,
                 }
             )
-            # Save chunk metadata to SQL
             chunk_repo.create(doc_id, user_id, chunk.index, chunk.text, chunk.token_count, chroma_id)
 
-        # Store in vector DB
         vs.add_chunks(user_id, doc_id, filename, vector_chunks)
 
-        # Extract events
         events = event_service.extract_events(text)
-        from app.database.repositories import EventRepository
         ev_repo = EventRepository()
         for e in events:
             ev_repo.create(
@@ -123,14 +151,14 @@ def _process_document(doc_id: int, user_id: int, stored_path: str, file_type: st
                 raw_date=e.get("raw_date"),
             )
 
-        # Update document status
         preview = text[:500]
         doc_repo.set_text(doc_id, user_id, preview, len(chunks))
+        logger.debug("doc %s: ready with %d chunks", doc_id, len(chunks))
 
     except Exception as e:
-        # Clean up partial data (chunks, vectors, file)
-        _cleanup_failed_document(doc_id, user_id, stored_path)
-        doc_repo.update_status(doc_id, user_id, "error", str(e))
+        reason = f"{type(e).__name__}: {e}"
+        logger.exception("Document processing failed for %s (doc %s): %s", filename, doc_id, reason)
+        _cleanup_failed_document(doc_id, user_id, stored_path, reason)
         raise
 
 
@@ -145,7 +173,6 @@ def render() -> None:
     )
 
     if uploaded_files:
-        doc_repo = DocumentRepository()
         for uploaded in uploaded_files:
             original_name = uploaded.name
             safe_name = sanitize_filename(original_name)
@@ -159,62 +186,52 @@ def render() -> None:
             # 2. Read file bytes for content validation
             file_bytes = uploaded.getbuffer()
 
-            # 3. Validate size
-            ok, reason = validate_size(len(file_bytes), MAX_FILE_SIZE_BYTES)
+            # 2. Validate size
+            ok, reason = validate_size(len(file_bytes), _get_max_file_size_bytes())
             if not ok:
                 st.error(f"{original_name}: {reason}")
                 continue
 
-            # 4. Validate content via magic bytes
-            ok, reason, detected_type = validate_file_content(file_bytes)
+            # 3. Validate content via magic bytes
+            ok, reason, detected_type = validate_file_content(file_bytes, original_name)
             if not ok:
                 st.error(f"{original_name}: {reason}")
                 continue
 
             file_type = detected_type
 
-            # 5. Compute SHA-256 hash for duplicate detection
+            # 4. Compute SHA-256 hash for duplicate detection
             file_hash = hashlib.sha256(file_bytes).hexdigest()
 
-            # 6. Check for duplicate (same user, same file hash)
+            # 5. Check for duplicate (same user, same file hash)
+            doc_repo = DocumentRepository()
             existing = doc_repo.get_by_hash(user.id, file_hash)
             if existing:
                 st.warning(f"{original_name}: Already exists (uploaded as '{existing.filename}' on {existing.created_at[:10]})")
                 continue
 
-            # 7. Validate size
-            ok, reason = validate_size(len(file_bytes), MAX_FILE_SIZE_BYTES)
-            if not ok:
-                st.error(f"{original_name}: {reason}")
-                continue
-
-            # 8. Validate content via magic bytes
-            ok, reason, detected_type = validate_file_content(file_bytes)
-            if not ok:
-                st.error(f"{original_name}: {reason}")
-                continue
-
-            file_type = detected_type
-
-            # 9. Save file
+            # 6. Save file
             stored_path, size = _save_uploaded_file(uploaded, user.id, safe_name)
 
-            # 10. Create document record with original name and hash
+            # 7. Create document record with hash
             doc = doc_repo.create(user.id, original_name, stored_path, file_type, size, file_hash=file_hash)
 
-            # 11. Process synchronously
+            # 8. Process synchronously (for MVP; could be async later).
+            #    _process_document re-raises after marking the row 'error'
+            #    and cleaning up, so failures land in st.error below.
             with st.spinner(f"Processing {original_name}..."):
                 try:
                     _process_document(doc.id, user.id, stored_path, file_type, original_name)
-                    st.success(f"✅ {original_name} processed ({doc.chunk_count} chunks)")
                 except Exception as e:
-                    import logging
-                    logging.exception("Upload processing failed for %s", original_name)
-                    st.error(f"❌ {original_name}: {e}")
+                    st.error(f"❌ {original_name}: processing failed — {e}")
+                    continue
+                processed = doc_repo.get_by_id(doc.id, user.id)
+                chunk_count = processed.chunk_count if processed else 0
+                st.success(f"✅ {original_name} processed ({chunk_count} chunks)")
 
         st.rerun()
 
     st.divider()
-    st.caption(f"Upload folder: {UPLOAD_DIR}")
-    st.caption(f"Max file size: {MAX_FILE_SIZE_BYTES / (1024*1024):.0f} MB")
+    st.caption(f"Upload folder: {_get_upload_dir()}")
+    st.caption(f"Max file size: {_get_max_file_size_bytes() / (1024*1024):.0f} MB")
     st.caption("Supported: PDF, DOCX, TXT, PNG, JPG, TIFF, BMP")
