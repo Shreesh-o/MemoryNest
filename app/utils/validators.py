@@ -28,26 +28,6 @@ ALLOWED_MIME_TYPES = {
     "image/bmp": "bmp",
 }
 
-# Threshold: if more than this fraction of bytes are control characters
-# (0x00-0x1F, 0x7F except tab 0x09, newline 0x0A, carriage return 0x0D),
-# the file is considered binary.
-_BINARY_RATIO_THRESHOLD = 0.3
-
-
-def _is_likely_binary(file_bytes: bytes) -> bool:
-    """Heuristically determine if bytes are binary (not plain text)."""
-    if not file_bytes:
-        return True
-    # Count bytes that are control characters (except tab, newline, CR)
-    control = 0
-    for b in file_bytes:
-        if b in (0x09, 0x0A, 0x0D):
-            continue  # tab, newline, carriage return are valid in text
-        if b <= 0x1F or b == 0x7F:
-            control += 1
-    ratio = control / len(file_bytes)
-    return ratio > _BINARY_RATIO_THRESHOLD
-
 
 def validate_filename(filename: str) -> Tuple[bool, str]:
     """Check extension is supported. Returns (ok, reason)."""
@@ -75,11 +55,15 @@ def sanitize_filename(filename: str) -> str:
 
 
 def _try_decode_text(file_bytes: bytes) -> str | None:
-    """Try to decode file_bytes as text. Returns decoded text or None."""
-    for encoding in ("utf-8-sig", "utf-8", "utf-16", "cp1252", "latin-1"):
+    """Try to decode file_bytes as text using multiple encodings (excluding latin-1).
+
+    Returns decoded text with BOM stripped, or None if all fail.
+    Order: utf-8-sig, utf-8, utf-16, cp1252.
+    """
+    for encoding in ("utf-8-sig", "utf-8", "utf-16", "cp1252"):
         try:
             text = file_bytes.decode(encoding)
-            # For utf-16, strip the BOM if present
+            # For utf-16, the BOM may be included; strip it
             if encoding in ("utf-16", "utf-16-le", "utf-16-be") and text.startswith("\ufeff"):
                 text = text[1:]
             return text
@@ -92,18 +76,30 @@ def validate_file_content(file_bytes: bytes, filename: str = "") -> Tuple[bool, 
     """Check file content. Returns (ok, reason, detected_type).
 
     Policy:
-    1. Always check magic bytes first (handles PDF, PNG, JPEG, DOCX etc.).
-    2. If magic bytes identify a known type, return it.
-    3. If magic bytes are None (e.g. plain text without distinctive headers):
-       - If the file has a .txt extension, try to decode as text.
-       - If decoding succeeds and the content is not clearly binary, accept as txt.
-       - Otherwise reject.
-    4. If magic bytes are None and extension is not .txt, reject.
+    1. If filename has a known extension (.pdf, .docx, .txt, .png, .jpg, .tiff, .bmp),
+       use filetype module magic-byte detection.
+    2. If magic bytes identify a known type:
+       - .txt extension + known binary type = disguise -> reject
+       - known type + allowed extension -> accept
+    3. If magic bytes are None (plain text without distinctive headers):
+       - If filename has .txt extension: try text decoding. Accept if decoding succeeds
+         and content has real text (not just whitespace). Otherwise reject.
+       - If filename has no extension (empty string): always reject with "Could not determine
+         file type from content" (this maintains backward compatibility with existing tests).
+       - If filename has unknown extension: reject.
+    4. Otherwise reject.
+
+    Key fix for the bug: when filename has .txt extension, text decoding is attempted
+    and content is accepted if it's valid text, regardless of whether the filename was
+    originally correct or empty. The real fix is in the caller (upload.py) which now
+    passes the original filename.
     """
+    from filetype import guess as _guess_type
+
     ext = Path(filename).suffix.lower() if filename else ""
 
-    # --- Step 1: Magic-byte detection for known binary types ---
-    kind = __import__("filetype").guess(file_bytes)
+    # --- Step 1: Magic-byte detection using filetype module ---
+    kind = _guess_type(file_bytes)
     if kind is not None:
         mime = kind.mime
         # If it's a known type AND the file has .txt extension, it's a binary disguise
@@ -116,8 +112,8 @@ def validate_file_content(file_bytes: bytes, filename: str = "") -> Tuple[bool, 
         # Known type but not in allowed list
         return False, f"File type '{mime}' not allowed. Allowed: PDF, DOCX, TXT, PNG, JPG, TIFF, BMP", ""
 
-# --- Step 2: Magic bytes were None (plain text or unrecognized) ---
-    # If the file has a .txt extension, try text decoding
+    # --- Step 2: Magic bytes were None (plain text or unrecognized) ---
+    # If filename has .txt extension: try text decoding
     if ext == ".txt":
         # Reject if contains NUL bytes (binary file disguised as .txt)
         if b"\x00" in file_bytes:
@@ -128,12 +124,14 @@ def validate_file_content(file_bytes: bytes, filename: str = "") -> Tuple[bool, 
             # Accept if the decoded text has actual content (not just whitespace)
             if text.strip():
                 return True, "", "txt"
-            # Empty text after stripping BOM
+            # Empty text
             return False, "File is empty", ""
         # Text decoding failed
         return False, "Could not decode file as text.", ""
 
-    # --- Step 3: No magic bytes and not .txt ---
+    # --- Step 3: No magic bytes and not .txt (including empty filename) ---
+    # For no filename or unknown extension, reject with standard message
+    # This maintains backward compatibility with existing tests
     return False, "Could not determine file type from content", ""
 
 

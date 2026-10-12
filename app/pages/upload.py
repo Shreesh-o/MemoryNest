@@ -193,7 +193,7 @@ def render() -> None:
                 continue
 
             # 3. Validate content via magic bytes
-            ok, reason, detected_type = validate_file_content(file_bytes)
+            ok, reason, detected_type = validate_file_content(file_bytes, original_name)
             if not ok:
                 st.error(f"{original_name}: {reason}")
                 continue
