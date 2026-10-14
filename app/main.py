@@ -23,8 +23,8 @@ import streamlit as st
 
 from app.database.database import init_db
 from app.services import llm_service
+from app.services.auth_service import authenticate, register
 from app.utils import config
-from app.utils.auth import login, register
 
 
 def _auth_gate() -> bool:
@@ -42,11 +42,14 @@ def _auth_gate() -> bool:
             username = st.text_input("Username")
             password = st.text_input("Password", type="password")
             if st.form_submit_button("Log in"):
-                user, err = login(username, password)
-                if user:
-                    st.session_state.user = user
-                    st.rerun()
-                st.error(err or "Login failed")
+                try:
+                    user = authenticate(username, password)
+                    if user:
+                        st.session_state.user = user
+                        st.rerun()
+                    st.error("Invalid username or password.")
+                except Exception as e:
+                    st.error(str(e))
 
     with tab_register:
         with st.form("register_form"):
@@ -58,11 +61,14 @@ def _auth_gate() -> bool:
                 if r_password != r_confirm:
                     st.error("Passwords do not match")
                 else:
-                    user, err = register(r_username, r_password, r_email or None)
-                    if user:
+                    try:
+                        user = register(r_username, r_password, r_email or None)
                         st.session_state.user = user
                         st.rerun()
-                    st.error(err or "Registration failed")
+                    except ValueError as e:
+                        st.error(str(e))
+                    except Exception as e:
+                        st.error(f"Registration failed: {e}")
 
     st.stop()
     return False
@@ -102,7 +108,7 @@ def main() -> None:
         st.Page(summaries.render, title="Summaries", url_path="summaries"),
         st.Page(reminders.render, title="Reminders", url_path="reminders"),
     ]
-)
+    )
     pages.run()
 
 

@@ -4,16 +4,14 @@ from __future__ import annotations
 
 import streamlit as st
 
-from app.database.repositories import DocumentRepository
+from app.services.document_service import delete_document, list_documents, retry_extraction
 
 
 def render() -> None:
     user = st.session_state.user
     st.header("📁 Your Documents")
 
-    doc_repo = DocumentRepository()
-
-    docs = doc_repo.list_for_user(user.id)
+    docs = list_documents(user.id)
     if not docs:
         st.info("No documents yet. Go to Upload to add some!")
         return
@@ -30,8 +28,7 @@ def render() -> None:
             with col1:
                 if st.button("Delete", key=f"del_doc_{d.id}", type="secondary"):
                     try:
-                        # One path: vectors first, then chunks, row, and file.
-                        doc_repo.delete(d.id, user.id)
+                        delete_document(user.id, d.id)
                     except RuntimeError:
                         st.error(
                             "Document was NOT deleted: vector cleanup failed. "
@@ -42,4 +39,9 @@ def render() -> None:
                         st.rerun()
             with col2:
                 if d.status == "error" and st.button("Retry extraction", key=f"retry_{d.id}"):
-                    st.info("Retry not yet implemented")
+                    try:
+                        retry_extraction(user.id, d.id)
+                    except Exception as e:
+                        st.error(f"Retry failed: {e}")
+                    else:
+                        st.rerun()
