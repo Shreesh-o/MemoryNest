@@ -9,6 +9,7 @@ from datetime import datetime
 from typing import List, Optional
 
 import dateparser
+from zoneinfo import ZoneInfo
 
 from app.services import llm_service
 
@@ -35,43 +36,59 @@ _DATE_REGEXES = [
 _COMPILED_REGEXES = [re.compile(rx, re.IGNORECASE) for rx in _DATE_REGEXES]
 
 # Dateparser settings for Indian date formats
-dateparser_settings = {
+DATEPARSER_SETTINGS = {
     "DATE_ORDER": "DMY",
     "PREFER_DATES_FROM": "future",
     "TIMEZONE": "Asia/Kolkata",
 }
 
-
-def _get_relative_base() -> datetime:
-    return datetime.now()
+DEFAULT_TZ = ZoneInfo("Asia/Kolkata")
 
 
-def _parse_date(raw: str) -> Optional[datetime]:
+def _get_now() -> datetime:
+    """Get current time in default timezone."""
+    return datetime.now(DEFAULT_TZ)
+
+
+def _make_relative_base(now: datetime) -> datetime:
+    """Create relative base for dateparser from a datetime."""
+    # dateparser expects a naive datetime for RELATIVE_BASE
+    # but we pass it as-is; dateparser will use it for relative calculations
+    return now
+
+
+def _parse_date(raw: str, now: datetime) -> Optional[datetime]:
     """Parse a date string using dateparser with appropriate settings.
 
     For ISO dates (YYYY-MM-DD), DATE_ORDER doesn't affect them.
     For slash dates (DM/YM), DMY ordering is needed for Indian format.
     For month+day without year, dateparser infers the year.
-    For relative dates, RELATIVE_BASE is set to now.
+    For relative dates, RELATIVE_BASE is set to `now`.
     """
+    settings = dict(DATEPARSER_SETTINGS)
+    settings["RELATIVE_BASE"] = _make_relative_base(now)
+
     # Check if it's an ISO date (YYYY-MM-DD) - don't use DATE_ORDER for these
     if re.match(r"^\d{4}-\d{1,2}-\d{1,2}$", raw):
         parsed = dateparser.parse(raw, languages=["en"], settings={
             "PREFER_DATES_FROM": "future",
             "TIMEZONE": "Asia/Kolkata",
+            "RELATIVE_BASE": _make_relative_base(now),
         })
     else:
-        parsed = dateparser.parse(raw, languages=["en"], settings=dateparser_settings)
+        parsed = dateparser.parse(raw, languages=["en"], settings=settings)
     return parsed
 
 
-def _is_past_date(parsed: datetime) -> bool:
-    """Check if a parsed date is in the past (relative to now)."""
-    now = datetime.now()
-    return parsed < now
+def _is_past_date(parsed: datetime, now: datetime) -> bool:
+    """Check if a parsed date is in the past (relative to now).
+
+    Compares DATES only, not datetimes. An event dated today is kept.
+    """
+    return parsed.date() < now.date()
 
 
-def _extract_with_regex(text: str) -> List[dict]:
+def _extract_with_regex(text: str, now: datetime) -> List[dict]:
     """Find date-like spans in text using regex, parse with dateparser."""
     events = []
     sentences = re.split(r"(?<=[.!?])\s+|\n+", text)
@@ -84,9 +101,9 @@ def _extract_with_regex(text: str) -> List[dict]:
         for rx in _COMPILED_REGEXES:
             for m in rx.finditer(sent):
                 raw = m.group(0)
-                parsed = _parse_date(raw)
+                parsed = _parse_date(raw, now)
                 if parsed:
-                    if _is_past_date(parsed):
+                    if _is_past_date(parsed, now):
                         logger.info("Dropped past date: %s -> %s (before today)", raw, parsed.date().isoformat())
                         continue
                     events.append(
@@ -124,9 +141,22 @@ def _extract_with_llm(text: str) -> List[dict]:
     return []
 
 
-def extract_events(text: str) -> List[dict]:
-    """Main entry: regex first, LLM fallback if nothing found."""
-    events = _extract_with_regex(text)
+def extract_events(text: str, now: Optional[datetime] = None) -> List[dict]:
+    """Main entry: regex first, LLM fallback if nothing found.
+
+    Args:
+        text: Text to extract events from.
+        now: Optional fixed clock for parsing relative dates and past-date filtering.
+             Defaults to current time in Asia/Kolkata timezone.
+    """
+    if now is None:
+        now = _get_now()
+    else:
+        # Ensure timezone-aware for consistent comparison
+        if now.tzinfo is None:
+            now = now.replace(tzinfo=DEFAULT_TZ)
+
+    events = _extract_with_regex(text, now)
     if not events:
         events = _extract_with_llm(text)
     # Deduplicate by (event_text, event_date)

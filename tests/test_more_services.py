@@ -53,12 +53,15 @@ def test_tts_available(monkeypatch):
 
 
 def test_event_extraction_regex():
+    from datetime import datetime
+    # Use a fixed clock so the test is not date-dependent
+    now = datetime(2026, 10, 12)
     text = (
         "The meeting is on 2026-10-15 at 10 AM. "
         "Project deadline is Oct 31, 2026. "
         "No date here."
     )
-    events = event_service.extract_events(text)
+    events = event_service.extract_events(text, now=now)
     assert len(events) >= 2
     dates = [e["event_date"] for e in events]
     assert "2026-10-15" in dates
@@ -75,10 +78,12 @@ def test_event_extraction_no_dates():
     assert isinstance(events, list)
 
 
-def test_event_extraction_indian_date_formats(monkeypatch):
+def test_event_extraction_indian_date_formats():
     """All 8 lines from BUG 2 produce events with the correct date."""
     from datetime import datetime
-    from unittest.mock import patch
+
+    # Fixed clock for reproducible "tomorrow" resolution and past-date filtering
+    now = datetime(2026, 10, 12)
 
     lines = [
         "Submission deadline: 15 October 2026",
@@ -102,9 +107,7 @@ def test_event_extraction_indian_date_formats(monkeypatch):
     ]
 
     text = "\n".join(lines)
-    with patch.object(event_service, "datetime") as mock_dt:
-        mock_dt.now.return_value = datetime(2026, 10, 12)
-        events = event_service.extract_events(text)
+    events = event_service.extract_events(text, now=now)
 
     assert len(events) == 8, f"Expected 8 events, got {len(events)}"
 

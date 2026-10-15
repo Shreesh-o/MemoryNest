@@ -196,8 +196,12 @@ def test_process_document_invalid_type(temp_db, temp_chroma, temp_uploads, test_
 
 def test_process_document_extracts_events(temp_db, temp_chroma, temp_uploads, test_user):
     """Test that processing a document with a clear date creates event rows."""
-    # TXT content with a clear date
-    txt_content = "Submission deadline: 15 October 2026. Please submit by this date."
+    # TXT content with a clear date (computed from fixed reference to avoid date rot)
+    from datetime import datetime, timedelta
+    ref_date = datetime(2026, 10, 5)
+    deadline_date = ref_date + timedelta(days=10)  # 2026-10-15
+    deadline_str = deadline_date.strftime("%d %B %Y")  # "15 October 2026"
+    txt_content = f"Submission deadline: {deadline_str}. Please submit by this date."
     
     txt_path = temp_uploads / "deadline.txt"
     txt_path.write_text(txt_content, encoding="utf-8")
@@ -227,11 +231,12 @@ def test_process_document_extracts_events(temp_db, temp_chroma, temp_uploads, te
     
     # Verify the event has the expected date
     found = False
+    expected_iso = deadline_date.strftime("%Y-%m-%d")
     for e in events:
-        if e.event_date == "2026-10-15" or "October" in (e.raw_date or ""):
+        if e.event_date == expected_iso or deadline_str in (e.raw_date or ""):
             found = True
             break
-    assert found, "Expected an event with date 2026-10-15 or raw_date containing 'October'"
+    assert found, f"Expected an event with date {expected_iso} or raw_date containing '{deadline_str}'"
 
 
 def test_duplicate_detection_same_user(temp_db, temp_chroma, temp_uploads, test_user):

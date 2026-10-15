@@ -107,10 +107,17 @@ def test_end_to_end_utf16_tts():
     """End-to-end: TXT containing dates saved as UTF-16 goes through extraction and produces events."""
     from app.services import event_service, extraction_service
     import tempfile
+    from datetime import datetime, timedelta
+
+    # Use a fixed reference date to avoid date rot
+    ref_date = datetime(2026, 10, 5)
+    deadline_date = ref_date + timedelta(days=10)  # 2026-10-15
+    deadline_str = deadline_date.strftime("%d %B %Y")  # "15 October 2026"
+    expected_iso = deadline_date.strftime("%Y-%m-%d")
 
     # Create a TXT file with a date, saved as UTF-16 with BOM
     with tempfile.NamedTemporaryFile(suffix=".txt", delete=False, mode="wb") as f:
-        f.write("\ufeffSubmission deadline: 15 October 2026".encode("utf-16"))
+        f.write(f"\ufeffSubmission deadline: {deadline_str}".encode("utf-16"))
         tmp_path = f.name
 
     try:
@@ -118,6 +125,6 @@ def test_end_to_end_utf16_tts():
         events = event_service.extract_events(text)
         # Should find the deadline event
         dates = [e["event_date"] for e in events]
-        assert "2026-10-15" in dates, f"Expected 2026-10-15 in {dates}"
+        assert expected_iso in dates, f"Expected {expected_iso} in {dates}"
     finally:
         Path(tmp_path).unlink(missing_ok=True)
