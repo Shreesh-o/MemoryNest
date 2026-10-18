@@ -196,11 +196,10 @@ def test_process_document_invalid_type(temp_db, temp_chroma, temp_uploads, test_
 
 def test_process_document_extracts_events(temp_db, temp_chroma, temp_uploads, test_user):
     """Test that processing a document with a clear date creates event rows."""
-    # TXT content with a clear date (computed from fixed reference to avoid date rot)
-    from datetime import datetime, timedelta
-    ref_date = datetime(2026, 10, 5)
-    deadline_date = ref_date + timedelta(days=10)  # 2026-10-15
-    deadline_str = deadline_date.strftime("%d %B %Y")  # "15 October 2026"
+    # TXT content with a clear date (computed from real current date + 10 days, always in future)
+    from datetime import date, timedelta
+    due = date.today() + timedelta(days=10)
+    deadline_str = f"{due.day} {due.strftime('%B %Y')}"
     txt_content = f"Submission deadline: {deadline_str}. Please submit by this date."
     
     txt_path = temp_uploads / "deadline.txt"
@@ -231,7 +230,7 @@ def test_process_document_extracts_events(temp_db, temp_chroma, temp_uploads, te
     
     # Verify the event has the expected date
     found = False
-    expected_iso = deadline_date.strftime("%Y-%m-%d")
+    expected_iso = due.isoformat()
     for e in events:
         if e.event_date == expected_iso or deadline_str in (e.raw_date or ""):
             found = True

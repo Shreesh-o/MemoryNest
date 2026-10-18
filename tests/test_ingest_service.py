@@ -53,11 +53,10 @@ class TestIngestService:
 
     def test_ingest_upload_txt_ready(self, temp_db, temp_chroma, temp_uploads, test_user):
         """A TXT with a date through ingest_upload -> status 'ready', chunk_count > 0, event row exists."""
-        # Use a fixed reference date to avoid date rot
-        from datetime import datetime, timedelta
-        ref_date = datetime(2026, 10, 5)
-        deadline_date = ref_date + timedelta(days=10)  # 2026-10-15
-        deadline_str = deadline_date.strftime("%d %B %Y")  # "15 October 2026"
+        from datetime import date, timedelta
+        # Use real current date + 10 days (always in the future, never past)
+        due = date.today() + timedelta(days=10)
+        deadline_str = f"{due.day} {due.strftime('%B %Y')}"
         txt_content = f"Submission deadline: {deadline_str}. Please submit by this date."
         file_bytes = txt_content.encode("utf-8")
 
@@ -81,7 +80,7 @@ class TestIngestService:
         events = ev_repo.list_for_user(test_user.id)
         assert len(events) >= 1
         found = False
-        expected_iso = deadline_date.strftime("%Y-%m-%d")
+        expected_iso = due.isoformat()
         for e in events:
             if e.event_date == expected_iso or deadline_str in (e.raw_date or ""):
                 found = True
