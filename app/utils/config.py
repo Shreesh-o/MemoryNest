@@ -51,6 +51,12 @@ EMAIL_USERNAME: str = os.environ.get("EMAIL_USERNAME", "")
 EMAIL_APP_PASSWORD: str = os.environ.get("EMAIL_APP_PASSWORD", "")
 RECIPIENT_EMAIL: str = os.environ.get("RECIPIENT_EMAIL", "")
 
+# --- Auth / JWT (FastAPI) ---
+JWT_SECRET: str = os.environ.get("JWT_SECRET", "")  # empty -> generate random at startup
+JWT_EXPIRE_MINUTES: int = int(os.environ.get("JWT_EXPIRE_MINUTES", "720"))
+CORS_ORIGINS: str = os.environ.get("CORS_ORIGINS", "http://localhost:3000")
+COOKIE_SECURE: bool = os.environ.get("COOKIE_SECURE", "false").lower() == "true"
+
 
 def ensure_dirs() -> None:
     """Create all runtime directories if they do not exist yet."""
