@@ -1,5 +1,3 @@
-import { api } from "./config";
-
 // Types mirroring app/api/schemas.py
 export interface UserPublic {
   id: number;
@@ -37,21 +35,22 @@ export interface IngestResultResponse {
   chunk_count: number;
 }
 
-// API Error class
-export class ApiError extends Error {
+// API Error interface (plain object, serializable)
+export interface ApiError {
   status: number;
   detail: string;
-  constructor(message: string, status: number) {
-    super(message);
-    this.name = "ApiError";
-    this.status = status;
-    this.detail = detail;
-  }
 }
 
 // Helper to check if response is an ApiError
-function isApiError(data: any): data is ApiError {
-  return data && typeof data.status === "number" && typeof data.detail === "string";
+function isApiError(data: unknown): data is ApiError {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    "status" in data &&
+    typeof (data as Record<string, unknown>).status === "number" &&
+    "detail" in data &&
+    typeof (data as Record<string, unknown>).detail === "string"
+  );
 }
 
 // Client with credentials "same-origin"
@@ -61,7 +60,7 @@ async function fetchApi<T>(path: string, options: RequestInit = {}): Promise<{
   error?: ApiError;
 }> {
   const response = await fetch(`/api/${path}`, {
-    credentials: "include" as "include",
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       ...options.headers,
@@ -69,17 +68,17 @@ async function fetchApi<T>(path: string, options: RequestInit = {}): Promise<{
     ...options,
   });
 
-  const data = (await response.json()) as any;
+  const data = (await response.json()) as unknown;
 
   if (!response.ok) {
     return {
       ok: false,
       data: {} as T,
-      error: isApiError(data) ? data : new ApiError(data.detail || "Request failed", response.status),
+      error: isApiError(data) ? data : { status: response.status, detail: ((data as Record<string, unknown>).detail as string) || "Request failed" },
     };
   }
 
-  return { ok: true, data };
+  return { ok: true, data: data as T };
 }
 
 // Auth
@@ -149,6 +148,3 @@ export function formatDate(isoString: string | null | undefined): string {
     hour12: true,
   });
 }
-
-// Export for use in components
-export { formatDate };
