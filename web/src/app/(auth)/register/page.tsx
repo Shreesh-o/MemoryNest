@@ -4,7 +4,8 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { toast } from "sonner"
-import { authRegister } from "@/lib/api"
+import { authRegister, authLogin } from "@/lib/api"
+import { useQueryClient } from "@tanstack/react-query"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -12,6 +13,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 
 export default function RegisterPage() {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const [username, setUsername] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -40,8 +42,16 @@ export default function RegisterPage() {
     try {
       const result = await authRegister({ username, email: email || undefined, password })
       if (result.ok) {
-        toast.success("Account created successfully")
-        router.push("/login?callbackUrl=/dashboard")
+        // Log in automatically after registration and prime the ["me"] query
+        const loginResult = await authLogin({ username, password })
+        if (loginResult.ok) {
+          queryClient.setQueryData(["me"], loginResult.data)
+          toast.success("Account created successfully")
+          router.replace("/dashboard")
+        } else if (loginResult.error) {
+          setError(loginResult.error.detail)
+          toast.error(loginResult.error.detail)
+        }
       } else if (result.error) {
         setError(result.error.detail)
         toast.error(result.error.detail)

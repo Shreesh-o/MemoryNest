@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect } from "react"
 import { useRouter, usePathname } from "next/navigation"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { authMe } from "@/lib/api"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Sidebar } from "@/components/app-shell/sidebar"
@@ -10,6 +10,7 @@ import { TopBar } from "@/components/app-shell/top-bar"
 import { MobileNav } from "@/components/app-shell/mobile-nav"
 
 function MeQuery() {
+  const queryClient = useQueryClient()
   return useQuery({
     queryKey: ["me"],
     queryFn: async () => {
@@ -23,7 +24,8 @@ function MeQuery() {
       return result.data
     },
     retry: false,
-    staleTime: Infinity,
+    staleTime: 0,
+    refetchOnMount: "always",
   })
 }
 
@@ -37,17 +39,24 @@ function PageTitle({ pathname }: { pathname: string }) {
 }
 
 function GuardedContent({ children }: { children: React.ReactNode }) {
-  const { data: user, isLoading } = MeQuery()
+  const { data: user, isLoading, isFetching, isError, error } = MeQuery()
   const router = useRouter()
   const pathname = usePathname()
+  const queryClient = useQueryClient()
 
   useEffect(() => {
-    if (!isLoading && !user) {
-      router.replace("/login?callbackUrl=" + encodeURIComponent(pathname))
+    // Only redirect when settled on a 401 error and not currently fetching
+    if (isError && !isFetching) {
+      const apiError = error as { status?: number; detail?: string } | null
+      if (apiError?.status === 401) {
+        router.replace("/login")
+      }
     }
-  }, [user, isLoading, router, pathname])
+  }, [isError, isFetching, error, router, pathname])
 
-  if (isLoading) {
+  // Show skeleton while loading or refetching without data
+  const isPending = (isLoading || isFetching) && !user
+  if (isPending) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="space-y-4 max-w-md w-full mx-auto">

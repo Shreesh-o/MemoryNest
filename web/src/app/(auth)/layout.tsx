@@ -1,5 +1,6 @@
 import { Metadata } from "next"
 import { Suspense } from "react"
+import { AuthLayoutClient } from "./auth-layout-client"
 import "../globals.css"
 
 export const metadata: Metadata = {
@@ -14,7 +15,7 @@ export default function AuthLayout({
 }) {
   return (
     <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-background">Loading...</div>}>
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">{children}</div>
+      <AuthLayoutClient>{children}</AuthLayoutClient>
     </Suspense>
   )
 }

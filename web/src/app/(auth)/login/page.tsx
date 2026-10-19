@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { toast } from "sonner"
 import { authLogin } from "@/lib/api"
+import { useQueryClient } from "@tanstack/react-query"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -13,12 +14,11 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 export default function LoginPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const queryClient = useQueryClient()
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-
-  const callbackUrl = searchParams?.get("callbackUrl") || "/dashboard"
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -28,9 +28,10 @@ export default function LoginPage() {
     try {
       const result = await authLogin({ username, password })
       if (result.ok) {
+        // Prime the ["me"] query with the returned user before navigating
+        queryClient.setQueryData(["me"], result.data)
         toast.success("Logged in successfully")
-        router.push(callbackUrl)
-        router.refresh()
+        router.replace("/dashboard")
       } else if (result.error) {
         setError(result.error.detail)
         toast.error(result.error.detail)
