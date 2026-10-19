@@ -35,14 +35,20 @@ export interface IngestResultResponse {
   chunk_count: number;
 }
 
-// API Error interface (plain object, serializable)
-export interface ApiError {
+// API Error class
+export class ApiError extends Error {
   status: number;
   detail: string;
+  constructor(detail: string, status: number) {
+    super(detail);
+    this.name = "ApiError";
+    this.status = status;
+    this.detail = detail;
+  }
 }
 
 // Helper to check if response is an ApiError
-function isApiError(data: unknown): data is ApiError {
+function isApiError(data: unknown): data is { status: number; detail: string } {
   return (
     typeof data === "object" &&
     data !== null &&
@@ -57,7 +63,7 @@ function isApiError(data: unknown): data is ApiError {
 async function fetchApi<T>(path: string, options: RequestInit = {}): Promise<{
   ok: boolean;
   data: T;
-  error?: ApiError;
+  error?: { status: number; detail: string };
 }> {
   const response = await fetch(`/api/${path}`, {
     credentials: "include",
@@ -71,10 +77,11 @@ async function fetchApi<T>(path: string, options: RequestInit = {}): Promise<{
   const data = (await response.json()) as unknown;
 
   if (!response.ok) {
+    const errorData = isApiError(data) ? data : { status: response.status, detail: ((data as Record<string, unknown>).detail as string) || "Request failed" };
     return {
       ok: false,
       data: {} as T,
-      error: isApiError(data) ? data : { status: response.status, detail: ((data as Record<string, unknown>).detail as string) || "Request failed" },
+      error: errorData,
     };
   }
 
@@ -102,17 +109,24 @@ export async function authLogout() {
   });
 }
 
-export async function authMe() {
-  return fetchApi<UserPublic>("auth/me");
+export async function authMe(): Promise<UserPublic> {
+  const result = await fetchApi<UserPublic>("auth/me");
+  if (!result.ok) {
+    if (result.error?.status === 401) {
+      throw new Error("Unauthorized");
+    }
+    throw new Error(result.error?.detail || "Failed to fetch user");
+  }
+  return result.data;
 }
 
 // Documents
 export async function documentsList() {
-  return fetchApi<DocumentPublic[]>("documents");
+  return fetchApi<UserPublic[]>("documents");
 }
 
 export async function documentsGet(id: number) {
-  return fetchApi<DocumentPublic>(`documents/${id}`);
+  return fetchApi<UserPublic>(`documents/${id}`);
 }
 
 export async function documentsDelete(id: number) {
@@ -129,7 +143,7 @@ export async function documentsUpload(formData: FormData) {
 }
 
 export async function documentsRetry(id: number) {
-  return fetchApi<DocumentPublic>(`documents/${id}/retry`, {
+  return fetchApi<IngestResultResponse>(`documents/${id}/retry`, {
     method: "POST",
   });
 }

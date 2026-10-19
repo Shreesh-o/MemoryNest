@@ -11,6 +11,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
 
+export const dynamic = "force-dynamic"
+
 export default function LoginPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -28,10 +30,10 @@ export default function LoginPage() {
     try {
       const result = await authLogin({ username, password })
       if (result.ok) {
-        // Prime the ["me"] query with the returned user before navigating
         queryClient.setQueryData(["me"], result.data)
         toast.success("Logged in successfully")
-        router.replace("/dashboard")
+        const callbackUrl = searchParams?.get("callbackUrl") || "/dashboard"
+        router.replace(callbackUrl)
       } else if (result.error) {
         setError(result.error.detail)
         toast.error(result.error.detail)
