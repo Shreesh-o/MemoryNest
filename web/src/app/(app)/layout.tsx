@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect } from "react"
 import { useRouter, usePathname } from "next/navigation"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Sidebar } from "@/components/app-shell/sidebar"
 import { TopBar } from "@/components/app-shell/top-bar"
@@ -21,6 +21,14 @@ function fetchMe() {
   })
 }
 
+async function logoutApi() {
+  try {
+    await fetch("/api/auth/logout", { method: "POST", credentials: "include" })
+  } catch {
+    // Ignore errors - best effort
+  }
+}
+
 function GuardedContent({ children }: { children: React.ReactNode }) {
   const { data: user, isLoading, isFetching, isError, refetch } = useQuery({
     queryKey: ["me"],
@@ -31,12 +39,15 @@ function GuardedContent({ children }: { children: React.ReactNode }) {
   })
   const router = useRouter()
   const pathname = usePathname()
+  const queryClient = useQueryClient()
 
   useEffect(() => {
     if (isError && !isFetching) {
+      logoutApi()
+      queryClient.clear()
       router.replace("/login")
     }
-  }, [isError, isFetching, router])
+  }, [isError, isFetching, router, queryClient])
 
   const isPending = (isLoading || isFetching) && !user
   if (isPending) {

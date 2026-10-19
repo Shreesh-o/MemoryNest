@@ -16,18 +16,12 @@ export function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // If public path (/login, /register)
+  // If public path (/login, /register), always allow (the client will handle redirects)
   if (isPublicPath) {
-    // If has session, redirect to dashboard
-    if (hasSession) {
-      return NextResponse.redirect(new URL("/dashboard", request.url))
-    }
-    // If no session, allow
     return NextResponse.next()
   }
 
-  // If not public path
-  // If no session, redirect to login
+  // If not public path and no session, redirect to login
   if (!hasSession) {
     const loginUrl = new URL("/login", request.url)
     loginUrl.searchParams.set("callbackUrl", pathname + request.nextUrl.search)

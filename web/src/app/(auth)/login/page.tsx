@@ -22,6 +22,15 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
 
+  // Validate callbackUrl is a same-origin relative path starting with "/"
+  const getSafeCallbackUrl = () => {
+    const url = searchParams?.get("callbackUrl") || ""
+    if (url.startsWith("/") && !url.startsWith("//")) {
+      return url
+    }
+    return "/dashboard"
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
@@ -32,8 +41,7 @@ export default function LoginPage() {
       if (result.ok) {
         queryClient.setQueryData(["me"], result.data)
         toast.success("Logged in successfully")
-        const callbackUrl = searchParams?.get("callbackUrl") || "/dashboard"
-        router.replace(callbackUrl)
+        router.replace(getSafeCallbackUrl())
       } else if (result.error) {
         setError(result.error.detail)
         toast.error(result.error.detail)
