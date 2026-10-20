@@ -1,33 +1,24 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { useRouter } from "next/navigation"
-import { useToast } from "sonner"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { formatDate } from "@/lib/api";
 import {
-  documentsList,
-  documentsDelete,
-  documentsRetry,
-  documentsUpload,
-  type DocumentPublic,
-} from "@/lib/api"
-import { formatDate } from "@/lib/api"
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
-  FileText,
-  FileAudio,
-  FileImage,
-  FileVideo,
-  FileSpreadsheet,
-  FileCode,
-  File,
-  MoreVertical,
-  Eye,
-  RotateCcw,
-  Trash2,
-  Upload,
-  RefreshCw,
-  AlertCircleIcon,
-} from "lucide-react"
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import {
   Table,
   TableHeader,
@@ -35,164 +26,451 @@ import {
   TableRow,
   TableHead,
   TableCell,
-  TableCaption,
-} from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Skeleton } from "@/components/ui/skeleton"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog"
+} from "@/components/ui/table";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuLabel,
-} from "@/components/ui/dropdown-menu"
-import { AlertCircleIcon, UploadIcon, RefreshCwIcon } from "lucide-react"
+} from "@/components/ui/dropdown-menu";
+import { Skeleton } from "@/components/ui/skeleton";
+import { SvgRefreshCw, SvgEye, SvgTrash2, SvgRotateCcw } from "@/components/ui/icons";
+import { toast } from "sonner";
 
-function getFileIcon(fileType: string) {
-  switch (fileType) {
-    case "pdf": return FileText
-    case "docx": return FileText
-    case "txt": return FileText
-    case "png": case "jpg": case "jpeg": case "tiff": case "bmp": return FileImage
-    case "mp3": case "wav": case "ogg": return FileAudio
-    case "mp4": case "mov": case "avi": return FileVideo
-    case "xlsx": case "csv": return FileSpreadsheet
-    case "py": case "js": case "ts": case "json": return FileCode
-    default: return File
+type Document = {
+  id: number;
+  filename: string;
+  file_type: string;
+  status: string;
+  chunk_count: number;
+  error_message?: string | null;
+  created_at?: string | null;
+  text_preview?: string | null;
+};
+
+type ViewMode = "table" | "cards";
+
+async function fetchDocuments(): Promise<Document[]> {
+  const res = await fetch("/api/documents", { credentials: "include" });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to fetch documents");
+  }
+  return res.json();
+}
+
+async function deleteDocument(id: number): Promise<void> {
+  const res = await fetch(`/api/documents/${id}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to delete document");
   }
 }
 
-function getStatusBadge(status: string) {
-  switch (status) {
-    case "ready": return <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Ready</Badge>
-    case "processing": return <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">Processing</Badge>
-    case "error": return <Badge variant="destructive" className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">Error</Badge>
-    case "uploaded": return <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">Uploaded</Badge>
-    case "extracting": return <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">Extracting</Badge>
-    default: return <Badge variant="outline">{status}</Badge>
+async function retryDocument(id: number): Promise<Document> {
+  const res = await fetch(`/api/documents/${id}/retry`, {
+    method: "POST",
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to retry extraction");
   }
+  return res.json();
 }
 
-function DocumentRowActions({ doc, onPreview, onRetry, onDelete }: { doc: DocumentPublic; onPreview: () => void; onRetry: () => void; onDelete: () => void }) {
+function StatusBadge({ status }: { status: string }) {
+  const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+    ready: "default",
+    processing: "secondary",
+    pending: "secondary",
+    failed: "destructive",
+    rejected: "outline",
+    duplicate: "outline",
+  };
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-8 w-8">
-          <MoreVertical className="h-4 w-4" />
-          <span className="sr-only">Actions</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-        <DropdownMenuItem onClick={onPreview}><Eye className="h-4 w-4 mr-2" /> Preview</DropdownMenuItem>
-        {doc.status === "error" && (<><DropdownMenuSeparator /><DropdownMenuItem onClick={onRetry}><RotateCcw className="h-4 w-4 mr-2" /> Retry extraction</DropdownMenuItem></>)}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={onDelete} variant="destructive"><Trash2 className="h-4 w-4 mr-2" /> Delete</DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
+    <Badge variant={variants[status] || "default"} className="capitalize">
+      {status}
+    </Badge>
+  );
 }
 
-function PreviewDialog({ open, onOpenChange, doc }: { open: boolean; onOpenChange: (open: boolean) => void; doc: DocumentPublic | null }) {
+function DocumentSkeleton() {
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Document</TableHead>
+          <TableHead>Type</TableHead>
+          <TableHead>Status</TableHead>
+          <TableHead>Chunks</TableHead>
+          <TableHead>Created</TableHead>
+          <TableHead className="w-32">Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {Array.from({ length: 5 }).map((_, i) => (
+          <TableRow key={i}>
+            <TableCell>
+              <Skeleton className="h-4 w-48" />
+            </TableCell>
+            <TableCell>
+              <Skeleton className="h-4 w-20" />
+            </TableCell>
+            <TableCell>
+              <Skeleton className="h-6 w-24" />
+            </TableCell>
+            <TableCell>
+              <Skeleton className="h-4 w-16" />
+            </TableCell>
+            <TableCell>
+              <Skeleton className="h-4 w-32" />
+            </TableCell>
+            <TableCell>
+              <Skeleton className="h-8 w-24" />
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+}
+
+function DocumentsTable({ documents, onPreview, onDelete, onRetry }: {
+  documents: Document[];
+  onPreview: (doc: Document) => void;
+  onDelete: (id: number) => void;
+  onRetry: (id: number) => void;
+}) {
+  return (
+    <div className="overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Document</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Chunks</TableHead>
+            <TableHead>Created</TableHead>
+            <TableHead className="w-32">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {documents.map((doc) => (
+            <TableRow key={doc.id}>
+              <TableCell className="font-medium truncate max-w-xs">{doc.filename}</TableCell>
+              <TableCell>{doc.file_type.toUpperCase()}</TableCell>
+              <TableCell><StatusBadge status={doc.status} /></TableCell>
+              <TableCell>{doc.chunk_count}</TableCell>
+              <TableCell>{formatDate(doc.created_at)}</TableCell>
+              <TableCell>
+                <DropdownMenu>
+                  <DropdownMenuTrigger>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <span className="sr-only">Actions</span>
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                      </svg>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => onPreview(doc)}>
+                      <SvgEye className="mr-2 h-4 w-4" /> Preview
+                    </DropdownMenuItem>
+                    {doc.status === "failed" && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => onRetry(doc.id)} className="text-blue-600">
+                          <SvgRotateCcw className="mr-2 h-4 w-4" /> Retry Extraction
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => onDelete(doc.id)} className="text-red-600">
+                      <SvgTrash2 className="mr-2 h-4 w-4" /> Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
+function DocumentCard({ doc, onPreview, onDelete, onRetry }: {
+  doc: Document;
+  onPreview: (doc: Document) => void;
+  onDelete: (id: number) => void;
+  onRetry: (id: number) => void;
+}) {
+  return (
+    <Card className="flex flex-col">
+      <CardHeader className="pb-2">
+        <div className="flex items-start justify-between">
+          <div className="min-w-0 flex-1">
+            <CardTitle className="truncate text-lg">{doc.filename}</CardTitle>
+            <CardDescription className="text-xs">
+              {doc.file_type.toUpperCase()} &bull; {doc.chunk_count} chunks &bull; {formatDate(doc.created_at)}
+            </CardDescription>
+          </div>
+          <StatusBadge status={doc.status} />
+        </div>
+      </CardHeader>
+      <CardContent className="flex-1 flex flex-col justify-end pt-0">
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => onPreview(doc)} className="flex-1">
+            <SvgEye className="mr-2 h-4 w-4" /> Preview
+          </Button>
+          {doc.status === "failed" && (
+            <Button variant="outline" size="sm" onClick={() => onRetry(doc.id)} className="text-blue-600 border-blue-600 hover:bg-blue-50">
+              <SvgRotateCcw className="mr-2 h-4 w-4" /> Retry
+            </Button>
+          )}
+          <Button variant="ghost" size="sm" onClick={() => onDelete(doc.id)} className="text-red-600 hover:bg-red-50">
+            <SvgTrash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function PreviewDialog({ document, open, onOpenChange }: {
+  document: Document | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh]">
+      <DialogContent className="max-w-3xl max-h-[80vh]">
         <DialogHeader>
-          <DialogTitle className="truncate">{doc?.filename}</DialogTitle>
-          <DialogDescription>Status: {doc?.status} \u2022 {doc?.file_type} \u2022 {doc?.chunk_count} chunks</DialogDescription>
+          <DialogTitle>{document?.filename}</DialogTitle>
+          <DialogDescription>
+            {document?.file_type.toUpperCase()} &bull; {document?.chunk_count} chunks &bull; {formatDate(document?.created_at)}
+          </DialogDescription>
         </DialogHeader>
-        <div className="max-h-[60vh] overflow-y-auto p-4 space-y-4">
-          {doc?.text_preview && (<div><h4 className="font-medium mb-2">Text Preview</h4><pre className="whitespace-pre-wrap text-sm bg-muted p-4 rounded-md max-h-[40vh] overflow-y-auto">{doc.text_preview}</pre></div>)}
-          {doc?.error_message && (<div className="border border-destructive/50 bg-destructive/10 p-4 rounded-md"><h4 className="font-medium text-destructive mb-2">Error</h4><p className="text-sm">{doc.error_message}</p></div>)}
-          {!doc?.text_preview && !doc?.error_message && <p className="text-muted-foreground text-center py-8">No preview available</p>}
+        <div className="mt-4 max-h-[60vh] overflow-y-auto p-4 bg-muted/50 rounded-md border whitespace-pre-wrap font-mono text-sm">
+          {document?.text_preview || "No preview available"}
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
 
-function DeleteConfirmDialog({ open, onOpenChange, onConfirm, isLoading, docName }: { open: boolean; onOpenChange: (open: boolean) => void; onConfirm: () => void; isLoading: boolean; docName: string }) {
+function DeleteConfirmDialog({ document, open, onOpenChange, onConfirm, isPending }: {
+  document: Document | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => void;
+  isPending: boolean;
+}) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHeader><DialogTitle>Delete document</DialogTitle><DialogDescription>Are you sure you want to delete \u201c{docName}\u201d? This action cannot be undone.</DialogDescription></DialogHeader>
-        <DialogFooter><Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>Cancel</Button><Button variant="destructive" onClick={onConfirm} disabled={isLoading}>Delete</Button></DialogFooter>
+        <DialogHeader>
+          <DialogTitle>Delete Document</DialogTitle>
+          <DialogDescription>{/* eslint-disable-next-line react/no-unescaped-entities */}
+            Are you sure you want to delete "{document?.filename}"? This action cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex justify-end gap-2 mt-4">
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
+            Cancel
+          </Button>
+          <Button variant="destructive" onClick={onConfirm} disabled={isPending}>
+            {isPending ? "Deleting..." : "Delete"}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
-  )
-}
-
-function MobileDocumentCard({ doc, onPreview, onRetry, onDelete }: { doc: DocumentPublic; onPreview: () => void; onRetry: () => void; onDelete: () => void }) {
-  const FileIcon = getFileIcon(doc.file_type)
-  return (
-    <div className="border border-border rounded-lg p-4 space-y-3 bg-card">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          <FileIcon className="h-10 w-10 text-muted-foreground flex-shrink-0" />
-          <div className="min-w-0"><h3 className="font-medium truncate">{doc.filename}</h3><p className="text-sm text-muted-foreground">{doc.file_type.toUpperCase()} \u2022 {doc.chunk_count} chunks</p></div>
-        </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="h-4 w-4" /><span className="sr-only">Actions</span></Button></DropdownMenuTrigger>
-          <DropdownMenuContent align="end"><DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem onClick={onPreview}><Eye className="h-4 w-4 mr-2" />Preview</DropdownMenuItem>
-            {doc.status === "error" && (<><DropdownMenuSeparator /><DropdownMenuItem onClick={onRetry}><RotateCcw className="h-4 w-4 mr-2" />Retry extraction</DropdownMenuItem></>)}
-            <DropdownMenuSeparator /><DropdownMenuItem onClick={onDelete} variant="destructive"><Trash2 className="h-4 w-4 mr-2" />Delete</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-      <div className="flex items-center gap-2 flex-wrap">{getStatusBadge(doc.status)}<span className="text-xs text-muted-foreground">{formatDate(doc.created_at)}</span><span className="text-xs text-muted-foreground">{doc.chunk_count} chunks</span></div>
-      {doc.status === "error" && doc.error_message && <p className="text-sm text-destructive bg-destructive/10 p-2 rounded">{doc.error_message}</p>}
-    </div>
-  )
+  );
 }
 
 export default function DocumentsPage() {
-  const router = useRouter()
-  const queryClient = useQueryClient()
-  const { toast } = useToast()
-  const [previewDoc, setPreviewDoc] = useState<DocumentPublic | null>(null)
-  const [deleteDoc, setDeleteDoc] = useState<DocumentPublic | null>(null)
+  const queryClient = useQueryClient();
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
+  const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
+  const [deleteDoc, setDeleteDoc] = useState<Document | null>(null);
 
-  const { data: documents, isLoading, isError, error, refetch, isFetching } = useQuery({ queryKey: ["documents"], queryFn: documentsList, staleTime: 30000 })
+  const { data: documents, isLoading, isError, error, refetch } = useQuery({
+    queryKey: ["documents"],
+    queryFn: fetchDocuments,
+  });
 
-  const deleteMutation = useMutation({ mutationFn: (id: number) => documentsDelete(id), onSuccess: () => { toast.success("Document deleted"); queryClient.invalidateQueries({ queryKey: ["documents"] }) }, onError: (error: Error) => { toast.error(error.message) } })
-  const retryMutation = useMutation({ mutationFn: (id: number) => documentsRetry(id), onSuccess: () => { toast.success("Extraction retry started"); queryClient.invalidateQueries({ queryKey: ["documents"] }) }, onError: (error: Error) => { toast.error(error.message) } })
+  const deleteMutation = useMutation({
+    mutationFn: deleteDocument,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["documents"] });
+      toast.success("Document deleted");
+      setDeleteDoc(null);
+    },
+    onError: (err: Error) => {
+      toast.error(err.message);
+    },
+  });
 
-  const handleDelete = (doc: DocumentPublic) => { setDeleteDoc(doc) }
-  const confirmDelete = () => { if (deleteDoc) { deleteMutation.mutate(deleteDoc.id); setDeleteDoc(null) } }
-  const handlePreview = (doc: DocumentPublic) => { setPreviewDoc(doc) }
-  const handleRetry = (id: number) => { retryMutation.mutate(id) }
+  const retryMutation = useMutation({
+    mutationFn: retryDocument,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["documents"] });
+      toast.success("Extraction retried");
+    },
+    onError: (err: Error) => {
+      toast.error(err.message);
+    },
+  });
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files; if (!files || files.length === 0) return
-    const formData = new FormData(); for (let i = 0; i < files.length; i++) formData.append("files", files[i])
-    try { const results = await documentsUpload(formData); for (const result of results) { if (result.status === "ready") toast.success(`${result.filename}: ${result.message}`); else if (result.status === "duplicate") toast.info(`${result.filename}: ${result.message}`); else toast.error(`${result.filename}: ${result.message}`) } queryClient.invalidateQueries({ queryKey: ["documents"] }) } catch { toast.error("Upload failed") }
+  const handleDelete = (id: number) => {
+    const doc = documents?.find((d) => d.id === id);
+    if (doc) setDeleteDoc(doc);
+  };
+
+  const handlePreview = (doc: Document) => {
+    setPreviewDoc(doc);
+  };
+
+  const handleRetry = (id: number) => {
+    retryMutation.mutate(id);
+  };
+
+  const confirmDelete = () => {
+    if (deleteDoc) {
+      deleteMutation.mutate(deleteDoc.id);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="p-6 max-w-4xl mx-auto">
+        <Card>
+          <CardHeader>
+            <CardTitle>Documents</CardTitle>
+            <CardDescription>Manage your documents</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <DocumentSkeleton />
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
-  if (isLoading) { return (<div className="p-6"><div className="flex items-center justify-between mb-6"><h1 className="text-2xl font-bold">Documents</h1><Button variant="outline" size="icon" onClick={() => refetch()} disabled={isFetching}><RefreshCwIcon className="h-4 w-4" /><span className="sr-only">Refresh</span></Button></div><div className="space-y-3">{[1,2,3,4,5].map(i => (<div key={i} className="border border-border rounded-lg p-4 space-y-3 bg-card animate-pulse"><div className="flex items-center gap-3"><Skeleton className="h-10 w-10 rounded" /><div className="flex-1 space-y-2"><Skeleton className="h-4 w-3/4" /><Skeleton className="h-3 w-1/2" /></div></div><div className="flex items-center gap-2"><Skeleton className="h-5 w-20" /><Skeleton className="h-5 w-24" /><Skeleton className="h-5 w-16" /></div></div>))}</div></div>) }
+  if (isError) {
+    return (
+      <div className="p-6 max-w-4xl mx-auto">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Documents</CardTitle>
+                <CardDescription>Manage your documents</CardDescription>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => refetch()}>
+                <SvgRefreshCw className="mr-2 h-4 w-4" /> Retry
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="text-center py-8">
+            <p className="text-red-600 mb-4">Failed to load documents: {error instanceof Error ? error.message : "Unknown error"}</p>
+            <Button onClick={() => refetch()}>
+              <SvgRefreshCw className="mr-2 h-4 w-4" /> Try Again
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
-  if (isError) { return (<div className="p-6"><div className="flex items-center justify-between mb-6"><h1 className="text-2xl font-bold">Documents</h1><Button onClick={() => refetch()} disabled={isFetching}><RefreshCwIcon className="h-4 w-4 mr-2" />Retry</Button></div><div className="rounded-lg border border-destructive/50 bg-destructive/10 p-6 max-w-2xl"><AlertCircleIcon className="h-12 w-12 text-destructive mx-auto mb-4" /><h2 className="text-xl font-semibold text-center">Failed to load documents</h2><p className="text-muted-foreground text-center mt-2">{error instanceof Error ? error.message : "An unexpected error occurred"}</p><Button onClick={() => refetch()} className="mt-4 w-full"><RefreshCwIcon className="h-4 w-4 mr-2" />Retry</Button></div></div>) }
+  const docs = documents || [];
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6"><h1 className="text-2xl font-bold">Documents</h1><div className="flex items-center gap-2"><Button variant="outline" size="icon" onClick={() => refetch()} disabled={isFetching}><RefreshCwIcon className="h-4 w-4" /><span className="sr-only">Refresh</span></Button><label className="cursor-pointer"><input type="file" multiple className="sr-only" onChange={handleUpload} /><Button><UploadIcon className="h-4 w-4 mr-2" />Upload</Button></label></div></div>
-      {documents.length === 0 && (<div className="text-center py-12 border-2 border-dashed border-border rounded-xl"><UploadIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" /><h2 className="text-xl font-semibold mb-2">No documents yet</h2><p className="text-muted-foreground mb-6">Upload your first document to get started</p><label className="cursor-pointer"><input type="file" multiple className="sr-only" onChange={handleUpload} /><Button size="lg"><UploadIcon className="h-5 w-5 mr-2" />Upload your first document</Button></label></div>)}
-      {documents.length > 0 && (<React.Fragment>
-        <div className="hidden md:block overflow-x-auto rounded-lg border"><Table><TableCaption className="sr-only">Documents</TableCaption><TableHeader><TableRow><TableHead>File</TableHead><TableHead className="hidden sm:table-cell">Type</TableHead><TableHead className="hidden md:table-cell">Status</TableHead><TableHead className="hidden lg:table-cell">Chunks</TableHead><TableHead className="hidden md:table-cell">Created</TableHead><TableHead className="w-32">Actions</TableHead></TableRow></TableHeader><TableBody>{documents.map(doc => {const FileIcon = getFileIcon(doc.file_type); return (<TableRow key={doc.id}><TableCell className="flex items-center gap-3 min-w-[200px]"><div className="flex items-center gap-3"><FileIcon className="h-8 w-8 text-muted-foreground" /><div><p className="font-medium truncate max-w-[200px]">{doc.filename}</p><p className="text-xs text-muted-foreground">{doc.file_type.toUpperCase()}</p></div></div></TableCell><TableCell className="hidden sm:table-cell"><span className="text-sm text-muted-foreground capitalize">{doc.file_type}</span></TableCell><TableCell className="hidden md:table-cell">{getStatusBadge(doc.status)}</TableCell><TableCell className="hidden lg:table-cell"><span className="text-sm text-muted-foreground">{doc.chunk_count}</span></TableCell><TableCell className="hidden md:table-cell"><span className="text-sm text-muted-foreground">{formatDate(doc.created_at)}</span></TableCell><TableCell className="w-32"><DocumentRowActions doc={doc} onPreview={() => setPreviewDoc(doc)} onRetry={() => retryMutation.mutate(doc.id)} onDelete={() => setDeleteDoc(doc)} /></TableCell></TableRow>)})}</TableBody></Table></div><div className="md:hidden space-y-3">{documents.map(doc => <MobileDocumentCard key={doc.id} doc={doc} onPreview={() => setPreviewDoc(doc)} onRetry={() => retryMutation.mutate(doc.id)} onDelete={() => setDeleteDoc(doc)} />)}</div></React.Fragment>)}
-      <PreviewDialog open={!!previewDoc} onOpenChange={open => { if (!open) setPreviewDoc(null) }} doc={previewDoc} /><DeleteConfirmDialog open={!!deleteDoc} onOpenChange={open => { if (!open) setDeleteDoc(null) }} onConfirm={confirmDelete} isLoading={deleteMutation.isPending} docName={deleteDoc?.filename || ""} /></div>)}
+    <div className="p-6 max-w-4xl mx-auto">
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <CardTitle>Documents</CardTitle>
+              <CardDescription>Manage your documents</CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex border rounded-md overflow-hidden">
+                <Button
+                  variant={viewMode === "table" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setViewMode("table")}
+                  className="rounded-r-none"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                  <span className="hidden sm:inline">Table</span>
+                </Button>
+                <Button
+                  variant={viewMode === "cards" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setViewMode("cards")}
+                  className="rounded-l-none"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                  <span className="hidden sm:inline">Cards</span>
+                </Button>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => refetch()} disabled={deleteMutation.isPending || retryMutation.isPending}>
+                <SvgRefreshCw className={`mr-2 h-4 w-4 ${deleteMutation.isPending || retryMutation.isPending ? "animate-spin" : ""}`} />
+                Refresh
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {docs.length === 0 ? (
+            <div className="text-center py-12">
+              <svg className="mx-auto h-12 w-12 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <h3 className="mt-4 text-lg font-medium">No documents yet</h3>
+              <p className="mt-2 text-muted-foreground">Upload your first document to get started.</p>
+            </div>
+          ) : viewMode === "table" ? (
+            <DocumentsTable
+              documents={docs}
+              onPreview={handlePreview}
+              onDelete={handleDelete}
+              onRetry={handleRetry}
+            />
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {docs.map((doc) => (
+                <DocumentCard
+                  key={doc.id}
+                  doc={doc}
+                  onPreview={handlePreview}
+                  onDelete={handleDelete}
+                  onRetry={handleRetry}
+                />
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-function MobileDocumentCard({ doc, onPreview, onRetry, onDelete }: { doc: DocumentPublic; onPreview: () => void; onRetry: () => void; onDelete: () => void }) {
-  const FileIcon = getFileIcon(doc.file_type)
-  return (<div className="border border-border rounded-lg p-4 space-y-3 bg-card"><div className="flex items-start justify-between gap-2"><div className="flex items-center gap-3 flex-1 min-w-0"><FileIcon className="h-10 w-10 text-muted-foreground flex-shrink-0" /><div className="min-w-0"><h3 className="font-medium truncate">{doc.filename}</h3><p className="text-sm text-muted-foreground">{doc.file_type.toUpperCase()} \u2022 {doc.chunk_count} chunks</p></div></div><DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="h-4 w-4" /><span className="sr-only">Actions</span></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuLabel>Actions</DropdownMenuLabel><DropdownMenuItem onClick={onPreview}><Eye className="h-4 w-4 mr-2" />Preview</DropdownMenuItem>{doc.status === "error" && (<><DropdownMenuSeparator /><DropdownMenuItem onClick={onRetry}><RotateCcw className="h-4 w-4 mr-2" />Retry extraction</DropdownMenuItem></>)}<DropdownMenuSeparator /><DropdownMenuItem onClick={onDelete} variant="destructive"><Trash2 className="h-4 w-4 mr-2" />Delete</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div><div className="flex items-center gap-2 flex-wrap">{getStatusBadge(doc.status)}<span className="text-xs text-muted-foreground">{formatDate(doc.created_at)}</span><span className="text-xs text-muted-foreground">{doc.chunk_count} chunks</span></div>{doc.status === "error" && doc.error_message && <p className="text-sm text-destructive bg-destructive/10 p-2 rounded">{doc.error_message}</p>}</div>)}
-
-export default DocumentsPage
+      <PreviewDialog document={previewDoc} open={!!previewDoc} onOpenChange={(open) => !open && setPreviewDoc(null)} />
+      <DeleteConfirmDialog
+        document={deleteDoc}
+        open={!!deleteDoc}
+        onOpenChange={(open) => !open && setDeleteDoc(null)}
+        onConfirm={confirmDelete}
+        isPending={deleteMutation.isPending}
+      />
+    </div>
+  );
+}
