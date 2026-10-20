@@ -21,8 +21,8 @@ function attachErrorCollectors(p: Page) {
 test.describe('MemoryNest E2E Tests', () => {
   let context: BrowserContext;
   let page: Page;
-  const baseURL = process.env.E2E_BASE_URL || 'http://127.0.0.1:3010';
-  const apiURL = process.env.E2E_API_URL || 'http://127.0.0.1:8010';
+  const baseURL = process.env.E2E_BASE_URL || 'http://127.0.0.1:3000';
+  const apiURL = process.env.E2E_API_URL || 'http://127.0.0.1:8000';
 
   test.beforeAll(async ({ browser }) => {
     context = await browser.newContext({ baseURL });

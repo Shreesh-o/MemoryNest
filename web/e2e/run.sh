@@ -8,8 +8,8 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Default URLs
-BASE_URL="${E2E_BASE_URL:-http://127.0.0.1:3010}"
-API_URL="${E2E_API_URL:-http://127.0.0.1:8010}"
+BASE_URL="${E2E_BASE_URL:-http://127.0.0.1:3000}"
+API_URL="${E2E_API_URL:-http://127.0.0.1:8000}"
 
 echo -e "${YELLOW}=== MemoryNest E2E Test Runner ===${NC}"
 echo "Base URL: $BASE_URL"
@@ -44,7 +44,7 @@ check_service "$BASE_URL" "Frontend" || {
     exit 1
 }
 
-check_service "$API_URL/health" "API" || {
+check_service "$API_URL/api/health" "API" || {
     echo -e "${YELLOW}API health endpoint not found, trying root...${NC}"
     check_service "$API_URL" "API" || {
         echo -e "${RED}API not running. Start the backend server.${NC}"

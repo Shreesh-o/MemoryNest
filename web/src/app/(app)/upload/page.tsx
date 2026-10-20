@@ -16,7 +16,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import { SvgUpload, SvgX, SvgFileText, SvgCheckCircle, SvgAlertCircle, SvgLoader2 } from "@/components/ui/icons";
+import { SvgUpload, SvgX, SvgFileText, SvgCheckCircle, SvgLoader2, SvgImage, SvgFile } from "@/components/ui/icons";
+
+const MAX_FILE_MB = Number(process.env.NEXT_PUBLIC_MAX_FILE_MB || "20");
+const MAX_FILE_BYTES = MAX_FILE_MB * 1024 * 1024;
 
 type IngestResult = {
   filename: string;
@@ -67,23 +70,34 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function FileIcon({ type }: { type: string }) {
-  const icons: Record<string, React.ReactNode> = {
-    txt: <SvgFileText className="h-5 w-5 text-gray-400" />,
-    md: <SvgFileText className="h-5 w-5 text-gray-400" />,
-    pdf: <svg className="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path fill="#fff" d="M14 2v6h6"/></svg>,
-    default: <SvgFileText className="h-5 w-5 text-gray-400" />,
-  };
-  return icons[type.toLowerCase()] || icons.default;
+  const ext = type.toLowerCase();
+  if (ext === "pdf") {
+    return (
+      <svg className="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+        <path fill="#fff" d="M14 2v6h6" />
+      </svg>
+    );
+  }
+  if (ext === "docx") {
+    return (
+      <svg className="h-5 w-5 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+        <path fill="#fff" d="M14 2v6h6" />
+        <text x="12" y="17" fontSize="8" textAnchor="middle" fill="#2563eb">DOCX</text>
+      </svg>
+    );
+  }
+  if (ext === "png" || ext === "jpg" || ext === "jpeg") {
+    return <SvgImage className="h-5 w-5 text-green-600" />;
+  }
+  if (ext === "txt") {
+    return <SvgFileText className="h-5 w-5 text-gray-400" />;
+  }
+  return <SvgFile className="h-5 w-5 text-gray-400" />;
 }
 
 function FileRow({ file, onRemove }: { file: UploadFile; onRemove: () => void }) {
-  const statusColors: Record<string, string> = {
-    pending: "text-muted-foreground",
-    uploading: "text-blue-600",
-    success: "text-green-600",
-    error: "text-red-600",
-  };
-
   return (
     <div className="flex items-center gap-3 p-3 border rounded-lg bg-card">
       <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-muted rounded">
@@ -149,7 +163,6 @@ export default function UploadPage() {
   const router = useRouter();
   const [files, setFiles] = useState<UploadFile[]>([]);
   const [results, setResults] = useState<IngestResult[]>([]);
-  const [isDragging, setIsDragging] = useState(false);
 
   const uploadMutation = useMutation({
     mutationFn: uploadFiles,
@@ -179,11 +192,13 @@ export default function UploadPage() {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      "text/plain": [".txt"],
-      "text/markdown": [".md"],
       "application/pdf": [".pdf"],
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
+      "text/plain": [".txt"],
+      "image/png": [".png"],
+      "image/jpeg": [".jpg", ".jpeg"],
     },
-    maxSize: 10 * 1024 * 1024, // 10MB
+    maxSize: MAX_FILE_BYTES,
     noClick: false,
     noKeyboard: false,
   });
@@ -196,7 +211,6 @@ export default function UploadPage() {
       prev.map((f) => (f.status === "pending" ? { ...f, status: "uploading" } : f))
     );
 
-    // Simulate progress
     const interval = setInterval(() => {
       setFiles((prev) =>
         prev.map((f) => {
@@ -240,7 +254,9 @@ export default function UploadPage() {
       <Card>
         <CardHeader>
           <CardTitle>Upload Documents</CardTitle>
-          <CardDescription>Drag and drop or click to select files (TXT, MD, PDF up to 10MB)</CardDescription>
+          <CardDescription>
+            PDF, DOCX, TXT, PNG, JPG up to {MAX_FILE_MB} MB. Scanned files are read with OCR and can take a while.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Drop Zone */}
@@ -257,7 +273,7 @@ export default function UploadPage() {
             <input {...getInputProps()} />
             <SvgUpload className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-lg font-medium">{isDragActive ? "Drop files here..." : "Drag & drop files here, or click to select"}</p>
-            <p className="text-sm text-muted-foreground mt-1">TXT, MD, PDF • Max 10MB each</p>
+            <p className="text-sm text-muted-foreground mt-1">PDF, DOCX, TXT, PNG, JPG • Max {MAX_FILE_MB} MB each</p>
           </div>
 
           {/* File Queue */}
