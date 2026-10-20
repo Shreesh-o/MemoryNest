@@ -19,6 +19,7 @@ const mainNav: NavItem[] = [
   { href: "/summaries", label: "Summaries" },
   { href: "/reminders", label: "Reminders" },
   { href: "/chat", label: "Chat" },
+  { href: "/search", label: "Search" },
 ]
 
 export function Sidebar() {

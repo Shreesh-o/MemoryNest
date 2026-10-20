@@ -121,3 +121,21 @@ class SummaryCreateRequest(BaseModel):
 class SummaryAudioResponse(BaseModel):
     engine: str
     url: str
+
+
+class SearchHit(BaseModel):
+    document_id: int
+    filename: str
+    chunk_index: int
+    snippet: str
+    similarity: float
+
+
+class SearchRequest(BaseModel):
+    query: str = Field(..., min_length=1, max_length=500)
+    top_k: Optional[int] = Field(default=8, ge=1, le=20)
+
+
+class SearchResponse(BaseModel):
+    query: str
+    hits: List[SearchHit]
