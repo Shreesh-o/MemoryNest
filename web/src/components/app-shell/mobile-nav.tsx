@@ -20,8 +20,8 @@ const mainNav = [
 
 const soonNav = [
   { href: "/chat", label: "Chat", disabled: false },
-  { href: "/summaries", label: "Summaries", disabled: true },
-  { href: "/reminders", label: "Reminders", disabled: true },
+  { href: "/summaries", label: "Summaries", disabled: false },
+  { href: "/reminders", label: "Reminders", disabled: false },
 ] as const
 
 export function MobileNav() {
