@@ -70,22 +70,13 @@ export default function ChatPage() {
   }, [])
 
   useEffect(() => {
-    scrollToBottom()
-  }, [messages, scrollToBottom])
-
-  const loadConversations = async () => {
-    try {
-      const result = await conversationsList()
+    conversationsList().then(result => {
       if (result.ok) {
         setConversations(result.data)
       }
-    } catch {
+    }).catch(() => {
       toast.error("Failed to load conversations")
-    }
-  }
-
-  useEffect(() => {
-    loadConversations()
+    })
   }, [])
 
   const handleNewChat = () => {
