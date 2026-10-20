@@ -155,7 +155,6 @@ export default function ChatPage() {
             created_at: new Date().toISOString(),
           },
         ])
-        await loadConversations()
       } else if (result.error?.status === 503) {
         setError(result.error.detail || "The language model is not running. Start Ollama and retry.")
         // Remove the user message on error
@@ -197,7 +196,7 @@ export default function ChatPage() {
     <div className="flex h-screen bg-background">
       {/* Sidebar / Conversation List */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetTrigger asChild>
+        <SheetTrigger>
           <Button variant="outline" size="icon" className="md:hidden lg:hidden xl:hidden">
             <SvgMessageSquare className="h-5 w-5" />
           </Button>
@@ -436,7 +435,6 @@ export default function ChatPage() {
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Ask a question about your documents... (Shift+Enter for new line)"
                 rows={1}
-                maxRows={6}
                 disabled={isLoading}
                 className="pr-12"
                 onKeyDown={(e) => {

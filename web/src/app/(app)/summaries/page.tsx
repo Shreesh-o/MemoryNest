@@ -344,7 +344,7 @@ export default function SummariesPage() {
 
   const handleAudioClose = () => {
     if (audioPlayer) {
-      URL.revokeObjectURL(audioPlayer.audioBlob);
+      URL.revokeObjectURL(audioPlayer.audioBlob as unknown as string);
     }
     setAudioPlayer(null);
   };
