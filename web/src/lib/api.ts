@@ -35,6 +35,44 @@ export interface IngestResultResponse {
   chunk_count: number;
 }
 
+export interface EventPublic {
+  id: number;
+  user_id: number;
+  event_text: string;
+  document_id?: number | null;
+  event_date?: string | null;
+  raw_date?: string | null;
+  status: string;
+  created_at?: string | null;
+}
+
+export interface EventExtractResponse {
+  events: EventPublic[];
+}
+
+export interface ConfirmEventRequest {
+  remind_at?: string | null;
+}
+
+export interface ReminderPublic {
+  id: number;
+  user_id: number;
+  event_id: number;
+  remind_at: string;
+  channel: string;
+  subject?: string | null;
+  body?: string | null;
+  status: string;
+  sent_at?: string | null;
+  created_at?: string | null;
+}
+
+export interface CheckRemindersResponse {
+  sent: number;
+  failed: number;
+  details: { reminder_id: number; success: boolean; detail: string }[];
+}
+
 // API Error class
 export class ApiError extends Error {
   status: number;
@@ -161,4 +199,52 @@ export function formatDate(isoString: string | null | undefined): string {
     minute: "numeric",
     hour12: true,
   });
+}
+
+// Events & Reminders
+export async function eventsList(status?: string) {
+  const path = status ? `events?status=${status}` : "events";
+  return fetchApi<EventPublic[]>(path);
+}
+
+export async function eventsExtract(docId: number) {
+  return fetchApi<EventExtractResponse>(`documents/${docId}/extract-events`, {
+    method: "POST",
+  });
+}
+
+export async function eventsConfirm(eventId: number, remindAt?: string) {
+  return fetchApi<EventPublic>(`events/${eventId}/confirm`, {
+    method: "POST",
+    body: JSON.stringify({ remind_at: remindAt }),
+  });
+}
+
+export async function eventsDiscard(eventId: number) {
+  return fetchApi<{ detail: string }>(`events/${eventId}/discard`, {
+    method: "POST",
+  });
+}
+
+export async function remindersList() {
+  return fetchApi<ReminderPublic[]>("reminders");
+}
+
+export async function remindersCheck() {
+  return fetchApi<CheckRemindersResponse>("reminders/check", {
+    method: "POST",
+  });
+}
+
+export async function calendarIcs(eventIds?: number[]): Promise<Blob> {
+  const path = eventIds && eventIds.length > 0
+    ? `calendar.ics?event_ids=${eventIds.join(",")}`
+    : "calendar.ics";
+  const response = await fetch(`/api/${path}`, {
+    credentials: "include",
+  });
+  if (!response.ok) {
+    throw new Error("Failed to download calendar");
+  }
+  return response.blob();
 }

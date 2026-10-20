@@ -29,10 +29,36 @@ OLLAMA_MODEL: str = os.environ.get("OLLAMA_MODEL", "qwen2.5:3b-instruct")
 EMBEDDING_MODEL: str = os.environ.get("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
 
 # --- Storage ---
-DB_PATH: Path = _path("DB_PATH", "data/memorynest.db")
-CHROMA_DIR: Path = _path("CHROMA_DIR", "data/chroma")
-UPLOAD_DIR: Path = _path("UPLOAD_DIR", "data/uploads")
-AUDIO_DIR: Path = _path("AUDIO_DIR", "data/audio")
+def get_db_path() -> Path:
+    return _path("DB_PATH", "data/memorynest.db")
+
+def get_chroma_dir() -> Path:
+    return _path("CHROMA_DIR", "data/chroma")
+
+def get_upload_dir() -> Path:
+    return _path("UPLOAD_DIR", "data/uploads")
+
+def get_audio_dir() -> Path:
+    return _path("AUDIO_DIR", "data/audio")
+
+# Backward compatibility - these will be updated when env vars change
+DB_PATH: Path = get_db_path()
+CHROMA_DIR: Path = get_chroma_dir()
+UPLOAD_DIR: Path = get_upload_dir()
+AUDIO_DIR: Path = get_audio_dir()
+
+
+def refresh_paths() -> None:
+    """Refresh path variables from environment variables.
+    
+    Call this after modifying environment variables to update the path constants.
+    """
+    global DB_PATH, CHROMA_DIR, UPLOAD_DIR, AUDIO_DIR
+    DB_PATH = get_db_path()
+    CHROMA_DIR = get_chroma_dir()
+    UPLOAD_DIR = get_upload_dir()
+    AUDIO_DIR = get_audio_dir()
+
 
 # --- RAG ---
 RAG_TOP_K: int = int(os.environ.get("RAG_TOP_K", "5"))
@@ -60,5 +86,5 @@ COOKIE_SECURE: bool = os.environ.get("COOKIE_SECURE", "false").lower() == "true"
 
 def ensure_dirs() -> None:
     """Create all runtime directories if they do not exist yet."""
-    for d in (DB_PATH.parent, CHROMA_DIR, UPLOAD_DIR, AUDIO_DIR):
+    for d in (get_db_path().parent, get_chroma_dir(), get_upload_dir(), get_audio_dir()):
         d.mkdir(parents=True, exist_ok=True)

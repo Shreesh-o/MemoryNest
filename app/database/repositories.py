@@ -521,8 +521,11 @@ class EventRepository(BaseRepository):
     def delete(self, event_id: int, user_id: int) -> None:
         conn = self._connect()
         try:
-            conn.execute("DELETE FROM events WHERE id = ? AND user_id = ?", (event_id, user_id))
+            print(f"DEBUG delete: event_id={event_id}, user_id={user_id}")
+            cursor = conn.execute("DELETE FROM events WHERE id = ? AND user_id = ?", (event_id, user_id))
+            print(f"DEBUG delete: rowcount={cursor.rowcount}")
             conn.commit()
+            print(f"DEBUG delete: committed")
         finally:
             conn.close()
 

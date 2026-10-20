@@ -6,7 +6,7 @@ import streamlit as st
 from datetime import datetime
 
 from app.database.repositories import DocumentRepository, EventRepository, ReminderRepository
-from app.services import event_service, email_service, ics_service
+from app.services import email_service, ics_service, reminder_flow_service
 from app.utils.config import RAG_MIN_SIMILARITY
 
 
@@ -16,7 +16,6 @@ def _get_confirmed_events_with_reminders(ev_repo, rem_repo, user_id):
     if not events:
         return [], []
     reminders = rem_repo.list_for_user(user_id, status="scheduled")
-    # Filter reminders to only those for confirmed events
     confirmed_event_ids = {e.id for e in events}
     reminders = [r for r in reminders if r.event_id in confirmed_event_ids]
     return events, reminders
@@ -41,7 +40,6 @@ def render() -> None:
     ev_repo = EventRepository()
     rem_repo = ReminderRepository()
 
-    # Tab 1: Extract events from documents
     tab_extract, tab_pending, tab_scheduled = st.tabs(
         ["Extract from docs", "Pending confirmation", "Scheduled reminders"]
     )
@@ -62,20 +60,14 @@ def render() -> None:
                         st.warning("Document has no text preview")
                     else:
                         try:
-                            events = event_service.extract_events(text)
+                            events = reminder_flow_service.extract_events_for_document(user.id, doc.id)
                             if not events:
                                 st.info("No events found")
                             else:
-                                for e in events:
-                                    ev = ev_repo.create(
-                                        user_id=user.id,
-                                        event_text=e["event_text"],
-                                        document_id=doc.id,
-                                        event_date=e.get("event_date"),
-                                        raw_date=e.get("raw_date"),
-                                    )
                                 st.success(f"Extracted {len(events)} event(s)")
                                 st.rerun()
+                        except ValueError as e:
+                            st.error(str(e))
                         except RuntimeError as e:
                             import logging
                             logging.exception("Event extraction failed for doc %s", doc.id)
@@ -94,20 +86,11 @@ def render() -> None:
                     with col1:
                         if st.button("Confirm", key=f"conf_{e.id}"):
                             try:
-                                ev_repo.set_status(e.id, user.id, "confirmed")
-                                if e.event_date:
-                                    remind_at = f"{e.event_date} 09:00:00"
-                                else:
-                                    remind_at = datetime.now().strftime("%Y-%m-%d 09:00:00")
-                                rem_repo.create(
-                                    user_id=user.id,
-                                    event_id=e.id,
-                                    remind_at=remind_at,
-                                    subject=f"Reminder: {e.event_text[:60]}",
-                                    body=f"Event: {e.event_text}\nDate: {e.event_date or 'TBD'}\nRaw: {e.raw_date or 'N/A'}",
-                                )
+                                reminder_flow_service.confirm_event(user.id, e.id)
                                 st.success("Confirmed and reminder scheduled")
                                 st.rerun()
+                            except ValueError as e:
+                                st.error(str(e))
                             except Exception as exc:
                                 import logging
                                 logging.exception("Confirm event failed for event %s", e.id)
@@ -118,10 +101,9 @@ def render() -> None:
                             st.rerun()
                     with col3:
                         if st.button("Delete", key=f"del_ev_{e.id}", type="secondary"):
-                            ev_repo.delete(e.id, user.id)
+                            reminder_flow_service.discard_event(user.id, e.id)
                             st.rerun()
 
-        # .ics export for all confirmed events
         st.divider()
         st.subheader("Export to calendar")
         confirmed_events, confirmed_reminders = _get_confirmed_events_with_reminders(ev_repo, rem_repo, user.id)
@@ -144,7 +126,6 @@ def render() -> None:
         if not reminders:
             st.info("No scheduled reminders")
         else:
-            # Bulk export for all scheduled
             scheduled_events, scheduled_reminders = _get_scheduled_reminders_with_events(ev_repo, rem_repo, user.id)
             if scheduled_events:
                 ics_data = ics_service.build_ics_from_events_and_reminders(
@@ -181,7 +162,6 @@ def render() -> None:
                             rem_repo.set_status(r.id, user.id, "cancelled")
                             st.rerun()
                     with col3:
-                        # Per-event .ics export
                         ev = ev_repo.get_by_id(r.event_id, user.id)
                         if ev:
                             ics_data = ics_service.build_ics_from_events_and_reminders(
@@ -194,24 +174,20 @@ def render() -> None:
                                 mime="text/calendar",
                             )
 
-            # Check due reminders button
             st.divider()
             if st.button("Check & send due reminders", type="primary"):
-                now = datetime.now().isoformat()
-                due = rem_repo.due_scheduled(user.id, now)
-                if not due:
-                    st.info("No due reminders")
-                else:
-                    for r in due:
-                        try:
-                            ok, detail = email_service.send_reminder_email(r.subject or "", r.body or "")
-                            if ok:
-                                rem_repo.set_status(r.id, user.id, "sent", datetime.now().isoformat())
-                                st.success(f"Sent: {r.subject}")
-                            else:
-                                rem_repo.set_status(r.id, user.id, "failed")
-                                st.error(f"Failed {r.subject}: {detail}")
-                        except Exception as exc:
-                            import logging
-                            logging.exception("Bulk send failed for reminder %s", r.id)
-                            st.error(f"Send failed for {r.subject}: {exc}")
+                try:
+                    result = reminder_flow_service.check_and_send_due(user.id)
+                    if result.sent == 0 and result.failed == 0:
+                        st.info("No due reminders")
+                    else:
+                        if result.sent:
+                            st.success(f"Sent {result.sent} reminder(s)")
+                        if result.failed:
+                            st.error(f"Failed {result.failed} reminder(s)")
+                            for _, _, detail in result.details:
+                                st.caption(detail)
+                except Exception as exc:
+                    import logging
+                    logging.exception("Check due reminders failed for user %s", user.id)
+                    st.error(f"Check failed: {exc}")

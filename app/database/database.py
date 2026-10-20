@@ -9,14 +9,10 @@ from pathlib import Path
 def _get_db_path() -> Path:
     """Resolve the database path from config at call time.
 
-    Config is reloaded so environment-variable overrides (e.g. DB_PATH set by
-    tests or .env) are always honored, even when the config module was
-    imported earlier in the process.
+    Returns the current DB_PATH from config, which reads from environment variables.
     """
-    import importlib
     import app.utils.config
-    importlib.reload(app.utils.config)
-    return app.utils.config.DB_PATH
+    return app.utils.config.get_db_path()
 
 
 def get_connection(db_path: Path | None = None) -> sqlite3.Connection:
@@ -142,10 +138,14 @@ CREATE INDEX IF NOT EXISTS idx_reminders_user ON reminders(user_id, status, remi
 
 
 def init_db(db_path: Path | None = None) -> None:
-    """Create all tables if they do not exist. Run migrations for existing databases."""
-    import importlib
+    """Create all tables if they do not exist. Run migrations for existing databases.
+
+    If db_path is provided, use it directly without reloading config (to support testing).
+    """
     import app.utils.config
-    importlib.reload(app.utils.config)
+    if db_path is None:
+        import importlib
+        importlib.reload(app.utils.config)
     app.utils.config.ensure_dirs()
     conn = get_connection(db_path)
     try:
