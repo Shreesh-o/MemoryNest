@@ -55,6 +55,9 @@ const SUGGESTED_QUESTIONS = [
 ]
 
 export default function ChatPage() {
+  useEffect(() => {
+    document.title = "Chat — MemoryNest"
+  }, [])
   const router = useRouter()
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [messages, setMessages] = useState<Message[]>([])

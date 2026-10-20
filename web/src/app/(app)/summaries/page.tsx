@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { formatDate } from "@/lib/api";
 import {
   Card,
@@ -257,6 +257,9 @@ function ErrorDialog({
 }
 
 export default function SummariesPage() {
+  useEffect(() => {
+    document.title = "Summaries — MemoryNest"
+  }, [])
   const queryClient = useQueryClient();
   const [summarizingDocId, setSummarizingDocId] = useState<number | null>(null);
   const [generatingAudioId, setGeneratingAudioId] = useState<number | null>(null);

@@ -84,6 +84,46 @@ Open http://localhost:8501. Register, upload documents, then ask questions on th
 - Audio/video input: not planned — text/image only
 - Multi-modal RCLIP: image embeddings alongside text for visual search
 
+## Frontend (Next.js)
+
+The web frontend is a separate Next.js app in the `web/` directory.
+
+### Setup
+
+```bash
+# Backend API (port 8000)
+cd /home/shreesh/MemoryNest
+source .venv/bin/activate
+export JWT_SECRET=your-secret-key
+python -m uvicorn app.api.main:app --port 8000
+
+# Frontend (port 3000)
+cd web
+npm install
+npm run build
+npm run start
+```
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `JWT_SECRET` | (random) | Secret for signing session tokens |
+| `DB_PATH` | `data/memorynest.db` | SQLite database path |
+| `CHROMA_DIR` | `data/chroma` | ChromaDB storage directory |
+| `UPLOAD_DIR` | `data/uploads` | Uploaded files directory |
+| `AUDIO_DIR` | `data/audio` | TTS audio output directory |
+| `NEXT_PUBLIC_MAX_FILE_MB` | `20` | Max upload file size in MB |
+| `E2E_BASE_URL` | `http://127.0.0.1:3000` | E2E test frontend URL |
+| `E2E_API_URL` | `http://127.0.0.1:8000` | E2E test API URL |
+
+### Frontend Tech Stack
+
+- **Frontend**: Next.js 16 (App Router, Turbopack)
+- **UI**: shadcn/ui (Base UI), Tailwind CSS, lucide-react
+- **State**: TanStack React Query, Sonner (toasts)
+- **Testing**: Playwright (E2E)
+
 ## Screenshots
 
 ![Screenshots](docs/screenshots/)

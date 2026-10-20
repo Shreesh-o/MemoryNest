@@ -3,8 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
+
 import {
   Sheet,
   SheetTrigger,
@@ -16,12 +15,9 @@ const mainNav = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/documents", label: "Documents" },
   { href: "/upload", label: "Upload" },
-] as const
-
-const soonNav = [
-  { href: "/chat", label: "Chat", disabled: false },
-  { href: "/summaries", label: "Summaries", disabled: false },
-  { href: "/reminders", label: "Reminders", disabled: false },
+  { href: "/summaries", label: "Summaries" },
+  { href: "/reminders", label: "Reminders" },
+  { href: "/chat", label: "Chat" },
 ] as const
 
 export function MobileNav() {
@@ -64,20 +60,6 @@ export function MobileNav() {
               </Link>
             )
           })}
-          <Separator className="my-4" />
-          {soonNav.map((item) => (
-            <div key={item.label} className="flex items-center gap-3 px-3 py-2.5">
-              <span className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-base font-medium",
-                item.disabled ? "text-muted-foreground opacity-50 pointer-events-none" : ""
-              )}>
-                {item.label}
-              </span>
-              <Badge variant="secondary" className="ml-auto text-xs">
-                Soon
-              </Badge>
-            </div>
-          ))}
         </nav>
       </SheetContent>
     </Sheet>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useDropzone } from "react-dropzone";
@@ -160,6 +160,9 @@ function ResultRow({ result }: { result: IngestResult }) {
 }
 
 export default function UploadPage() {
+  useEffect(() => {
+    document.title = "Upload — MemoryNest"
+  }, [])
   const router = useRouter();
   const [files, setFiles] = useState<UploadFile[]>([]);
   const [results, setResults] = useState<IngestResult[]>([]);

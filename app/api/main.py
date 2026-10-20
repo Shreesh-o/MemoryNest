@@ -53,13 +53,14 @@ def create_app(db_path: Optional[str] = None) -> FastAPI:
     )
 
     # Include routers
-    from app.api.routers import auth, documents, health, reminders, chat, summaries
+    from app.api.routers import auth, documents, health, reminders, chat, summaries, dashboard
     app.include_router(auth.router)
     app.include_router(documents.router)
     app.include_router(health.router)
     app.include_router(reminders.router)
     app.include_router(chat.router)
     app.include_router(summaries.router)
+    app.include_router(dashboard.router)
 
     return app
 

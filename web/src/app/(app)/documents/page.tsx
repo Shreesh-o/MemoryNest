@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { formatDate } from "@/lib/api";
 import {
   Card,
@@ -294,6 +294,9 @@ function DeleteConfirmDialog({ document, open, onOpenChange, onConfirm, isPendin
 }
 
 export default function DocumentsPage() {
+  useEffect(() => {
+    document.title = "Documents — MemoryNest"
+  }, [])
   const queryClient = useQueryClient();
   const [viewMode, setViewMode] = useState<ViewMode>("table");
   const [previewDoc, setPreviewDoc] = useState<Document | null>(null);

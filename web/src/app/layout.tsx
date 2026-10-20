@@ -14,6 +14,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="antialiased">
+        <link rel="icon" href="/favicon.ico" />
         <Providers>{children}</Providers>
       </body>
     </html>

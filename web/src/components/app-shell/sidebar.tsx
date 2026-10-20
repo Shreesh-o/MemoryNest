@@ -18,13 +18,6 @@ const mainNav: NavItem[] = [
   { href: "/upload", label: "Upload" },
   { href: "/summaries", label: "Summaries" },
   { href: "/reminders", label: "Reminders" },
-]
-
-const soonNav: NavItem[] = [
-  { href: "/chat", label: "Chat", disabled: false },
-]
-
-const chatNav: NavItem[] = [
   { href: "/chat", label: "Chat" },
 ]
 
@@ -40,27 +33,6 @@ export function Sidebar() {
 
         <nav className="flex-1 overflow-y-auto p-4 space-y-1">
           {mainNav.map((item) => {
-            const isActive = pathname === item.href
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                  isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-                  item.disabled && "opacity-50 pointer-events-none"
-                )}
-              >
-                {item.label}
-              </Link>
-            )
-          })}
-
-          <Separator className="my-4" />
-
-          {chatNav.map((item) => {
             const isActive = pathname === item.href
             return (
               <Link

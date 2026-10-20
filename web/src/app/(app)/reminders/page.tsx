@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { formatDate } from "@/lib/api";
 import {
   Card,
@@ -321,6 +321,9 @@ function DownloadCalendarButton({ eventIds }: { eventIds?: number[] }) {
 }
 
 export default function RemindersPage() {
+  useEffect(() => {
+    document.title = "Reminders — MemoryNest"
+  }, [])
   const queryClient = useQueryClient();
   const [extractDialogOpen, setExtractDialogOpen] = useState(false);
   const [extractingDocId, setExtractingDocId] = useState<number | null>(null);
