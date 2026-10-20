@@ -16,12 +16,16 @@ const mainNav: NavItem[] = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/documents", label: "Documents" },
   { href: "/upload", label: "Upload" },
+  { href: "/summaries", label: "Summaries" },
+  { href: "/reminders", label: "Reminders" },
 ]
 
 const soonNav: NavItem[] = [
-  { href: "#", label: "Chat", disabled: true },
-  { href: "#", label: "Summaries", disabled: true },
-  { href: "#", label: "Reminders", disabled: true },
+  { href: "/chat", label: "Chat", disabled: false },
+]
+
+const chatNav: NavItem[] = [
+  { href: "/chat", label: "Chat" },
 ]
 
 export function Sidebar() {
@@ -56,19 +60,24 @@ export function Sidebar() {
 
           <Separator className="my-4" />
 
-          {soonNav.map((item) => (
-            <div key={item.label} className="flex items-center gap-3 px-3 py-2">
-              <span className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium",
-                item.disabled ? "text-muted-foreground opacity-50 pointer-events-none" : ""
-              )}>
+          {chatNav.map((item) => {
+            const isActive = pathname === item.href
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                  isActive
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                  item.disabled && "opacity-50 pointer-events-none"
+                )}
+              >
                 {item.label}
-              </span>
-              <Badge variant="secondary" className="ml-auto text-xs">
-                Soon
-              </Badge>
-            </div>
-          ))}
+              </Link>
+            )
+          })}
         </nav>
 
         <div className="p-4 border-t">

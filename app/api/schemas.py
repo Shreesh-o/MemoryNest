@@ -79,3 +79,45 @@ class CheckRemindersResponse(BaseModel):
     sent: int
     failed: int
     details: List[dict]
+
+
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+    sources: Optional[List[dict]] = None
+
+
+class ChatRequest(BaseModel):
+    question: str = Field(..., max_length=2000)
+    conversation_id: Optional[int] = None
+
+
+class ChatResponse(BaseModel):
+    conversation_id: int
+    answer: str
+    sources: List[dict] = []
+
+
+class ConversationPublic(BaseModel):
+    id: int
+    user_id: int
+    title: Optional[str] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+
+
+class SummaryPublic(BaseModel):
+    id: int
+    document_id: int
+    user_id: int
+    summary_text: str
+    created_at: Optional[str] = None
+
+
+class SummaryCreateRequest(BaseModel):
+    force: bool = False
+
+
+class SummaryAudioResponse(BaseModel):
+    engine: str
+    url: str

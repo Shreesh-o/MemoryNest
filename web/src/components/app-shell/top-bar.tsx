@@ -88,21 +88,19 @@ export function TopBar({ pageTitle }: TopBarProps) {
                 Upload
               </Link>
               <Separator className="my-4" />
-              <div className="flex items-center gap-3 px-3 py-2.5 text-muted-foreground opacity-50">
+              <Link href="/chat" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-base font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground">
                 <MessageSquareIcon className="h-5 w-5" />
                 <span>Chat</span>
-                <Badge variant="secondary" className="ml-auto text-xs">Soon</Badge>
-              </div>
-              <div className="flex items-center gap-3 px-3 py-2.5 text-muted-foreground opacity-50">
+              </Link>
+              <div className="flex items-center gap-3 px-3 py-2.5 text-muted-foreground opacity-50 pointer-events-none">
                 <FileTextIcon className="h-5 w-5" />
                 <span>Summaries</span>
                 <Badge variant="secondary" className="ml-auto text-xs">Soon</Badge>
               </div>
-              <div className="flex items-center gap-3 px-3 py-2.5 text-muted-foreground opacity-50">
+              <Link href="/reminders" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-base font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground">
                 <ClockIcon className="h-5 w-5" />
                 <span>Reminders</span>
-                <Badge variant="secondary" className="ml-auto text-xs">Soon</Badge>
-              </div>
+              </Link>
             </nav>
           </SheetContent>
         </Sheet>

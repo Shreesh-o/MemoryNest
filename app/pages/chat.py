@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import streamlit as st
 
-from app.services import rag_service
+from app.services import chat_service
 
 
 def render() -> None:
@@ -14,6 +14,8 @@ def render() -> None:
     # Initialize conversation state
     if "rag_messages" not in st.session_state:
         st.session_state.rag_messages = []
+    if "current_conversation_id" not in st.session_state:
+        st.session_state.current_conversation_id = None
 
     # Display chat history
     for msg in st.session_state.rag_messages:
@@ -38,7 +40,12 @@ def render() -> None:
         with st.chat_message("assistant"):
             with st.spinner("Thinking..."):
                 try:
-                    result = rag_service.rag_answer(user.id, prompt)
+                    result = chat_service.ask(
+                        user.id,
+                        prompt,
+                        st.session_state.current_conversation_id,
+                    )
+                    st.session_state.current_conversation_id = result.conversation_id
                 except RuntimeError as e:
                     import logging
                     logging.exception("RAG query failed for user %s", user.id)
@@ -55,12 +62,21 @@ def render() -> None:
                         )
 
         # Add assistant message
-        st.session_state.rag_messages.append(
-            {"role": "assistant", "content": result.answer, "sources": result.sources}
-        )
+        if result:
+            st.session_state.rag_messages.append(
+                {"role": "assistant", "content": result.answer, "sources": result.sources}
+            )
 
-    # Clear button
+    # Clear / New conversation button
     if st.session_state.rag_messages:
-        if st.button("Clear conversation"):
-            st.session_state.rag_messages = []
-            st.rerun()
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("Clear conversation"):
+                st.session_state.rag_messages = []
+                st.session_state.current_conversation_id = None
+                st.rerun()
+        with col2:
+            if st.button("New chat"):
+                st.session_state.rag_messages = []
+                st.session_state.current_conversation_id = None
+                st.rerun()

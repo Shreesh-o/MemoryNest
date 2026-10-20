@@ -137,3 +137,43 @@ export function SvgClock(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+export function SvgPlus(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+    </svg>
+  );
+}
+
+export function SvgMessageSquare(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72 3.72-1.395A9.863 9.863 0 0112 21c4.418 0 8-3.582 8-8a9.863 9.863 0 01-.949-4.255L21 12z" />
+    </svg>
+  );
+}
+
+export function SvgSend(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+    </svg>
+  );
+}
+
+export function SvgAlertTriangle(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+    </svg>
+  );
+}
+
+export function SvgVolume2(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.5 5h11.41c.61 0 1.113.464 1.113 1.034v0c0 .569-.503 1.034-1.113 1.034H5.5c-.61 0-1.113-.464-1.113-1.034v0c0-.569.503-1.034 1.113-1.034zM15.206 14.72c.612 0 1.113-.464 1.113-1.034v0c0-.569-.503-1.034-1.113-1.034h-1.078l-2.632 2.632c.124.231.291.402.485.537zM5.5 7c1.113 0 2.013.857 2.013 1.914v0c0 1.056-.901 1.914-2.013 1.914H5.5c-1.113 0-2.013-.857-2.013-1.914v0c0-1.057.901-1.914 2.013-1.914zM11.206 13.72c.612 0 1.113-.464 1.113-1.034v0c0-.569-.503-1.034-1.113-1.034H8.575l-2.632 2.632c.124.231.291.402.485.537zM16.5 7c2.61 0 4.732 2.043 4.732 4.544v0c0 2.502-2.121 4.544-4.732 4.544H16.5c-2.611 0-4.732-2.043-4.732-4.544v0c0-2.501 2.121-4.544 4.732-4.544z" />
+    </svg>
+  );
+}

@@ -73,6 +73,48 @@ export interface CheckRemindersResponse {
   details: { reminder_id: number; success: boolean; detail: string }[];
 }
 
+export interface ChatMessage {
+  role: string;
+  content: string;
+  sources?: { document: string; chunk_index: number; similarity: number; document_id?: number }[];
+}
+
+export interface ChatRequest {
+  question: string;
+  conversation_id?: number | null;
+}
+
+export interface ChatResponse {
+  conversation_id: number;
+  answer: string;
+  sources: { document: string; chunk_index: number; similarity: number; document_id?: number }[];
+}
+
+export interface ConversationPublic {
+  id: number;
+  user_id: number;
+  title?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface SummaryPublic {
+  id: number;
+  document_id: number;
+  user_id: number;
+  summary_text: string;
+  created_at?: string | null;
+}
+
+export interface SummaryCreateRequest {
+  force?: boolean;
+}
+
+export interface SummaryAudioResponse {
+  engine: string;
+  url: string;
+}
+
 // API Error class
 export class ApiError extends Error {
   status: number;
@@ -245,6 +287,56 @@ export async function calendarIcs(eventIds?: number[]): Promise<Blob> {
   });
   if (!response.ok) {
     throw new Error("Failed to download calendar");
+  }
+  return response.blob();
+}
+
+// Chat
+export async function chatAsk(req: ChatRequest) {
+  return fetchApi<ChatResponse>("chat", {
+    method: "POST",
+    body: JSON.stringify(req),
+  });
+}
+
+export async function conversationsList() {
+  return fetchApi<ConversationPublic[]>("conversations");
+}
+
+export async function conversationsGet(id: number) {
+  return fetchApi<ConversationPublic>(`conversations/${id}`);
+}
+
+export async function conversationsDelete(id: number) {
+  return fetchApi<{ detail: string }>(`conversations/${id}`, {
+    method: "DELETE",
+  });
+}
+
+// Summaries
+export async function summariesList() {
+  return fetchApi<SummaryPublic[]>("summaries");
+}
+
+export async function summaryCreate(docId: number, force = false) {
+  return fetchApi<SummaryPublic>(`documents/${docId}/summary`, {
+    method: "POST",
+    body: JSON.stringify({ force }),
+  });
+}
+
+export async function summaryAudioCreate(summaryId: number) {
+  return fetchApi<SummaryAudioResponse>(`summaries/${summaryId}/audio`, {
+    method: "POST",
+  });
+}
+
+export async function summaryAudioGet(summaryId: number): Promise<Blob> {
+  const response = await fetch(`/api/summaries/${summaryId}/audio`, {
+    credentials: "include",
+  });
+  if (!response.ok) {
+    throw new Error("Failed to fetch audio");
   }
   return response.blob();
 }
