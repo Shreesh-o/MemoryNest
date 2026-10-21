@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import List, Optional
 
@@ -20,7 +21,8 @@ _SYSTEM_PROMPT = (
     "You are a helpful assistant that answers questions ONLY using the provided context. "
     "If the answer is not in the context, say: "
     "\"I couldn't find this information in your stored documents.\" "
-    "Do not make up information. Cite sources by their document name and chunk index."
+    "Do not make up information. Answer in your own words. Do not cite sources inline "
+    "or include source headers; citations are shown separately."
 )
 
 
@@ -41,9 +43,23 @@ def _build_prompt(question: str, context: str) -> str:
     return (
         f"Context:\n{context}\n\n"
         f"Question: {question}\n\n"
-        f"Answer based only on the context above. "
-        f"Include citations like [Source 1], [Source 2] in your answer."
+        f"Answer based only on the context above in your own words."
     )
+
+
+def _strip_source_headers(text: str) -> str:
+    """Strip "[Source n] Document: ..., Chunk: ..., Similarity: ..." header lines.
+
+    The LLM may echo these header lines from the context into its answer.
+    Remove them so the answer text contains only natural-language content,
+    while the structured sources list (returned separately) remains available
+    to the UI.
+    """
+    pattern = re.compile(
+        r"^\[Source \d+\] Document: .*?\n",
+        re.MULTILINE,
+    )
+    return pattern.sub("", text)
 
 
 def rag_answer(
@@ -72,6 +88,9 @@ def rag_answer(
     context = _format_context(results)
     prompt = _build_prompt(question, context)
     answer = llm_service.generate(prompt, system=_SYSTEM_PROMPT)
+    # Strip any "[Source n] Document: ..., Chunk: ..., Similarity: ..." header
+    # lines that the model may have echoed from the context into the answer.
+    answer = _strip_source_headers(answer)
 
     # 5. Format sources for UI
     sources = [
