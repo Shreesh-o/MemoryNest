@@ -68,7 +68,7 @@ for p, v in sorted(paths.items()):
     for m in v:
         print(m.upper(), p)
 PY
-for need in /api/chat /api/conversations /api/events /api/calendar.ics /api/summaries /api/dashboard /api/reminders; do
+for need in /api/chat /api/conversations /api/events /api/calendar.ics /api/summaries /api/dashboard /api/reminders /api/search; do
   if grep -q "\"$need\"" "$TMPD/openapi.json"; then record "route $need" PASS "present"; else record "route $need" FAIL "MISSING"; fi
 done
 
@@ -77,6 +77,7 @@ call "register"   201     -   -X POST "$U/api/auth/register" -H "$JSON" -d '{"us
 call "login"      200     -   -X POST "$U/api/auth/login"    -H "$JSON" -d '{"username":"demo","password":"demo1234"}'
 call "upload"     200     '"status":"ready"' -F "files=@$TMPD/t.txt" "$U/api/documents/upload"
 call "chat: in-document question (should mention ChromaDB)" 200 'chroma' -X POST "$U/api/chat" -H "$JSON" -d '{"question":"What does the MemoryNest project use for vector search?"}'
+if grep -q "\[Source" "$TMPD/out" || grep -qi "Similarity:" "$TMPD/out"; then record "chat answer has no raw source headers" FAIL "header text found in answer"; else record "chat answer has no raw source headers" PASS "clean"; fi
 call "chat: NOT in documents (should say it does not know)" 200 - -X POST "$U/api/chat" -H "$JSON" -d '{"question":"Who won the 1998 football world cup?"}'; mark_review
 call "conversations" 200  -   "$U/api/conversations"
 call "extract events" "200|201" -   -X POST "$U/api/documents/1/extract-events"
@@ -91,6 +92,7 @@ acode=$(curl -s --max-time 120 -b "$J" -o "$TMPD/a.audio" -w "%{http_code} %{con
 asize=$(stat -c %s "$TMPD/a.audio" 2>/dev/null || echo 0)
 echo; echo "--- audio download"; echo "[$acode] size=$asize bytes"
 if [[ "$acode" == 200* ]] && [ "$asize" -gt 1000 ]; then record "audio download" PASS "$acode, $asize bytes"; else record "audio download" FAIL "$acode, $asize bytes"; fi
+call "search (different wording; REVIEW)" 200 - -X POST "$U/api/search" -H "$JSON" -d '{"query":"when is the report due"}'; mark_review
 call "dashboard"  200 'total' "$U/api/dashboard"
 
 echo; echo "=== API LOG (error lines)"
