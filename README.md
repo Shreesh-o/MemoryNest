@@ -22,21 +22,23 @@ MemoryNest is a local, privacy-first web app for storing, searching, and summari
 - Summaries: map-reduce for long documents; TTS renders audio; download button
 - Event extraction: regex + dateparser, LLM fallback; .ics export for confirmed events
 - Email reminders: Gmail SMTP with app password, on-demand "check" button
-- Auth: username/password with bcrypt, Streamlit session state
+- Auth: username/password with bcrypt, JWT cookies (FastAPI) & Streamlit session state
 
 ## Tech Stack
 
-- **Frontend**: Streamlit (Python)
-- **Backend**: Python, SQLite, ChromaDB
-- **LLM**: Ollama (qwen2.5:3b-instruct, 3B)
-- **Embeddings**: sentence-transformers all-MiniLM-L6-v2
+- **Web Frontend**: Next.js 16 (App Router, Turbopack, Tailwind CSS, Base UI / shadcn, TanStack React Query)
+- **Legacy UI**: Streamlit (Python)
+- **Backend API**: FastAPI (REST endpoints, JWT auth, Pydantic schemas)
+- **Storage & Vector DB**: SQLite (metadata), ChromaDB (embeddings, user-isolated)
+- **LLM**: Ollama (`qwen2.5:3b-instruct`, 3B local model)
+- **Embeddings**: sentence-transformers (`all-MiniLM-L6-v2`)
 - **OCR**: Tesseract (via pytesseract)
-- **TTS**: edge-tts (online, MP3→WAV w/ ffmpeg) / espeak-ng (offline) / pyttsx3 (fallback)
+- **TTS**: edge-tts (online, MP3→WAV w/ ffmpeg) / espeak-ng (offline) / piper
 - **Email**: smtplib (Gmail SMTP, app password)
-- **OCR**: Tesseract (system package)
-- **Charts/Reports**: None (data-focused app)
 
-## Setup (Linux)
+## Quick Start (Linux)
+
+### 1. Prerequisites & Dependencies
 
 ```bash
 # System packages
@@ -52,11 +54,32 @@ source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
 
-# Run
-streamlit run app/main.py
+# Web dependencies (one time)
+cd web && npm install && cd ..
 ```
 
-Open http://localhost:8501. Register, upload documents, then ask questions on the **Ask (RAG)** page.
+### 2. Running MemoryNest
+
+Use the unified development runner `scripts/dev.sh` to run preflight checks and launch Ollama, FastAPI (port 8000), and Next.js (port 3000) with hot reload:
+
+```bash
+# Start in development mode (hot reload)
+bash scripts/dev.sh
+
+# Stop all background services
+bash scripts/dev.sh --stop
+```
+
+#### Additional Runner Options:
+```bash
+bash scripts/dev.sh --prod      # Production build + start
+bash scripts/dev.sh --fresh     # Run with an isolated temporary empty database
+bash scripts/dev.sh --force     # Start even if optional preflight checks warn
+```
+
+- **Web App**: http://localhost:3000
+- **API Docs (Swagger)**: http://localhost:8000/docs
+- **Streamlit (Alternative)**: `streamlit run app/main.py` (http://localhost:8501)
 
 ## Voice Options
 

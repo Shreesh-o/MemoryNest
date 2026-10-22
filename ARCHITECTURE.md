@@ -7,12 +7,14 @@ Simple reference for making change/remove decisions.
 ## 1. High-Level Flow
 
 ```
-User → Streamlit UI (7 pages)
-         ↓
-    Auth (bcrypt + session)
-         ↓
-    Services (12 modules)
-         ↓
+User → Next.js Web UI (:3000)   [or Streamlit UI :8501]
+             ↓ /api/* rewrites
+        FastAPI API (:8000)
+             ↓
+        Auth (bcrypt + JWT cookie)
+             ↓
+        Services (13 modules)
+             ↓
     ┌─────────────────────────────────────┐
     │  SQLite (metadata, users, chunks)   │
     │  ChromaDB (vectors, user_id filter) │
@@ -27,8 +29,21 @@ User → Streamlit UI (7 pages)
 ```
 memorynest/
 ├── app/
-│   ├── main.py              # Entry point, auth gate, navigation
-│   ├── pages/               # 7 UI pages
+│   ├── main.py              # Streamlit entry point, auth gate, navigation
+│   ├── api/                 # FastAPI REST API layer
+│   │   ├── main.py          # App factory, CORS, exception handlers
+│   │   ├── deps.py          # Dependency injection (get_current_user)
+│   │   ├── schemas.py       # Pydantic request & response schemas
+│   │   └── routers/         # API endpoints
+│   │       ├── auth.py      # /api/auth/register, /login, /me, /logout
+│   │       ├── chat.py      # /api/chat, /api/conversations
+│   │       ├── dashboard.py # /api/dashboard
+│   │       ├── documents.py # /api/documents/upload, /retry, etc.
+│   │       ├── health.py    # /api/health (ollama, mock_llm, email_configured)
+│   │       ├── reminders.py # /api/events, /api/reminders, /calendar.ics
+│   │       ├── search.py    # /api/search
+│   │       └── summaries.py # /api/documents/{id}/summary, /audio
+│   ├── pages/               # 7 Streamlit UI pages
 │   │   ├── dashboard.py     # Stats, deadlines, reminders
 │   │   ├── upload.py        # File picker → processing pipeline
 │   │   ├── documents.py     # List, preview, delete docs
@@ -36,7 +51,7 @@ memorynest/
 │   │   ├── history.py       # Conversation list, search, load
 │   │   ├── summaries.py     # Generate/play summaries
 │   │   └── reminders.py     # Extract events, confirm, email
-│   ├── services/            # Business logic (12 modules)
+│   ├── services/            # Business logic (13 modules)
 │   │   ├── extraction_service.py   # PDF/DOCX/TXT + OCR router
 │   │   ├── ocr_service.py          # Tesseract wrapper
 │   │   ├── chunking_service.py     # Sentence-aware chunks
@@ -47,6 +62,7 @@ memorynest/
 │   │   ├── summary_service.py      # Map-reduce summarization
 │   │   ├── tts_service.py          # piper/edge/espeak/pyttsx3 TTS
 │   │   ├── event_service.py        # Regex + dateparser + LLM fallback
+│   │   ├── reminder_flow_service.py# Reminders flow, cancellation, due check
 │   │   ├── email_service.py        # SMTP (Gmail app password)
 │   │   └── ics_service.py          # .ics calendar export
 │   ├── database/            # SQLite layer
@@ -54,11 +70,19 @@ memorynest/
 │   │   ├── models.py        # Dataclasses
 │   │   └── repositories.py  # CRUD per table
 │   └── utils/               # Config, security, validators, auth helpers
+├── web/                     # Next.js 16 frontend (Base UI, Tailwind CSS)
+│   ├── src/app/             # App Router pages ((auth), (app) routes)
+│   ├── src/components/ui/   # shadcn / Base UI components
+│   └── src/lib/api.ts       # Typed client API requests
+├── scripts/
+│   ├── dev.sh               # Single-command runner (preflight, Ollama, API, web)
+│   ├── api_check.sh         # Endpoint verification script
+│   └── repair.py            # SQLite/Chroma consistency checker
 ├── data/                    # Runtime (gitignored)
 │   ├── uploads/
 │   ├── audio/
 │   └── chroma/
-├── tests/                   # 112 unit tests
+├── tests/                   # 200 passing unit and API tests
 ├── requirements.txt
 ├── .env.example
 └── README.md

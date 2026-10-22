@@ -2,6 +2,22 @@
 
 Log of the autonomous build. Newest entries first.
 
+## 2026-10-22
+
+### V2 Web UI, FastAPI Backend & Workflow Enhancements
+
+- **FastAPI REST API Layer (`app/api/`)**: Full async/REST backend architecture supporting auth (JWT HTTP-only cookies), documents upload/management, RAG chat, semantic search, summaries, and reminders.
+- **Next.js 16 Web Frontend (`web/`)**: Modern App Router UI using Base UI (shadcn), Tailwind CSS, TanStack React Query, and Sonner toasts.
+- **Unified Dev Runner (`scripts/dev.sh`)**: Preflight validation, Ollama orchestration, FastAPI on `:8000`, and Next.js on `:3000` with hot reload and process cleanup (`--stop`).
+- **Reminders Workflow**:
+  - Reminder cancellation (`DELETE /api/reminders/{id}`) deletes reminder and reverts event back to "pending".
+  - Confirmation dialogs for cancelling scheduled reminders and discarding pending events.
+  - Due reminders check returning structured `{configured, sent, failed, skipped, errors, details}` without false failure counts when SMTP is unconfigured.
+  - `GET /api/health` reports `email_configured: bool`.
+- **Test Suite**: 200 unit and API tests passing in pytest (0 failures).
+
+---
+
 ## 2026-09-21
 
 ### Verification — 2026-09-21 (Follow-up fixes)
