@@ -4,7 +4,7 @@ Log of the autonomous build. Newest entries first.
 
 ## 2026-10-23
 
-### Google Calendar Integration & Reminders UI Polish
+### Google Calendar Integration & Reminders UI Polish (Phase 6)
 
 - **Database Migration & Schema**:
   - Added `google_event_id`, `sync_status` (`not_synced` | `synced` | `failed` | `not_connected`), and `sync_error` columns to `reminders` table.
@@ -27,9 +27,41 @@ Log of the autonomous build. Newest entries first.
   - 246 unit & integration tests passing in pytest (including 10 dedicated Google sync tests and 10 Google auth tests).
   - Next.js production build succeeds with 0 errors.
 
+### Month Calendar View on Reminders Page (Phase 3)
+
+- **Backend Aggregation API**:
+  - `app/services/calendar_service.py`: Aggregates pending events and scheduled reminders into unified `CalendarItem` objects filtered by ISO date ranges.
+  - `GET /api/reminders/calendar-items`: Validates start/end ranges (up to 90 days), enforces user isolation, and omits discarded/cancelled items.
+- **Interactive Calendar Component**:
+  - `web/src/components/reminders/month-calendar.tsx`: Full interactive month view with day cells, dot indicators (amber for pending, emerald for scheduled, red for sync failure), day details sheet, and quick action dialogs.
+
+### Instant Reminder Confirmation Email
+
+- **Email Notification**:
+  - Automated confirmation email sent immediately upon confirming an event (`app/services/email_service.py:send_reminder_confirmation_email`).
+  - Returns `email_status` (`sent` | `failed` | `not_configured` | `no_email`) in `ConfirmEventResponse`.
+  - Displays instant delivery toast to the user indicating whether the email was sent or skipped.
+
 ---
 
 ## 2026-10-22
+
+### User Email Management & Validation
+
+- **Profile & Email Endpoints**:
+  - `PATCH /api/auth/me/email` for setting, updating, or clearing user email addresses.
+  - Normalized email validation in `app/utils/validators.py` and collision detection across users.
+  - Interactive Email Management Card on the Reminders page with edit/save/clear workflow.
+
+### Natural TTS Voices (edge-tts & piper) with Dynamic Fallback
+
+- **TTS Engine Architecture (`app/services/tts_service.py`)**:
+  - `edge-tts`: Online high-quality natural voice (`en-IN-NeerjaNeural`) with MP3→WAV transcoding via `ffmpeg`.
+  - `piper`: Fast offline neural TTS models (`models/piper/`).
+  - `espeak-ng`: Offline synthesized fallback.
+  - `pyttsx3`: Local fallback.
+- **UI Engine Indicator**:
+  - Summaries page displays engine badge (e.g., `edge`, `piper`, `espeak`) alongside generated audio player.
 
 ### V2 Web UI, FastAPI Backend & Workflow Enhancements
 
@@ -150,7 +182,7 @@ All 5 checks: **PASS**
 ### What's NOT built (explicitly out of scope per prompt)
 
 - Neo4j / knowledge graph
-- WhatsApp / Google Calendar
+- WhatsApp (Google Calendar OAuth sync was added in Phase 6)
 - PostgreSQL / Docker
 - Background scheduler (uses on-demand button)
 - Audio/video input

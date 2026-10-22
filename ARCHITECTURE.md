@@ -13,7 +13,7 @@ User → Next.js Web UI (:3000)   [or Streamlit UI :8501]
              ↓
         Auth (bcrypt + JWT cookie)
              ↓
-        Services (15 modules)
+        Services (22 modules)
              ↓
     ┌─────────────────────────────────────┐
     │  SQLite (metadata, users, chunks)   │
@@ -45,23 +45,29 @@ memorynest/
 │   │       ├── search.py    # /api/search
 │   │       └── summaries.py # /api/documents/{id}/summary, /audio
 │   ├── pages/               # 7 Streamlit UI pages
-│   ├── services/            # Business logic (15 modules)
-│   │   ├── extraction_service.py   # PDF/DOCX/TXT + OCR router
-│   │   ├── ocr_service.py          # Tesseract wrapper
-│   │   ├── chunking_service.py     # Sentence-aware chunks
-│   │   ├── embedding_service.py    # sentence-transformers
-│   │   ├── vector_service.py       # ChromaDB wrapper
-│   │   ├── rag_service.py          # Query → embed → retrieve → LLM
-│   │   ├── llm_service.py          # Ollama client (+ mock)
-│   │   ├── summary_service.py      # Map-reduce summarization
-│   │   ├── tts_service.py          # piper/edge/espeak/pyttsx3 TTS
-│   │   ├── event_service.py        # Regex + dateparser + LLM fallback
-│   │   ├── reminder_flow_service.py# Reminders flow, cancellation, due check, sync
-│   │   ├── email_service.py        # SMTP (Gmail app password)
-│   │   ├── ics_service.py          # .ics calendar export
+│   ├── services/            # Business logic (22 modules)
+│   │   ├── auth_service.py         # User registration, login, email updates
 │   │   ├── calendar_service.py     # Calendar items aggregation & range validation
+│   │   ├── chat_service.py         # Conversation sessions & query routing
+│   │   ├── chunking_service.py     # Sentence-aware chunks
+│   │   ├── dashboard_service.py    # Aggregate stats, deadlines, recent activity
+│   │   ├── document_service.py     # Doc listing, preview, cascading deletion
+│   │   ├── email_service.py        # SMTP (Gmail app password / user recipient)
+│   │   ├── embedding_service.py    # sentence-transformers (all-MiniLM-L6-v2)
+│   │   ├── event_service.py        # Regex + dateparser + LLM fallback
+│   │   ├── extraction_service.py   # PDF/DOCX/TXT + OCR router
 │   │   ├── google_auth_service.py  # Google OAuth flow, token encryption, Calendar client
-│   │   └── google_calendar_service.py # Google Calendar event create, update, delete
+│   │   ├── google_calendar_service.py # Google Calendar event create, update, delete
+│   │   ├── ics_service.py          # .ics calendar export
+│   │   ├── ingest_service.py       # Upload pipeline (extract, chunk, embed, events)
+│   │   ├── llm_service.py          # Ollama client (+ mock)
+│   │   ├── ocr_service.py          # Tesseract wrapper
+│   │   ├── rag_service.py          # Query → embed → retrieve → LLM
+│   │   ├── reminder_flow_service.py# Reminders flow, cancellation, due check, sync
+│   │   ├── search_service.py       # Vector & text search
+│   │   ├── summary_flow_service.py # Summarization & audio synthesis flow
+│   │   ├── summary_service.py      # Map-reduce summarization
+│   │   └── tts_service.py          # piper/edge/espeak/pyttsx3 TTS
 │   ├── database/            # SQLite layer
 │   │   ├── database.py      # Schema + init + migrations
 │   │   ├── models.py        # Dataclasses
@@ -110,21 +116,28 @@ memorynest/
 
 | Service | Input → Output | Dependencies |
 |---------|---------------|--------------|
-| `extraction_service` | file_path, type → text | PyMuPDF, python-docx, pytesseract |
-| `ocr_service` | image_path → text | Tesseract (system) |
-| `chunking_service` | text → List[Chunk] | regex, char-based token estimate |
-| `embedding_service` | List[str] → List[vector] | sentence-transformers (all-MiniLM-L6-v2) |
-| `vector_service` | add/query/delete chunks | ChromaDB PersistentClient |
-| `rag_service` | question → RAGResult(answer, sources) | embedding + vector + llm |
-| `llm_service` | prompt → response | Ollama HTTP API (qwen2.5:3b-instruct) |
-| `summary_service` | full_text → summary | llm + chunking (map-reduce) |
-| `tts_service` | text → .wav path | piper (neural, offline) / edge-tts (online, MP3→WAV w/ ffmpeg) / espeak-ng (offline) / pyttsx3 (fallback) |
-| `event_service` | text → List[event] | regex + dateparser + LLM fallback |
-| `email_service` | subject, body, to_address → (success, detail) | smtplib (Gmail / user recipient with legacy fallback) |
-| `ics_service` | events list → .ics bytes | icalendar, pytz |
+| `auth_service` | username, password, email → User, token | bcrypt, JWT, repositories |
 | `calendar_service` | user_id, start, end → List[CalendarItem] | sqlite queries (events & reminders) |
+| `chat_service` | question, conversation_id → answer, sources | rag_service, repositories |
+| `chunking_service` | text → List[Chunk] | regex, char-based token estimate |
+| `dashboard_service` | user_id → stats, deadlines, activity | repositories |
+| `document_service` | user_id, doc_id → docs, cascade delete | repositories, vector_service, filesystem |
+| `email_service` | subject, body, to_address → (success, detail) | smtplib (Gmail / user recipient with legacy fallback) |
+| `embedding_service` | List[str] → List[vector] | sentence-transformers (all-MiniLM-L6-v2) |
+| `event_service` | text → List[event] | regex + dateparser + LLM fallback |
+| `extraction_service` | file_path, type → text | PyMuPDF, python-docx, pytesseract |
 | `google_auth_service` | user_id, OAuth flow, tokens → status, auth_url, calendar_client | google-auth, google-auth-oauthlib, google-api-python-client, cryptography (Fernet) |
 | `google_calendar_service` | user_id, event, reminder → google_event_id (create/update/delete) | google-api-python-client, pytz |
+| `ics_service` | events list → .ics bytes | icalendar, pytz |
+| `ingest_service` | file, user_id → Document, chunks, events | extraction, chunking, embedding, vector, event |
+| `llm_service` | prompt → response | Ollama HTTP API (qwen2.5:3b-instruct) |
+| `ocr_service` | image_path → text | Tesseract (system) |
+| `rag_service` | question → RAGResult(answer, sources) | embedding + vector + llm |
+| `reminder_flow_service` | confirm/cancel/due check/sync → status, reminders | email_service, google_calendar_service, repositories |
+| `search_service` | query, user_id → search results | vector_service, repositories |
+| `summary_flow_service` | doc_id, user_id, engine → summary, audio_url | summary_service, tts_service, repositories |
+| `summary_service` | full_text → summary | llm + chunking (map-reduce) |
+| `tts_service` | text, engine → .wav path, engine_name | piper (neural offline) / edge-tts (online neural, ffmpeg) / espeak-ng / pyttsx3 |
 
 ---
 
@@ -133,12 +146,12 @@ memorynest/
 | Page | Key Features |
 |------|--------------|
 | Dashboard | Counts, upcoming deadlines, pending events, due reminders, recent chats |
-| Upload | Multi-file, validation, sync processing, status updates |
-| Documents | List with preview, delete (cascades to Chroma + chunks) |
-| Chat (Ask) | Streaming chat UI, RAG answers with citations |
-| History | Conversation list, keyword search, load/delete |
-| Summaries | Pick doc → generate (map-reduce) → view + TTS play |
-| Reminders | Month calendar view + Google Calendar card (connect/disconnect) + sync status badges with retry + 3 tabs (Pending/Scheduled/All) + secondary .ics export + email management card + combined toast confirmation |
+| Upload | Multi-file, validation, duplicate check (SHA-256), sync processing, status updates |
+| Documents | List with preview, chunk & event counts, delete (cascades to Chroma + chunks) |
+| Chat (Ask) | Streaming chat UI, RAG answers with citations, source snippets, conversation history |
+| History | Conversation list, keyword search, load conversation, delete thread |
+| Summaries | Pick doc → generate (map-reduce/direct) → view + TTS audio synthesis with engine badge (edge/piper/espeak) + audio download |
+| Reminders | Month calendar view + Google Calendar card (connect/disconnect/status) + sync status badges with retry + 3 tabs (Pending/Scheduled/All) + email management card + combined toast confirmation + secondary .ics export |
 
 ---
 

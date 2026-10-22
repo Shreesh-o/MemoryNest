@@ -84,10 +84,13 @@ bash scripts/dev.sh --force     # Start even if optional preflight checks warn
 
 ## Voice Options
 
-- **auto** (default): tries edge-tts → espeak-ng → pyttsx3, stopping at the first that works
-- **edge**: online via edge-tts; needs internet (10 s timeout); MP3→WAV conversion with ffmpeg; voice `en-IN-NeerjaNeural`
-- **espeak-ng**: offline, lower quality (raspy/robotic); CLI flags `-s 150 -g 3 -p 50`
-- **pyttsx3**: fallback only (not installed in venv)
+- **auto** (default): tries `piper` (if local model installed) → `edge-tts` (online neural) → `espeak-ng` (offline) → `pyttsx3`, stopping at the first that works
+- **piper**: offline neural TTS using piper-tts (fast, natural voice; looks in `models/piper/` or `TTS_VOICE`)
+- **edge**: online natural voice via `edge-tts`; requires internet connection (8s timeout); MP3→WAV conversion with `ffmpeg`; voice `en-IN-NeerjaNeural`
+- **espeak-ng**: offline synthesized speech; CLI flags `-s 150 -p 45 -g 4`
+- **pyttsx3**: local library fallback
+
+The generated TTS audio displays an engine badge (e.g., `edge`, `piper`, `espeak`) in the web UI.
 
 ## Known Limitations
 
@@ -195,16 +198,46 @@ npm run start
 
 ### Key API Endpoints
 
+- **Authentication**:
+  - `POST /api/auth/register` — Create account (`username`, `password`, optional `email`).
+  - `POST /api/auth/login` — Authenticate and receive HTTP-only JWT session cookie.
+  - `GET /api/auth/me` — Return current authenticated user profile (`id`, `username`, `email`).
+  - `POST /api/auth/logout` — Clear session cookie.
+  - `PATCH /api/auth/me/email` — Update or clear user email address with validation.
+- **Documents**:
+  - `POST /api/documents/upload` — Multipart upload (PDF, DOCX, TXT, images) with deduplication and OCR.
+  - `GET /api/documents` — List user documents with processing status and chunk counts.
+  - `GET /api/documents/{id}` — Get document metadata, chunks, and events.
+  - `DELETE /api/documents/{id}` — Delete document and cascade delete SQLite rows and Chroma vectors.
+  - `POST /api/documents/{id}/retry` — Retry failed document extraction/embedding.
+- **Chat & RAG**:
+  - `POST /api/chat` — Ask natural-language questions with semantic retrieval and citations.
+  - `GET /api/conversations` — List conversation threads.
+  - `GET /api/conversations/{id}` — Get conversation message history.
+  - `DELETE /api/conversations/{id}` — Delete conversation thread.
+- **Summaries**:
+  - `POST /api/documents/{id}/summary` — Generate map-reduce or direct summary.
+  - `GET /api/documents/{id}/summary` — Retrieve existing summary.
+  - `POST /api/documents/{id}/audio` — Synthesize TTS summary audio (`auto`, `edge`, `piper`, `espeak`).
+  - `GET /api/documents/{id}/audio` — Download generated summary WAV.
+- **Events & Reminders**:
+  - `GET /api/events` — List extracted dates and events.
+  - `POST /api/events/{id}/confirm` — Schedule reminder, trigger confirmation email, and push to Google Calendar.
+  - `DELETE /api/events/{id}` — Discard pending event.
+  - `GET /api/reminders` — List reminders (`all`, `scheduled`, or `sent`).
+  - `DELETE /api/reminders/{id}` — Cancel reminder, delete Google Calendar event, revert event to pending.
+  - `POST /api/reminders/check` — On-demand due reminder email dispatch.
+  - `GET /api/reminders/calendar-items` — Month calendar view items with Google sync status.
+  - `GET /api/reminders/calendar.ics` — Export confirmed events as standard iCalendar `.ics`.
+  - `POST /api/reminders/{id}/sync` — Manually retry syncing reminder to Google Calendar.
 - **Google Calendar**:
-  - `GET /api/google/status` — Returns Google configuration and user connection status with email.
-  - `POST /api/google/connect` — Initiates OAuth flow, sets CSRF state cookie, returns Google authorization URL.
-  - `GET /api/google/callback` — Handles OAuth redirect, stores encrypted refresh token, redirects to `/reminders?google=connected`.
-  - `POST /api/google/disconnect` — Revokes Google tokens and marks connection disconnected.
-  - `POST /api/reminders/{id}/sync` — Manually retry syncing a reminder to Google Calendar.
-- **Reminders & Events**:
-  - `POST /api/events/{id}/confirm` — Confirms an event, sets reminder, creates Google Calendar event (returns `google_status` and `email_status`).
-  - `DELETE /api/reminders/{id}` — Cancels reminder, removes from Google Calendar, reverts event to pending.
-  - `GET /api/reminders/calendar-items` — Calendar view items including `sync_status`.
+  - `GET /api/google/status` — Return Google configuration status and connected user email.
+  - `POST /api/google/connect` — Initiate OAuth 2.0 flow with CSRF state cookie.
+  - `GET /api/google/callback` — Exchange auth code, encrypt refresh token, redirect to UI.
+  - `POST /api/google/disconnect` — Revoke Google tokens and remove connection record.
+- **System & Dashboard**:
+  - `GET /api/dashboard` — Aggregated counts, upcoming deadlines, pending events, recent chats.
+  - `GET /api/health` — Service health (Ollama status, mock mode, email configuration).
 
 ### Frontend Tech Stack
 
