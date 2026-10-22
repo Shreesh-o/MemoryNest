@@ -2,7 +2,17 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
-import { formatDate, authMe, authUpdateEmail, type UserPublic } from "@/lib/api";
+import {
+  formatDate,
+  authMe,
+  authUpdateEmail,
+  googleStatus,
+  googleConnect,
+  googleDisconnect,
+  reminderSync,
+  type UserPublic,
+  type GoogleStatusResponse,
+} from "@/lib/api";
 import {
   Card,
   CardHeader,
@@ -47,6 +57,9 @@ type Reminder = {
   body?: string | null;
   status: string;
   sent_at?: string | null;
+  google_event_id?: string | null;
+  sync_status?: "not_synced" | "synced" | "failed" | "not_connected";
+  sync_error?: string | null;
   created_at?: string | null;
 };
 
@@ -152,21 +165,70 @@ function EventCard({ event, onConfirm, onDiscard, onExtract, extractingDocId }: 
   );
 }
 
-function ReminderCard({ reminder, onSendNow, onCancel, sendingReminderId, cancellingReminderId }: {
+function ReminderCard({
+  reminder,
+  onSendNow,
+  onCancel,
+  onRetrySync,
+  sendingReminderId,
+  cancellingReminderId,
+  isSyncing,
+}: {
   reminder: Reminder;
   onSendNow: (id: number) => void;
   onCancel: (id: number) => void;
+  onRetrySync?: (id: number) => void;
   sendingReminderId: number | null;
   cancellingReminderId: number | null;
+  isSyncing?: boolean;
 }) {
   return (
     <Card className="mb-3">
       <CardContent className="pt-4 pb-4">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
               <span className="font-medium truncate">{reminder.subject}</span>
               <StatusBadge status={reminder.status} />
+              {/* Sync Badge */}
+              {reminder.sync_status === "synced" && (
+                <Badge
+                  variant="outline"
+                  className="text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 text-xs font-normal"
+                >
+                  Synced
+                </Badge>
+              )}
+              {reminder.sync_status === "failed" && (
+                <span className="inline-flex items-center gap-1">
+                  <Badge
+                    variant="destructive"
+                    className="text-xs font-normal"
+                    title={reminder.sync_error || undefined}
+                  >
+                    Sync failed
+                  </Badge>
+                  {onRetrySync && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-6 px-2 text-xs text-destructive hover:bg-destructive/10"
+                      onClick={() => onRetrySync(reminder.id)}
+                      disabled={isSyncing}
+                    >
+                      {isSyncing ? (
+                        <SvgRefreshCw className="mr-1 h-3 w-3 animate-spin" />
+                      ) : null}
+                      Retry
+                    </Button>
+                  )}
+                </span>
+              )}
+              {reminder.sync_status === "not_connected" && (
+                <Badge variant="outline" className="text-muted-foreground text-xs font-normal">
+                  Not connected
+                </Badge>
+              )}
             </div>
             <p className="text-sm text-muted-foreground mb-2">{reminder.body}</p>
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
@@ -356,7 +418,13 @@ function DiscardEventDialog({
   );
 }
 
-function DownloadCalendarButton({ eventIds }: { eventIds?: number[] }) {
+function DownloadCalendarButton({
+  eventIds,
+  label = "Download .ics",
+}: {
+  eventIds?: number[];
+  label?: string;
+}) {
   const [downloading, setDownloading] = useState(false);
 
   const handleDownload = async () => {
@@ -380,26 +448,154 @@ function DownloadCalendarButton({ eventIds }: { eventIds?: number[] }) {
   };
 
   return (
-    <Button variant="outline" size="sm" onClick={handleDownload} disabled={downloading}>
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={handleDownload}
+      disabled={downloading}
+      className="text-xs text-muted-foreground hover:text-foreground h-7 px-2"
+    >
       {downloading ? (
         <>
-          <SvgRefreshCw className="mr-2 h-4 w-4 animate-spin" />
-          Downloading...
+          <SvgRefreshCw className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+          Downloading .ics...
         </>
       ) : (
         <>
-          <SvgDownload className="mr-2 h-4 w-4" />
-          Download calendar (.ics)
+          <SvgDownload className="mr-1.5 h-3.5 w-3.5" />
+          {label}
         </>
       )}
     </Button>
   );
 }
 
+function DisconnectGoogleDialog({
+  open,
+  onOpenChange,
+  onConfirm,
+  isDisconnecting,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => void;
+  isDisconnecting: boolean;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Disconnect Google Calendar</DialogTitle>
+          <DialogDescription>
+            Are you sure you want to disconnect? Events confirmed in the future will no longer sync automatically to your Google Calendar.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex justify-end gap-2 mt-4">
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isDisconnecting}>
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={onConfirm}
+            disabled={isDisconnecting}
+          >
+            {isDisconnecting ? "Disconnecting..." : "Disconnect"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function GoogleCalendarCard({
+  status,
+  onConnect,
+  onDisconnectClick,
+  isConnecting,
+}: {
+  status?: GoogleStatusResponse;
+  onConnect: () => void;
+  onDisconnectClick: () => void;
+  isConnecting: boolean;
+}) {
+  if (!status) return null;
+
+  return (
+    <Card className="border">
+      <CardContent className="pt-4 pb-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-sm sm:text-base">Google Calendar</span>
+              {status.connected ? (
+                <Badge variant="outline" className="text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 text-xs">
+                  Connected
+                </Badge>
+              ) : status.configured ? (
+                <Badge variant="outline" className="text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-xs">
+                  Not connected
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-muted-foreground text-xs">
+                  Not configured
+                </Badge>
+              )}
+            </div>
+
+            {!status.configured ? (
+              <p className="text-xs text-muted-foreground">
+                Google Calendar sync is not configured on this server. Set <code className="px-1 py-0.5 rounded bg-muted">GOOGLE_CLIENT_ID</code> and <code className="px-1 py-0.5 rounded bg-muted">GOOGLE_CLIENT_SECRET</code> in <code className="px-1 py-0.5 rounded bg-muted">.env</code> (see setup docs).
+              </p>
+            ) : status.connected ? (
+              <p className="text-xs text-muted-foreground">
+                Connected as <span className="font-medium text-foreground">{status.google_email || "Google Account"}</span>. Confirmed events automatically appear in your Google Calendar.
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Connect your Google account so confirmed reminders automatically sync to your Google Calendar.
+              </p>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {status.configured && !status.connected && (
+              <Button size="sm" onClick={onConnect} disabled={isConnecting} className="h-8 text-xs">
+                {isConnecting ? (
+                  <>
+                    <SvgRefreshCw className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    Connecting...
+                  </>
+                ) : (
+                  <>
+                    <SvgCalendar className="mr-1.5 h-3.5 w-3.5" />
+                    Connect Google Calendar
+                  </>
+                )}
+              </Button>
+            )}
+
+            {status.connected && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onDisconnectClick}
+                className="h-8 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+              >
+                Disconnect
+              </Button>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function RemindersPage() {
   useEffect(() => {
-    document.title = "Reminders — MemoryNest"
-  }, [])
+    document.title = "Reminders — MemoryNest";
+  }, []);
+
   const queryClient = useQueryClient();
   const [extractDialogOpen, setExtractDialogOpen] = useState(false);
   const [extractingDocId, setExtractingDocId] = useState<number | null>(null);
@@ -411,12 +607,107 @@ export default function RemindersPage() {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [discardingEventId, setDiscardingEventId] = useState<number | null>(null);
   const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
+  const [disconnectDialogOpen, setDisconnectDialogOpen] = useState(false);
+  const [syncingReminderId, setSyncingReminderId] = useState<number | null>(null);
   const [emailInput, setEmailInput] = useState("");
   const [isEditingEmail, setIsEditingEmail] = useState(false);
+
+  // Handle ?google=connected / ?google=error URL parameters
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const googleParam = params.get("google");
+    if (googleParam === "connected") {
+      toast.success("Google Calendar connected successfully!");
+      queryClient.invalidateQueries({ queryKey: ["google-status"] });
+      queryClient.invalidateQueries({ queryKey: ["reminders"] });
+      queryClient.invalidateQueries({ queryKey: ["calendar-items"] });
+      const url = new URL(window.location.href);
+      url.searchParams.delete("google");
+      window.history.replaceState({}, "", url.pathname + (url.search ? url.search : ""));
+    } else if (googleParam === "error") {
+      toast.error("Failed to connect Google Calendar");
+      const url = new URL(window.location.href);
+      url.searchParams.delete("google");
+      window.history.replaceState({}, "", url.pathname + (url.search ? url.search : ""));
+    }
+  }, [queryClient]);
 
   const { data: user } = useQuery<UserPublic>({
     queryKey: ["me"],
     queryFn: authMe,
+  });
+
+  const { data: google } = useQuery<GoogleStatusResponse>({
+    queryKey: ["google-status"],
+    queryFn: async () => {
+      const res = await googleStatus();
+      if (!res.ok) return { configured: false, connected: false };
+      return res.data;
+    },
+  });
+
+  const connectGoogleMutation = useMutation({
+    mutationFn: async () => {
+      const res = await googleConnect();
+      if (!res.ok) {
+        throw new Error(res.error?.detail || "Failed to initiate Google connection");
+      }
+      return res.data;
+    },
+    onSuccess: (data) => {
+      if (data?.auth_url) {
+        window.location.href = data.auth_url;
+      }
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || "Failed to connect Google Calendar");
+    },
+  });
+
+  const disconnectGoogleMutation = useMutation({
+    mutationFn: async () => {
+      const res = await googleDisconnect();
+      if (!res.ok) {
+        throw new Error(res.error?.detail || "Failed to disconnect Google Calendar");
+      }
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["google-status"] });
+      queryClient.invalidateQueries({ queryKey: ["reminders"] });
+      queryClient.invalidateQueries({ queryKey: ["calendar-items"] });
+      toast.success("Disconnected from Google Calendar");
+      setDisconnectDialogOpen(false);
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || "Failed to disconnect Google Calendar");
+    },
+  });
+
+  const syncReminderMutation = useMutation({
+    mutationFn: (id: number) => {
+      setSyncingReminderId(id);
+      return reminderSync(id);
+    },
+    onSuccess: (res) => {
+      setSyncingReminderId(null);
+      queryClient.invalidateQueries({ queryKey: ["reminders"] });
+      queryClient.invalidateQueries({ queryKey: ["calendar-items"] });
+      if (res.ok && res.data.sync_status === "synced") {
+        toast.success("Synced to Google Calendar");
+      } else if (res.ok && res.data.sync_status === "failed") {
+        toast.error(res.data.sync_error ? `Sync failed: ${res.data.sync_error}` : "Sync failed");
+      } else if (res.ok && res.data.sync_status === "not_connected") {
+        toast.info("Google Calendar is not connected. Connect above to sync.");
+      } else {
+        toast.error(res.error?.detail || "Sync failed");
+      }
+    },
+    onError: (err: Error) => {
+      setSyncingReminderId(null);
+      toast.error(err.message || "Failed to sync reminder");
+    },
   });
 
   const updateEmailMutation = useMutation({
@@ -498,11 +789,28 @@ export default function RemindersPage() {
       setConfirmingEventId(null);
       setConfirmRemindAt("");
 
-      const status = res?.data?.email_status;
-      if (status === "sent") {
-        toast.success("Event confirmed. Confirmation email sent!");
-      } else if (status === "no_email") {
-        toast.info("Event confirmed. Add your email above to receive reminder confirmations.", {
+      const emailStatus = res?.data?.email_status;
+      const googleStatus = res?.data?.google_status;
+
+      const parts = ["Reminder set."];
+      if (emailStatus === "sent") {
+        parts.push("Email sent.");
+      } else if (emailStatus === "failed") {
+        parts.push("Email delivery failed.");
+      }
+
+      if (googleStatus === "synced") {
+        parts.push("Added to Google Calendar.");
+      } else if (googleStatus === "failed") {
+        parts.push("Google Calendar sync failed.");
+      }
+
+      const message = parts.join(" ");
+
+      if (googleStatus === "failed" || emailStatus === "failed") {
+        toast.warning(message);
+      } else if (emailStatus === "no_email" && !googleStatus) {
+        toast.info(message, {
           action: {
             label: "Add email",
             onClick: () => {
@@ -515,12 +823,8 @@ export default function RemindersPage() {
             },
           },
         });
-      } else if (status === "not_configured") {
-        toast.info("Event confirmed. Email sending is not configured on this server (configure SMTP in .env).");
-      } else if (status === "failed") {
-        toast.warning("Event confirmed, but sending the confirmation email failed.");
       } else {
-        toast.success("Event confirmed");
+        toast.success(message);
       }
     },
     onError: (err: Error) => {
@@ -663,6 +967,8 @@ export default function RemindersPage() {
     );
   }
 
+  const isGoogleConnected = Boolean(google?.connected);
+
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
       <MonthCalendar
@@ -670,6 +976,16 @@ export default function RemindersPage() {
         onDiscardEvent={handleDiscard}
         onCancelReminder={handleCancel}
         onSendReminderNow={handleSendNow}
+        onSyncReminder={(id) => syncReminderMutation.mutate(id)}
+        isSyncingReminderId={syncingReminderId}
+      />
+
+      {/* Google Calendar Card */}
+      <GoogleCalendarCard
+        status={google}
+        onConnect={() => connectGoogleMutation.mutate()}
+        onDisconnectClick={() => setDisconnectDialogOpen(true)}
+        isConnecting={connectGoogleMutation.isPending}
       />
 
       {user && !user.email ? (
@@ -815,7 +1131,12 @@ export default function RemindersPage() {
                     />
                   ))}
                   <Separator />
-                  <div className="flex justify-end">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
+                    {!isGoogleConnected ? (
+                      <span className="text-muted-foreground/80">
+                        Google Calendar not connected. Download .ics instead:
+                      </span>
+                    ) : <span />}
                     <DownloadCalendarButton
                       eventIds={pendingEventsData.filter(e => e.status === "confirmed").map(e => e.id)}
                     />
@@ -853,12 +1174,19 @@ export default function RemindersPage() {
                       reminder={reminder}
                       onSendNow={handleSendNow}
                       onCancel={handleCancel}
+                      onRetrySync={(id) => syncReminderMutation.mutate(id)}
                       sendingReminderId={sendingReminderId}
                       cancellingReminderId={cancellingReminderId}
+                      isSyncing={syncingReminderId === reminder.id}
                     />
                   ))}
                   <Separator />
-                  <div className="flex justify-end">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
+                    {!isGoogleConnected ? (
+                      <span className="text-muted-foreground/80">
+                        Google Calendar not connected. Download .ics instead:
+                      </span>
+                    ) : <span />}
                     <DownloadCalendarButton
                       eventIds={scheduledRemindersData.filter(r => r.status === "scheduled").map(r => r.event_id)}
                     />
@@ -887,7 +1215,12 @@ export default function RemindersPage() {
                     />
                   ))}
                   <Separator />
-                  <div className="flex justify-end">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
+                    {!isGoogleConnected ? (
+                      <span className="text-muted-foreground/80">
+                        Google Calendar not connected. Download .ics instead:
+                      </span>
+                    ) : <span />}
                     <DownloadCalendarButton
                       eventIds={allEventsData.filter(e => e.status === "confirmed").map(e => e.id)}
                     />
@@ -924,6 +1257,13 @@ export default function RemindersPage() {
         open={discardDialogOpen}
         onOpenChange={setDiscardDialogOpen}
         onConfirm={handleDiscardConfirm}
+      />
+
+      <DisconnectGoogleDialog
+        open={disconnectDialogOpen}
+        onOpenChange={setDisconnectDialogOpen}
+        onConfirm={() => disconnectGoogleMutation.mutate()}
+        isDisconnecting={disconnectGoogleMutation.isPending}
       />
     </div>
   );

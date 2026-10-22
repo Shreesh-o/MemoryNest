@@ -13,11 +13,13 @@ from typing import List, Optional, Tuple
 from app.database.repositories import (
     DocumentRepository,
     EventRepository,
+    GoogleConnectionRepository,
     NotificationLogRepository,
     ReminderRepository,
     UserRepository,
 )
-from app.services import event_service, email_service, ics_service
+from app.services import event_service, email_service, ics_service, google_calendar_service
+from app.services.google_auth_service import is_google_configured
 from app.database.models import Event, Reminder
 from app.utils.config import EMAIL_USERNAME, EMAIL_APP_PASSWORD, RECIPIENT_EMAIL
 
@@ -100,12 +102,12 @@ def confirm_event(
     user_id: int,
     event_id: int,
     remind_at: Optional[str] = None,
-) -> Tuple[Event, Reminder, str]:
+) -> Tuple[Event, Reminder, str, str]:
     """Confirm an event and create a reminder.
 
     Sends a confirmation email to the user's email address if configured.
-    Returns (confirmed Event, created Reminder, email_status) where email_status is
-    one of: "sent", "no_email", "not_configured", "failed".
+    Syncs with Google Calendar if the user is connected.
+    Returns (confirmed Event, created Reminder, email_status, google_status).
 
     Args:
         user_id: The user who owns the event.
@@ -114,7 +116,7 @@ def confirm_event(
                    If not provided, defaults to event_date at 09:00 or today at 09:00.
 
     Returns:
-        Tuple of (confirmed Event, created Reminder, email_status).
+        Tuple of (confirmed Event, created Reminder, email_status, google_status).
 
     Raises:
         ValueError: If event not found or already confirmed/skipped.
@@ -137,7 +139,8 @@ def confirm_event(
     # Determine remind_at
     if remind_at is None:
         if ev.event_date:
-            remind_at = f"{ev.event_date} 09:00:00"
+            date_part = ev.event_date[:10]
+            remind_at = f"{date_part} 09:00:00"
         else:
             remind_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -220,9 +223,55 @@ def confirm_event(
                 reminder_id=reminder.id,
             )
 
-    # Return updated event, reminder, and email status
+    # Google Calendar sync: only attempt if Google is configured and user is connected
+    google_status = "not_connected"
+    google_conn = GoogleConnectionRepository().get_by_user_id(user_id)
+    if is_google_configured() and google_conn:
+        try:
+            google_event_id = google_calendar_service.create_event(user_id, ev, reminder)
+            rem_repo.update_google_sync(
+                reminder.id,
+                user_id,
+                sync_status="synced",
+                google_event_id=google_event_id,
+                sync_error=None,
+            )
+            google_status = "synced"
+        except Exception as e:
+            logger.exception("Google Calendar sync failed on confirm for reminder %s: %s", reminder.id, e)
+            still_conn = GoogleConnectionRepository().get_by_user_id(user_id)
+            if not still_conn:
+                rem_repo.update_google_sync(
+                    reminder.id,
+                    user_id,
+                    sync_status="not_connected",
+                    google_event_id=None,
+                    sync_error=str(e)[:200],
+                )
+                google_status = "not_connected"
+            else:
+                rem_repo.update_google_sync(
+                    reminder.id,
+                    user_id,
+                    sync_status="failed",
+                    google_event_id=reminder.google_event_id,
+                    sync_error=str(e)[:200],
+                )
+                google_status = "failed"
+    else:
+        rem_repo.update_google_sync(
+            reminder.id,
+            user_id,
+            sync_status="not_connected",
+            google_event_id=None,
+            sync_error=None,
+        )
+        google_status = "not_connected"
+
+    # Reload reminder with sync fields
+    updated_reminder = rem_repo.get_by_id(reminder.id, user_id) or reminder
     updated_ev = ev_repo.get_by_id(event_id, user_id)
-    return updated_ev, reminder, email_status
+    return updated_ev, updated_reminder, email_status, google_status
 
 
 def discard_event(user_id: int, event_id: int) -> None:
@@ -282,7 +331,7 @@ def build_ics_for_user(user_id: int, event_ids: Optional[List[int]] = None) -> b
 
 
 def cancel_reminder(user_id: int, reminder_id: int) -> None:
-    """Cancel a reminder: delete the reminder row and revert its event to pending.
+    """Cancel a reminder: delete Google event if synced, delete the reminder row, and revert event to pending.
 
     Args:
         user_id: The user ID.
@@ -298,8 +347,79 @@ def cancel_reminder(user_id: int, reminder_id: int) -> None:
     if not rem:
         raise ValueError("Reminder not found")
 
+    # If linked to a Google Calendar event, attempt deletion (Google errors never block cancel)
+    if rem.google_event_id:
+        try:
+            google_calendar_service.delete_event(user_id, rem.google_event_id)
+        except Exception as e:
+            logger.warning(
+                "Failed to delete Google event %s for reminder %s on cancel: %s",
+                rem.google_event_id,
+                reminder_id,
+                e,
+            )
+
     rem_repo.delete(reminder_id, user_id)
     ev_repo.set_status(rem.event_id, user_id, "pending")
+
+
+def sync_reminder(user_id: int, reminder_id: int) -> Reminder:
+    """Retry Google Calendar sync for a reminder.
+
+    Args:
+        user_id: The user ID.
+        reminder_id: The reminder ID to retry sync.
+
+    Returns:
+        Updated Reminder object.
+
+    Raises:
+        ValueError: If reminder or associated event not found.
+    """
+    rem_repo = ReminderRepository()
+    ev_repo = EventRepository()
+
+    rem = rem_repo.get_by_id(reminder_id, user_id)
+    if not rem:
+        raise ValueError("Reminder not found")
+
+    ev = ev_repo.get_by_id(rem.event_id, user_id)
+    if not ev:
+        raise ValueError("Event not found")
+
+    google_conn = GoogleConnectionRepository().get_by_user_id(user_id)
+    if not is_google_configured() or not google_conn:
+        rem_repo.update_google_sync(
+            reminder_id,
+            user_id,
+            sync_status="not_connected",
+            google_event_id=rem.google_event_id,
+            sync_error="Google account is not connected",
+        )
+        return rem_repo.get_by_id(reminder_id, user_id)
+
+    try:
+        google_event_id = google_calendar_service.create_event(user_id, ev, rem)
+        rem_repo.update_google_sync(
+            reminder_id,
+            user_id,
+            sync_status="synced",
+            google_event_id=google_event_id,
+            sync_error=None,
+        )
+    except Exception as e:
+        logger.exception("Failed to sync reminder %s to Google Calendar: %s", reminder_id, e)
+        still_conn = GoogleConnectionRepository().get_by_user_id(user_id)
+        status_val = "not_connected" if not still_conn else "failed"
+        rem_repo.update_google_sync(
+            reminder_id,
+            user_id,
+            sync_status=status_val,
+            google_event_id=rem.google_event_id,
+            sync_error=str(e)[:200],
+        )
+
+    return rem_repo.get_by_id(reminder_id, user_id)
 
 
 def check_and_send_due(user_id: int) -> CheckResult:

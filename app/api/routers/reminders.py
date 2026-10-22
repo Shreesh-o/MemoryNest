@@ -27,6 +27,7 @@ from app.services.reminder_flow_service import (
     extract_events_for_document,
     list_events,
     list_reminders,
+    sync_reminder,
 )
 
 router = APIRouter()
@@ -56,6 +57,9 @@ def _reminder_to_public(r) -> ReminderPublic:
         body=r.body,
         status=r.status,
         sent_at=r.sent_at,
+        google_event_id=getattr(r, "google_event_id", None),
+        sync_status=getattr(r, "sync_status", "not_synced"),
+        sync_error=getattr(r, "sync_error", None),
         created_at=r.created_at,
     )
 
@@ -93,7 +97,7 @@ def api_confirm_event(
 ):
     """Confirm an event and create a reminder."""
     try:
-        ev, reminder, email_status = confirm_event(user.id, event_id, req.remind_at)
+        ev, reminder, email_status, google_status = confirm_event(user.id, event_id, req.remind_at)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     return ConfirmEventResponse(
@@ -106,6 +110,7 @@ def api_confirm_event(
         status=ev.status,
         created_at=ev.created_at,
         email_status=email_status,
+        google_status=google_status,
     )
 
 
@@ -140,6 +145,19 @@ def api_cancel_reminder(
         cancel_reminder(user.id, reminder_id)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.post("/api/reminders/{reminder_id}/sync", response_model=ReminderPublic)
+def api_sync_reminder(
+    reminder_id: int,
+    user: User = Depends(get_current_user),
+):
+    """Retry Google Calendar sync for a reminder."""
+    try:
+        reminder = sync_reminder(user.id, reminder_id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    return _reminder_to_public(reminder)
 
 
 @router.get("/api/calendar.ics")

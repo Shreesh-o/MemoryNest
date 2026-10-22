@@ -2,6 +2,33 @@
 
 Log of the autonomous build. Newest entries first.
 
+## 2026-10-23
+
+### Google Calendar Integration & Reminders UI Polish
+
+- **Database Migration & Schema**:
+  - Added `google_event_id`, `sync_status` (`not_synced` | `synced` | `failed` | `not_connected`), and `sync_error` columns to `reminders` table.
+  - Implemented idempotent SQLite migration `_migrate_add_reminder_google_sync(conn)` in `app/database/database.py` with migration test in `tests/test_migration.py`.
+- **Google Calendar Services & OAuth**:
+  - `app/services/google_auth_service.py`: Multi-user OAuth flow with state cookie validation, token encryption via Fernet, and disconnection token revocation.
+  - `app/services/google_calendar_service.py`: Automated event creation (`Asia/Kolkata` timezone, all-day vs timed, popup reminders clamped to Google limits, doc title context), idempotent update-if-exists, event deletion on reminder cancellation, and 401 token-revocation handling.
+  - `app/services/reminder_flow_service.py`: Non-blocking Google Calendar event creation upon `confirm_event` and deletion upon `cancel_reminder`; manual retry sync via `sync_reminder`.
+- **REST Endpoints & Schemas**:
+  - `GET /api/google/status`, `POST /api/google/connect`, `GET /api/google/callback`, `POST /api/google/disconnect`.
+  - `POST /api/reminders/{id}/sync` for manual sync retries.
+  - Enhanced `ConfirmEventResponse` with `google_status` and `ReminderPublic`/`CalendarItem` with `sync_status`.
+- **Frontend (Next.js 16)**:
+  - **Google Calendar Card**: Displays connection status (not configured / connect button / connected as `<email>` with disconnect confirmation dialog).
+  - **Query Param Handling**: Catches `?google=connected` or `?google=error` via Sonner toasts and cleans the URL without page reload (`window.history.replaceState`).
+  - **Sync Badges & Retry**: Added visual badges on reminders and calendar items (`synced`, `failed` with interactive Retry button, `not_connected`).
+  - **Combined Confirmation Toast**: Unified feedback toast (e.g. "Reminder set. Email sent. Added to Google Calendar.") reflecting real-time email and Google sync outcomes.
+  - **Demoted .ics Download**: Kept `.ics` download as a secondary link, prioritizing direct Google sync.
+- **Verification**:
+  - 246 unit & integration tests passing in pytest (including 10 dedicated Google sync tests and 10 Google auth tests).
+  - Next.js production build succeeds with 0 errors.
+
+---
+
 ## 2026-10-22
 
 ### V2 Web UI, FastAPI Backend & Workflow Enhancements

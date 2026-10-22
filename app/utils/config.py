@@ -83,6 +83,13 @@ JWT_EXPIRE_MINUTES: int = int(os.environ.get("JWT_EXPIRE_MINUTES", "720"))
 CORS_ORIGINS: str = os.environ.get("CORS_ORIGINS", "http://localhost:3000")
 COOKIE_SECURE: bool = os.environ.get("COOKIE_SECURE", "false").lower() == "true"
 
+# --- Google OAuth & Calendar ---
+GOOGLE_CLIENT_ID: str = os.environ.get("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET: str = os.environ.get("GOOGLE_CLIENT_SECRET", "")
+GOOGLE_REDIRECT_URI: str = os.environ.get("GOOGLE_REDIRECT_URI", "http://localhost:8000/api/google/callback")
+FRONTEND_URL: str = os.environ.get("FRONTEND_URL", "http://localhost:3000")
+TOKEN_ENCRYPTION_KEY: str = os.environ.get("TOKEN_ENCRYPTION_KEY", "")
+
 
 def ensure_dirs() -> None:
     """Create all runtime directories if they do not exist yet."""

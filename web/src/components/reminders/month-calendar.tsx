@@ -35,6 +35,68 @@ interface MonthCalendarProps {
   onDiscardEvent: (eventId: number) => void;
   onCancelReminder: (reminderId: number) => void;
   onSendReminderNow: (reminderId: number) => void;
+  onSyncReminder?: (reminderId: number) => void;
+  isSyncingReminderId?: number | null;
+}
+
+export function CalendarSyncBadge({
+  status,
+  onRetry,
+  isRetrying,
+}: {
+  status?: string | null;
+  onRetry?: () => void;
+  isRetrying?: boolean;
+}) {
+  if (!status || status === "not_synced") return null;
+
+  if (status === "synced") {
+    return (
+      <Badge
+        variant="outline"
+        className="text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 text-[10px] py-0 px-1.5 font-normal"
+      >
+        Synced
+      </Badge>
+    );
+  }
+
+  if (status === "failed") {
+    return (
+      <span className="inline-flex items-center gap-1">
+        <Badge variant="destructive" className="text-[10px] py-0 px-1.5 font-normal">
+          Sync failed
+        </Badge>
+        {onRetry && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-5 px-1.5 text-[10px] text-destructive hover:bg-destructive/10"
+            onClick={(e) => {
+              e.stopPropagation();
+              onRetry();
+            }}
+            disabled={isRetrying}
+          >
+            {isRetrying ? "..." : "Retry"}
+          </Button>
+        )}
+      </span>
+    );
+  }
+
+  if (status === "not_connected") {
+    return (
+      <Badge
+        variant="outline"
+        className="text-muted-foreground text-[10px] py-0 px-1.5 font-normal"
+      >
+        Not connected
+      </Badge>
+    );
+  }
+
+  return null;
 }
 
 function formatLocalDate(d: Date): string {
@@ -49,6 +111,8 @@ export function MonthCalendar({
   onDiscardEvent,
   onCancelReminder,
   onSendReminderNow,
+  onSyncReminder,
+  isSyncingReminderId,
 }: MonthCalendarProps) {
   const [isOpen, setIsOpen] = useState(true);
 
@@ -406,9 +470,18 @@ export function MonthCalendar({
                       )}
                       <span className="truncate font-medium">{item.title}</span>
                     </div>
-                    <Badge variant={item.status === "confirmed" ? "default" : "outline"} className="text-[10px] capitalize shrink-0">
-                      {item.status}
-                    </Badge>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Badge variant={item.status === "confirmed" ? "default" : "outline"} className="text-[10px] capitalize shrink-0">
+                        {item.status}
+                      </Badge>
+                      {item.sync_status && (
+                        <CalendarSyncBadge
+                          status={item.sync_status}
+                          onRetry={item.kind === "reminder" && onSyncReminder ? () => onSyncReminder(item.id) : undefined}
+                          isRetrying={isSyncingReminderId === item.id}
+                        />
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -448,7 +521,7 @@ export function MonthCalendar({
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 mb-1">
+                      <div className="flex items-center gap-1.5 mb-1 flex-wrap">
                         {item.kind === "reminder" ? (
                           <span className="inline-flex items-center gap-1 text-xs font-semibold text-sky-600 dark:text-sky-400">
                             <BellIcon className="h-3.5 w-3.5" /> Reminder
@@ -464,6 +537,13 @@ export function MonthCalendar({
                         >
                           {item.status}
                         </Badge>
+                        {item.sync_status && (
+                          <CalendarSyncBadge
+                            status={item.sync_status}
+                            onRetry={item.kind === "reminder" && onSyncReminder ? () => onSyncReminder(item.id) : undefined}
+                            isRetrying={isSyncingReminderId === item.id}
+                          />
+                        )}
                       </div>
                       <p className="text-sm font-medium leading-snug">{item.title}</p>
                       <p className="text-xs text-muted-foreground mt-1">

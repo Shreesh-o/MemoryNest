@@ -59,6 +59,10 @@ def get_calendar_items(user_id: int, start: str, end: str) -> List[CalendarItem]
 
     items: List[CalendarItem] = []
 
+    # Map reminders by event_id for sync_status lookup
+    all_user_reminders = rem_repo.list_for_user(user_id)
+    event_sync_map = {r.event_id: getattr(r, "sync_status", "not_synced") for r in all_user_reminders}
+
     # Map events
     event_doc_map = {}
     for ev in events:
@@ -76,6 +80,7 @@ def get_calendar_items(user_id: int, start: str, end: str) -> List[CalendarItem]
                 status=ev.status,
                 document_id=ev.document_id,
                 event_id=ev.id,
+                sync_status=event_sync_map.get(ev.id),
             )
         )
 
@@ -98,6 +103,7 @@ def get_calendar_items(user_id: int, start: str, end: str) -> List[CalendarItem]
                 status=r.status,
                 document_id=doc_id,
                 event_id=r.event_id,
+                sync_status=getattr(r, "sync_status", "not_synced"),
             )
         )
 

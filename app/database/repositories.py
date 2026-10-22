@@ -13,6 +13,7 @@ from app.database.models import (
     Document,
     DocumentChunk,
     Event,
+    GoogleConnection,
     Message,
     NotificationLog,
     Reminder,
@@ -594,18 +595,55 @@ class ReminderRepository(BaseRepository):
         remind_at: str,
         subject: Optional[str] = None,
         body: Optional[str] = None,
+        channel: str = "email",
+        status: str = "scheduled",
+        google_event_id: Optional[str] = None,
+        sync_status: str = "not_synced",
+        sync_error: Optional[str] = None,
     ) -> Reminder:
         conn = self._connect()
         try:
             cur = conn.execute(
                 """INSERT INTO reminders
-                   (user_id, event_id, remind_at, subject, body)
-                   VALUES (?, ?, ?, ?, ?)""",
-                (user_id, event_id, remind_at, subject, body),
+                   (user_id, event_id, remind_at, channel, subject, body, status,
+                    google_event_id, sync_status, sync_error)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    user_id,
+                    event_id,
+                    remind_at,
+                    channel,
+                    subject,
+                    body,
+                    status,
+                    google_event_id,
+                    sync_status,
+                    sync_error,
+                ),
             )
             conn.commit()
             row = conn.execute("SELECT * FROM reminders WHERE id = ?", (cur.lastrowid,)).fetchone()
             return self._row_to_dataclass(row, Reminder)
+        finally:
+            conn.close()
+
+    def update_google_sync(
+        self,
+        reminder_id: int,
+        user_id: int,
+        sync_status: str,
+        google_event_id: Optional[str] = None,
+        sync_error: Optional[str] = None,
+    ) -> None:
+        conn = self._connect()
+        try:
+            conn.execute(
+                """UPDATE reminders
+                   SET sync_status = ?, google_event_id = ?, sync_error = ?
+                   WHERE id = ? AND user_id = ?""",
+                (sync_status, google_event_id, sync_error, reminder_id, user_id),
+            )
+            conn.commit()
         finally:
             conn.close()
 
@@ -742,5 +780,58 @@ class NotificationLogRepository(BaseRepository):
                 "SELECT * FROM notification_logs ORDER BY id DESC LIMIT ?", (limit,)
             ).fetchall()
             return [self._row_to_dataclass(r, NotificationLog) for r in rows]
+        finally:
+            conn.close()
+
+
+class GoogleConnectionRepository(BaseRepository):
+    def get_by_user_id(self, user_id: int) -> Optional[GoogleConnection]:
+        conn = self._connect()
+        try:
+            row = conn.execute(
+                "SELECT * FROM google_connections WHERE user_id = ?", (user_id,)
+            ).fetchone()
+            if not row:
+                return None
+            return self._row_to_dataclass(row, GoogleConnection)
+        finally:
+            conn.close()
+
+    def upsert(
+        self,
+        user_id: int,
+        google_email: str,
+        refresh_token_encrypted: str,
+        scope: str,
+    ) -> GoogleConnection:
+        conn = self._connect()
+        try:
+            conn.execute(
+                """INSERT INTO google_connections
+                   (user_id, google_email, refresh_token_encrypted, scope)
+                   VALUES (?, ?, ?, ?)
+                   ON CONFLICT(user_id) DO UPDATE SET
+                       google_email = excluded.google_email,
+                       refresh_token_encrypted = excluded.refresh_token_encrypted,
+                       scope = excluded.scope,
+                       connected_at = CURRENT_TIMESTAMP""",
+                (user_id, google_email, refresh_token_encrypted, scope),
+            )
+            conn.commit()
+            row = conn.execute(
+                "SELECT * FROM google_connections WHERE user_id = ?", (user_id,)
+            ).fetchone()
+            return self._row_to_dataclass(row, GoogleConnection)
+        finally:
+            conn.close()
+
+    def delete_by_user_id(self, user_id: int) -> bool:
+        conn = self._connect()
+        try:
+            cur = conn.execute(
+                "DELETE FROM google_connections WHERE user_id = ?", (user_id,)
+            )
+            conn.commit()
+            return cur.rowcount > 0
         finally:
             conn.close()

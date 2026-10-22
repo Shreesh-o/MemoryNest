@@ -13,7 +13,7 @@ User → Next.js Web UI (:3000)   [or Streamlit UI :8501]
              ↓
         Auth (bcrypt + JWT cookie)
              ↓
-        Services (13 modules)
+        Services (15 modules)
              ↓
     ┌─────────────────────────────────────┐
     │  SQLite (metadata, users, chunks)   │
@@ -39,19 +39,13 @@ memorynest/
 │   │       ├── chat.py      # /api/chat, /api/conversations
 │   │       ├── dashboard.py # /api/dashboard
 │   │       ├── documents.py # /api/documents/upload, /retry, etc.
+│   │       ├── google.py    # /api/google/status, /connect, /callback, /disconnect
 │   │       ├── health.py    # /api/health (ollama, mock_llm, email_configured)
-│   │       ├── reminders.py # /api/events, /api/reminders, /calendar.ics, /calendar/items
+│   │       ├── reminders.py # /api/events, /api/reminders, /api/reminders/{id}/sync, /calendar.ics, /calendar/items
 │   │       ├── search.py    # /api/search
 │   │       └── summaries.py # /api/documents/{id}/summary, /audio
 │   ├── pages/               # 7 Streamlit UI pages
-│   │   ├── dashboard.py     # Stats, deadlines, reminders
-│   │   ├── upload.py        # File picker → processing pipeline
-│   │   ├── documents.py     # List, preview, delete docs
-│   │   ├── chat.py          # RAG Q&A with citations
-│   │   ├── history.py       # Conversation list, search, load
-│   │   ├── summaries.py     # Generate/play summaries
-│   │   └── reminders.py     # Extract events, confirm, email
-│   ├── services/            # Business logic (14 modules)
+│   ├── services/            # Business logic (15 modules)
 │   │   ├── extraction_service.py   # PDF/DOCX/TXT + OCR router
 │   │   ├── ocr_service.py          # Tesseract wrapper
 │   │   ├── chunking_service.py     # Sentence-aware chunks
@@ -62,12 +56,14 @@ memorynest/
 │   │   ├── summary_service.py      # Map-reduce summarization
 │   │   ├── tts_service.py          # piper/edge/espeak/pyttsx3 TTS
 │   │   ├── event_service.py        # Regex + dateparser + LLM fallback
-│   │   ├── reminder_flow_service.py# Reminders flow, cancellation, due check
+│   │   ├── reminder_flow_service.py# Reminders flow, cancellation, due check, sync
 │   │   ├── email_service.py        # SMTP (Gmail app password)
 │   │   ├── ics_service.py          # .ics calendar export
-│   │   └── calendar_service.py     # Calendar items aggregation & range validation
+│   │   ├── calendar_service.py     # Calendar items aggregation & range validation
+│   │   ├── google_auth_service.py  # Google OAuth flow, token encryption, Calendar client
+│   │   └── google_calendar_service.py # Google Calendar event create, update, delete
 │   ├── database/            # SQLite layer
-│   │   ├── database.py      # Schema + init
+│   │   ├── database.py      # Schema + init + migrations
 │   │   ├── models.py        # Dataclasses
 │   │   └── repositories.py  # CRUD per table
 │   └── utils/               # Config, security, validators, auth helpers
@@ -83,7 +79,7 @@ memorynest/
 │   ├── uploads/
 │   ├── audio/
 │   └── chroma/
-├── tests/                   # 200 passing unit and API tests
+├── tests/                   # 246 passing unit and API tests
 ├── requirements.txt
 ├── .env.example
 └── README.md
@@ -91,25 +87,26 @@ memorynest/
 
 ---
 
-## 2. Database Tables (9)
+## 3. Database Tables (10)
 
 | Table | Purpose | Key Fields |
 |-------|---------|------------|
 | `users` | Auth | id, username, password_hash, email |
-| `documents` | Uploaded files | id, user_id, filename, path, type, status, chunk_count |
+| `documents` | Uploaded files | id, user_id, filename, stored_path, file_type, status, chunk_count, file_hash |
 | `document_chunks` | Text pieces | id, document_id, user_id, chunk_index, content, chroma_id |
 | `conversations` | Chat sessions | id, user_id, title |
 | `messages` | Chat history | id, conversation_id, user_id, role, content, sources |
 | `summaries` | Doc summaries | id, document_id, user_id, summary_text |
-| `events` | Extracted dates | id, user_id, document_id, event_text, event_date, status |
-| `reminders` | Scheduled emails | id, user_id, event_id, remind_at, status |
+| `events` | Extracted dates | id, user_id, document_id, event_text, event_date, raw_date, status |
+| `reminders` | Scheduled reminders & sync | id, user_id, event_id, remind_at, channel, subject, body, status, sent_at, google_event_id, sync_status, sync_error |
 | `notification_logs` | Audit trail | id, user_id, reminder_id, kind, success, detail |
+| `google_connections` | Google OAuth | id, user_id (UNIQUE), google_email, refresh_token_encrypted, scope, connected_at |
 
 **Security**: Every user-owned row has `user_id` with FK `ON DELETE CASCADE`. Chroma metadata also stores `user_id`; all queries filter on it.
 
 ---
 
-## 3. Services (What Each Does)
+## 4. Services (What Each Does)
 
 | Service | Input → Output | Dependencies |
 |---------|---------------|--------------|
@@ -124,12 +121,14 @@ memorynest/
 | `tts_service` | text → .wav path | piper (neural, offline) / edge-tts (online, MP3→WAV w/ ffmpeg) / espeak-ng (offline) / pyttsx3 (fallback) |
 | `event_service` | text → List[event] | regex + dateparser + LLM fallback |
 | `email_service` | subject, body, to_address → (success, detail) | smtplib (Gmail / user recipient with legacy fallback) |
-| `ics_service` | events list → .ics bytes | icalendar |
+| `ics_service` | events list → .ics bytes | icalendar, pytz |
 | `calendar_service` | user_id, start, end → List[CalendarItem] | sqlite queries (events & reminders) |
+| `google_auth_service` | user_id, OAuth flow, tokens → status, auth_url, calendar_client | google-auth, google-auth-oauthlib, google-api-python-client, cryptography (Fernet) |
+| `google_calendar_service` | user_id, event, reminder → google_event_id (create/update/delete) | google-api-python-client, pytz |
 
 ---
 
-## 4. Pages (User-Facing)
+## 5. Pages (User-Facing)
 
 | Page | Key Features |
 |------|--------------|
@@ -139,38 +138,39 @@ memorynest/
 | Chat (Ask) | Streaming chat UI, RAG answers with citations |
 | History | Conversation list, keyword search, load/delete |
 | Summaries | Pick doc → generate (map-reduce) → view + TTS play |
-| Reminders | Month calendar view + 3 tabs: Extract from doc / Pending confirm / Scheduled + "Check now" + .ics export + email management card/action + confirmation email on event confirm |
+| Reminders | Month calendar view + Google Calendar card (connect/disconnect) + sync status badges with retry + 3 tabs (Pending/Scheduled/All) + secondary .ics export + email management card + combined toast confirmation |
 
 ---
 
-## 5. Config (via `.env`)
+## 6. Config (via `.env`)
 ```
 OLLAMA_HOST, OLLAMA_MODEL, EMBEDDING_MODEL, DB_PATH, CHROMA_DIR, UPLOAD_DIR, AUDIO_DIR
 RAG_TOP_K, RAG_MIN_SIMILARITY, CHUNK_SIZE, CHUNK_OVERLAP
 EMAIL_HOST, EMAIL_PORT, EMAIL_USERNAME, EMAIL_APP_PASSWORD, RECIPIENT_EMAIL
 TTS_ENGINE, TTS_VOICE
+GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI, FRONTEND_URL, TOKEN_ENCRYPTION_KEY
 ```
 
 ---
 
-## 6. What's Explicitly OUT of Scope (Future Scope)
+## 7. What's Explicitly OUT of Scope
 
 - Knowledge Graph (Neo4j)
 - WhatsApp notifications
-- **Direct Google Calendar API sync** — .ics file export is implemented for manual import
 - PostgreSQL / Docker / docker-compose
-- **Background scheduler** (APScheduler/cron) — uses on-demand button instead
+- Background daemon scheduler (APScheduler/cron) — uses on-demand button and API triggers
 - Audio/video input
 - Multi-modal RAG (CLIP for images)
 
 ---
 
-## 7. Decision Points for You
+## 8. Decision Points for You
 
 | Component | Can Remove? | Impact |
 |-----------|-------------|--------|
 | TTS (piper/edge/espeak/pyttsx3) | Yes | Remove `tts_service.py`, Summaries page "Play" button, audio output |
 | Email reminders | Yes | Remove `email_service.py`, Reminders tab 3, SMTP config |
+| Google Calendar sync | Yes | Remove `google_auth_service.py`, `google_calendar_service.py`, `routers/google.py`, Google card |
 | Event extraction | Yes | Remove `event_service.py`, Reminders tab 1+2, LLM fallback call |
 | Summaries (map-reduce) | Yes | Remove `summary_service.py`, Summaries page |
 | History page | Yes | Remove `history.py`, message search |
@@ -183,7 +183,7 @@ TTS_ENGINE, TTS_VOICE
 
 ---
 
-## 8. Minimal Viable Subset (If Cutting Hard)
+## 9. Minimal Viable Subset (If Cutting Hard)
 
 Keep only:
 - `main.py` (auth + nav)
@@ -195,18 +195,17 @@ Keep only:
 - `database/` (users, documents, chunks, conversations, messages)
 - `utils/` (config, bcrypt, validators, auth helpers)
 
-Removes: summaries, TTS, events, reminders, email, history, documents page, OCR, DOCX.
+Removes: summaries, TTS, events, reminders, email, google calendar, history, documents page, OCR, DOCX.
 
 ---
 
-## 8. Future Scope
+## 10. Future Scope
 
-- Knowledge Graph (Neo4j): entities/relations extracted from documents, graph-RAX traversals
+- Knowledge Graph (Neo4j): entities/relations extracted from documents, graph-RAG traversals
 - WhatsApp notifications: replace/supplement email with WhatsApp Business API
-- Google Calendar sync: two-way sync via Calendar API (currently .ics export only)
+- Google Calendar two-way webhooks: listen for remote Google Calendar deletes/moves
 - PostgreSQL: replace SQLite for multi-user concurrency and horizontal scaling
 - Docker/Compose: containerize Ollama, Chroma, and the app for reproducible deployment
 - Background scheduler: APScheduler/cron for automatic reminder checks
 - Audio/video input: not planned — text/image only
 - Multi-modal RAG: CLIP embeddings alongside text for visual search
-

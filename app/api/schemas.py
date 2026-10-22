@@ -57,10 +57,12 @@ class EventPublic(BaseModel):
     status: str
     created_at: Optional[str] = None
     email_status: Optional[str] = None
+    google_status: Optional[str] = None
 
 
 class ConfirmEventResponse(EventPublic):
     email_status: str
+    google_status: Optional[str] = None
 
 
 class EventExtractResponse(BaseModel):
@@ -81,6 +83,9 @@ class ReminderPublic(BaseModel):
     body: Optional[str] = None
     status: str
     sent_at: Optional[str] = None
+    google_event_id: Optional[str] = None
+    sync_status: str = "not_synced"
+    sync_error: Optional[str] = None
     created_at: Optional[str] = None
 
 
@@ -93,6 +98,7 @@ class CalendarItem(BaseModel):
     status: str
     document_id: Optional[int] = None
     event_id: Optional[int] = None
+    sync_status: Optional[str] = None
 
 
 class CheckRemindersResponse(BaseModel):
@@ -162,3 +168,18 @@ class SearchRequest(BaseModel):
 class SearchResponse(BaseModel):
     query: str
     hits: List[SearchHit]
+
+
+class GoogleStatusResponse(BaseModel):
+    configured: bool
+    connected: bool
+    google_email: Optional[str] = None
+
+
+class GoogleConnectResponse(BaseModel):
+    auth_url: str
+
+
+class GoogleDisconnectResponse(BaseModel):
+    status: str = "ok"
+    disconnected: bool = True

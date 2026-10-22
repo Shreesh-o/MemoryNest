@@ -94,6 +94,9 @@ class Reminder:
     body: Optional[str] = None
     status: str = "scheduled"
     sent_at: Optional[str] = None
+    google_event_id: Optional[str] = None
+    sync_status: str = "not_synced"
+    sync_error: Optional[str] = None
     created_at: Optional[str] = None
 
 
@@ -106,3 +109,13 @@ class NotificationLog:
     success: bool
     detail: Optional[str] = None
     created_at: Optional[str] = None
+
+
+@dataclass
+class GoogleConnection:
+    id: int
+    user_id: int
+    google_email: str
+    refresh_token_encrypted: str
+    scope: str
+    connected_at: Optional[str] = None

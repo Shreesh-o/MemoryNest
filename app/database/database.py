@@ -114,6 +114,10 @@ CREATE TABLE IF NOT EXISTS reminders (
     status TEXT NOT NULL DEFAULT 'scheduled'
         CHECK (status IN ('scheduled', 'sent', 'failed', 'cancelled')),
     sent_at TEXT,
+    google_event_id TEXT,
+    sync_status TEXT NOT NULL DEFAULT 'not_synced'
+        CHECK (sync_status IN ('not_synced', 'synced', 'failed', 'not_connected')),
+    sync_error TEXT,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -127,6 +131,15 @@ CREATE TABLE IF NOT EXISTS notification_logs (
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS google_connections (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+    google_email TEXT NOT NULL,
+    refresh_token_encrypted TEXT NOT NULL,
+    scope TEXT NOT NULL,
+    connected_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE INDEX IF NOT EXISTS idx_documents_user ON documents(user_id);
 CREATE INDEX IF NOT EXISTS idx_chunks_user ON document_chunks(user_id);
 CREATE INDEX IF NOT EXISTS idx_chunks_doc ON document_chunks(document_id);
@@ -134,6 +147,7 @@ CREATE INDEX IF NOT EXISTS idx_conversations_user ON conversations(user_id);
 CREATE INDEX IF NOT EXISTS idx_messages_convo ON messages(conversation_id);
 CREATE INDEX IF NOT EXISTS idx_events_user ON events(user_id, status);
 CREATE INDEX IF NOT EXISTS idx_reminders_user ON reminders(user_id, status, remind_at);
+CREATE INDEX IF NOT EXISTS idx_google_connections_user ON google_connections(user_id);
 """
 
 
@@ -154,8 +168,26 @@ def init_db(db_path: Path | None = None) -> None:
         _migrate_add_user_email(conn)
         _migrate_add_file_hash(conn)
         _create_file_hash_index(conn)
+        _migrate_add_google_connections(conn)
+        _migrate_add_reminder_google_sync(conn)
     finally:
         conn.close()
+
+
+def _migrate_add_google_connections(conn: sqlite3.Connection) -> None:
+    """Ensure google_connections table and index exist for existing DBs."""
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS google_connections (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+            google_email TEXT NOT NULL,
+            refresh_token_encrypted TEXT NOT NULL,
+            scope TEXT NOT NULL,
+            connected_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_google_connections_user ON google_connections(user_id)")
+    conn.commit()
 
 
 def _migrate_add_user_email(conn: sqlite3.Connection) -> None:
@@ -199,3 +231,16 @@ def _backfill_file_hashes(conn: sqlite3.Connection) -> None:
             conn.execute("UPDATE documents SET file_hash = ? WHERE id = ?", (file_hash, doc_id))
     if rows:
         conn.commit()
+
+
+def _migrate_add_reminder_google_sync(conn: sqlite3.Connection) -> None:
+    """Add google_event_id, sync_status, and sync_error columns to reminders table if missing."""
+    cursor = conn.execute("PRAGMA table_info(reminders)")
+    columns = [row[1] for row in cursor.fetchall()]
+    if "google_event_id" not in columns:
+        conn.execute("ALTER TABLE reminders ADD COLUMN google_event_id TEXT")
+    if "sync_status" not in columns:
+        conn.execute("ALTER TABLE reminders ADD COLUMN sync_status TEXT NOT NULL DEFAULT 'not_synced'")
+    if "sync_error" not in columns:
+        conn.execute("ALTER TABLE reminders ADD COLUMN sync_error TEXT")
+    conn.commit()

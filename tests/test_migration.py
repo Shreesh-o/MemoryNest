@@ -200,3 +200,65 @@ def test_migration_adds_email_column_to_users():
         assert "email" in columns
         conn.close()
 
+
+def test_migration_adds_reminder_sync_columns():
+    """Test that init_db adds google_event_id, sync_status, and sync_error to legacy reminders table."""
+    import tempfile
+    import pathlib
+
+    with tempfile.TemporaryDirectory() as tmp:
+        db_path = pathlib.Path(tmp) / "legacy_reminders.db"
+        conn = sqlite3.connect(str(db_path))
+        conn.execute("PRAGMA foreign_keys = ON")
+        conn.execute("""
+            CREATE TABLE users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                email TEXT,
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                document_id INTEGER,
+                event_text TEXT NOT NULL,
+                event_date TEXT,
+                raw_date TEXT,
+                status TEXT NOT NULL DEFAULT 'pending',
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE reminders (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+                remind_at TEXT NOT NULL,
+                channel TEXT NOT NULL DEFAULT 'email',
+                subject TEXT,
+                body TEXT,
+                status TEXT NOT NULL DEFAULT 'scheduled',
+                sent_at TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
+        conn.close()
+
+        from app.database.database import init_db
+        init_db(db_path)
+        # Verify idempotency
+        init_db(db_path)
+
+        conn = sqlite3.connect(str(db_path))
+        cursor = conn.execute("PRAGMA table_info(reminders)")
+        columns = [row[1] for row in cursor.fetchall()]
+        assert "google_event_id" in columns
+        assert "sync_status" in columns
+        assert "sync_error" in columns
+        conn.close()
+
+

@@ -22,6 +22,7 @@ MemoryNest is a local, privacy-first web app for storing, searching, and summari
 - Summaries: map-reduce for long documents; TTS renders audio; download button
 - Event extraction: regex + dateparser, LLM fallback; .ics export for confirmed events; month calendar view on the Reminders page
 - Email reminders: Gmail SMTP with app password, confirmation emails sent to user's address upon event confirmation (with email_status), due reminders delivered to user address, on-demand "check" button, user email management with format validation and Reminders page editor
+- Google Calendar Integration: Per-user Google account connect and disconnect via OAuth 2.0 with offline access, CSRF state protection, encrypted refresh token storage (Fernet), automatic event creation upon confirmation, event deletion upon cancellation, manual retry sync, and status indicators in web calendar and reminders
 - Auth: username/password with bcrypt, JWT cookies (FastAPI) & Streamlit session state, user profile with email management (`PATCH /api/auth/me/email`)
 
 ## Tech Stack
@@ -96,11 +97,58 @@ bash scripts/dev.sh --force     # Start even if optional preflight checks warn
 - Scanned-document OCR quality depends on scan resolution and contrast
 - Email reminders need Gmail app password; no other providers configured
 
+## Google Calendar Setup
+
+MemoryNest can automatically push confirmed reminders to your Google Calendar and remove them if cancelled.
+
+### 1. Google Cloud Console Setup
+
+1. Go to the [Google Cloud Console](https://console.cloud.google.com/) and create a new project (e.g. `MemoryNest`).
+2. Navigate to **APIs & Services > Library** and enable the **Google Calendar API**.
+3. Navigate to **APIs & Services > OAuth consent screen**:
+   - Choose User Type (**External** for personal testing).
+   - Fill in the required app information.
+   - Add the scopes:
+     - `https://www.googleapis.com/auth/calendar.events`
+     - `https://www.googleapis.com/auth/userinfo.email`
+   - In Test Users, add your Google account email address.
+4. Navigate to **APIs & Services > Credentials**:
+   - Click **Create Credentials > OAuth client ID**.
+   - Application type: **Web application**.
+   - Name: `MemoryNest Web`.
+   - **Authorized redirect URIs**: `http://localhost:8000/api/google/callback` (or your production redirect URI).
+   - Save your **Client ID** and **Client Secret**.
+
+### 2. Configure Environment Variables
+
+Generate a Fernet token encryption key:
+```bash
+python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+```
+
+Add the following to your `.env` file:
+```env
+GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_REDIRECT_URI=http://localhost:8000/api/google/callback
+FRONTEND_URL=http://localhost:3000
+TOKEN_ENCRYPTION_KEY=your-generated-fernet-key
+```
+
+### 3. Usage & Lifecycle
+- On the **Reminders** page, the **Google Calendar** card displays connection status.
+- Click **Connect Google Calendar** to authorize with Google via OAuth 2.0.
+- When an event is confirmed, a Google Calendar event is automatically created (`Asia/Kolkata` timezone, title = event text, description = doc name + "Created by MemoryNest", and popup alert matching `remind_at`).
+- Cancelling a reminder automatically deletes the event from Google Calendar.
+- If sync fails (e.g. temporary network issue), a **Retry** button allows syncing with `POST /api/reminders/{id}/sync`.
+- If Google access is revoked (401), the connection is marked disconnected and the user is prompted to reconnect.
+- Users without Google Calendar connected can still use the fallback **Download .ics** button.
+
 ## Future Scope
 
 - Knowledge Graph (Neo4j): entities/relations extracted from documents, graph-RAX traversals
 - WhatsApp notifications: replace/supplement email with WhatsApp Business API
-- Google Calendar sync: two-way sync via Calendar API (currently .ics export only)
+- Two-way Calendar Webhooks: sync modifications made directly in Google Calendar back to MemoryNest
 - PostgreSQL: replace SQLite for multi-user concurrency
 - Docker/Compose: containerize Ollama, Chroma, and the app
 - Background scheduler: APScheduler/cron for automatic reminder checks
@@ -137,8 +185,26 @@ npm run start
 | `UPLOAD_DIR` | `data/uploads` | Uploaded files directory |
 | `AUDIO_DIR` | `data/audio` | TTS audio output directory |
 | `NEXT_PUBLIC_MAX_FILE_MB` | `20` | Max upload file size in MB |
+| `GOOGLE_CLIENT_ID` | `""` | Google OAuth 2.0 Web Client ID |
+| `GOOGLE_CLIENT_SECRET` | `""` | Google OAuth 2.0 Web Client Secret |
+| `GOOGLE_REDIRECT_URI` | `http://localhost:8000/api/google/callback` | OAuth redirect URI handled by backend |
+| `FRONTEND_URL` | `http://localhost:3000` | Frontend web URL for OAuth redirects |
+| `TOKEN_ENCRYPTION_KEY` | `""` | 32-byte URL-safe base64 Fernet key for encrypted OAuth refresh tokens |
 | `E2E_BASE_URL` | `http://127.0.0.1:3000` | E2E test frontend URL |
 | `E2E_API_URL` | `http://127.0.0.1:8000` | E2E test API URL |
+
+### Key API Endpoints
+
+- **Google Calendar**:
+  - `GET /api/google/status` — Returns Google configuration and user connection status with email.
+  - `POST /api/google/connect` — Initiates OAuth flow, sets CSRF state cookie, returns Google authorization URL.
+  - `GET /api/google/callback` — Handles OAuth redirect, stores encrypted refresh token, redirects to `/reminders?google=connected`.
+  - `POST /api/google/disconnect` — Revokes Google tokens and marks connection disconnected.
+  - `POST /api/reminders/{id}/sync` — Manually retry syncing a reminder to Google Calendar.
+- **Reminders & Events**:
+  - `POST /api/events/{id}/confirm` — Confirms an event, sets reminder, creates Google Calendar event (returns `google_status` and `email_status`).
+  - `DELETE /api/reminders/{id}` — Cancels reminder, removes from Google Calendar, reverts event to pending.
+  - `GET /api/reminders/calendar-items` — Calendar view items including `sync_status`.
 
 ### Frontend Tech Stack
 

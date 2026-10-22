@@ -19,3 +19,8 @@ python-multipart>=0.0
 pyjwt>=2.6
 httpx>=0.24
 edge-tts>=6.1.12
+google-auth
+google-auth-oauthlib
+google-api-python-client
+cryptography
+pytz>=2024.1

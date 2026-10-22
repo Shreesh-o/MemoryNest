@@ -49,10 +49,12 @@ export interface EventPublic {
   status: string;
   created_at?: string | null;
   email_status?: "sent" | "no_email" | "not_configured" | "failed" | null;
+  google_status?: "synced" | "failed" | "not_connected" | null;
 }
 
 export interface ConfirmEventResponse extends EventPublic {
   email_status: "sent" | "no_email" | "not_configured" | "failed";
+  google_status?: "synced" | "failed" | "not_connected" | null;
 }
 
 export interface EventExtractResponse {
@@ -73,6 +75,9 @@ export interface ReminderPublic {
   body?: string | null;
   status: string;
   sent_at?: string | null;
+  google_event_id?: string | null;
+  sync_status?: "not_synced" | "synced" | "failed" | "not_connected";
+  sync_error?: string | null;
   created_at?: string | null;
 }
 
@@ -94,6 +99,7 @@ export interface CalendarItem {
   status: string;
   document_id?: number | null;
   event_id?: number | null;
+  sync_status?: "not_synced" | "synced" | "failed" | "not_connected" | null;
 }
 
 export interface ChatMessage {
@@ -400,3 +406,42 @@ export async function summaryAudioGet(summaryId: number): Promise<Blob> {
   }
   return response.blob();
 }
+
+// Google Calendar & Reminders Sync
+export interface GoogleStatusResponse {
+  configured: boolean;
+  connected: boolean;
+  google_email?: string | null;
+}
+
+export interface GoogleConnectResponse {
+  auth_url: string;
+}
+
+export interface GoogleDisconnectResponse {
+  status: string;
+  disconnected: boolean;
+}
+
+export async function googleStatus() {
+  return fetchApi<GoogleStatusResponse>("google/status");
+}
+
+export async function googleConnect() {
+  return fetchApi<GoogleConnectResponse>("google/connect", {
+    method: "POST",
+  });
+}
+
+export async function googleDisconnect() {
+  return fetchApi<GoogleDisconnectResponse>("google/disconnect", {
+    method: "POST",
+  });
+}
+
+export async function reminderSync(reminderId: number) {
+  return fetchApi<ReminderPublic>(`reminders/${reminderId}/sync`, {
+    method: "POST",
+  });
+}
+
