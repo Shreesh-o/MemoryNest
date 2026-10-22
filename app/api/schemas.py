@@ -56,6 +56,11 @@ class EventPublic(BaseModel):
     raw_date: Optional[str] = None
     status: str
     created_at: Optional[str] = None
+    email_status: Optional[str] = None
+
+
+class ConfirmEventResponse(EventPublic):
+    email_status: str
 
 
 class EventExtractResponse(BaseModel):

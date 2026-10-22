@@ -10,6 +10,7 @@ from app.api.deps import get_current_user
 from app.api.schemas import (
     CheckRemindersResponse,
     ConfirmEventRequest,
+    ConfirmEventResponse,
     EventExtractResponse,
     EventPublic,
     ReminderPublic,
@@ -82,7 +83,7 @@ def api_extract_events(
     return EventExtractResponse(events=[_event_to_public(e) for e in events])
 
 
-@router.post("/api/events/{event_id}/confirm", response_model=EventPublic)
+@router.post("/api/events/{event_id}/confirm", response_model=ConfirmEventResponse)
 def api_confirm_event(
     event_id: int,
     req: ConfirmEventRequest,
@@ -90,10 +91,20 @@ def api_confirm_event(
 ):
     """Confirm an event and create a reminder."""
     try:
-        ev, _ = confirm_event(user.id, event_id, req.remind_at)
+        ev, reminder, email_status = confirm_event(user.id, event_id, req.remind_at)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-    return _event_to_public(ev)
+    return ConfirmEventResponse(
+        id=ev.id,
+        user_id=ev.user_id,
+        event_text=ev.event_text,
+        document_id=ev.document_id,
+        event_date=ev.event_date,
+        raw_date=ev.raw_date,
+        status=ev.status,
+        created_at=ev.created_at,
+        email_status=email_status,
+    )
 
 
 @router.post("/api/events/{event_id}/discard", status_code=status.HTTP_204_NO_CONTENT)

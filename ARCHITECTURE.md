@@ -122,7 +122,7 @@ memorynest/
 | `summary_service` | full_text → summary | llm + chunking (map-reduce) |
 | `tts_service` | text → .wav path | piper (neural, offline) / edge-tts (online, MP3→WAV w/ ffmpeg) / espeak-ng (offline) / pyttsx3 (fallback) |
 | `event_service` | text → List[event] | regex + dateparser + LLM fallback |
-| `email_service` | subject, body → (success, detail) | smtplib (Gmail) |
+| `email_service` | subject, body, to_address → (success, detail) | smtplib (Gmail / user recipient with legacy fallback) |
 | `ics_service` | events list → .ics bytes | icalendar |
 
 ---
@@ -137,7 +137,7 @@ memorynest/
 | Chat (Ask) | Streaming chat UI, RAG answers with citations |
 | History | Conversation list, keyword search, load/delete |
 | Summaries | Pick doc → generate (map-reduce) → view + TTS play |
-| Reminders | 3 tabs: Extract from doc / Pending confirm / Scheduled + "Check now" + .ics export + email management card/action |
+| Reminders | 3 tabs: Extract from doc / Pending confirm / Scheduled + "Check now" + .ics export + email management card/action + confirmation email on event confirm |
 
 ---
 

@@ -48,6 +48,11 @@ export interface EventPublic {
   raw_date?: string | null;
   status: string;
   created_at?: string | null;
+  email_status?: "sent" | "no_email" | "not_configured" | "failed" | null;
+}
+
+export interface ConfirmEventResponse extends EventPublic {
+  email_status: "sent" | "no_email" | "not_configured" | "failed";
 }
 
 export interface EventExtractResponse {
@@ -290,7 +295,7 @@ export async function eventsExtract(docId: number) {
 }
 
 export async function eventsConfirm(eventId: number, remindAt?: string) {
-  return fetchApi<EventPublic>(`events/${eventId}/confirm`, {
+  return fetchApi<ConfirmEventResponse>(`events/${eventId}/confirm`, {
     method: "POST",
     body: JSON.stringify({ remind_at: remindAt }),
   });

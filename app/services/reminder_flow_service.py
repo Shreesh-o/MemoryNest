@@ -10,7 +10,13 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import List, Optional, Tuple
 
-from app.database.repositories import DocumentRepository, EventRepository, ReminderRepository
+from app.database.repositories import (
+    DocumentRepository,
+    EventRepository,
+    NotificationLogRepository,
+    ReminderRepository,
+    UserRepository,
+)
 from app.services import event_service, email_service, ics_service
 from app.database.models import Event, Reminder
 from app.utils.config import EMAIL_USERNAME, EMAIL_APP_PASSWORD, RECIPIENT_EMAIL
@@ -94,8 +100,12 @@ def confirm_event(
     user_id: int,
     event_id: int,
     remind_at: Optional[str] = None,
-) -> Tuple[Event, Reminder]:
+) -> Tuple[Event, Reminder, str]:
     """Confirm an event and create a reminder.
+
+    Sends a confirmation email to the user's email address if configured.
+    Returns (confirmed Event, created Reminder, email_status) where email_status is
+    one of: "sent", "no_email", "not_configured", "failed".
 
     Args:
         user_id: The user who owns the event.
@@ -104,13 +114,16 @@ def confirm_event(
                    If not provided, defaults to event_date at 09:00 or today at 09:00.
 
     Returns:
-        Tuple of (confirmed Event, created Reminder).
+        Tuple of (confirmed Event, created Reminder, email_status).
 
     Raises:
         ValueError: If event not found or already confirmed/skipped.
     """
     ev_repo = EventRepository()
     rem_repo = ReminderRepository()
+    doc_repo = DocumentRepository()
+    user_repo = UserRepository()
+    log_repo = NotificationLogRepository()
 
     ev = ev_repo.get_by_id(event_id, user_id)
     if not ev:
@@ -137,9 +150,79 @@ def confirm_event(
         body=f"Event: {ev.event_text}\nDate: {ev.event_date or 'TBD'}\nRaw: {ev.raw_date or 'N/A'}",
     )
 
-    # Return updated event and reminder
+    # Check user email and SMTP configuration
+    user = user_repo.get_by_id(user_id)
+    user_email = (user.email or "").strip() if user else ""
+
+    if not user_email:
+        # If user has no email: skip sending
+        email_status = "no_email"
+    elif not email_service.is_smtp_configured():
+        # SMTP not configured: log failure to notification_logs, do not raise
+        email_status = "not_configured"
+        log_repo.log(
+            kind="confirmation",
+            success=False,
+            detail="SMTP not configured",
+            user_id=user_id,
+            reminder_id=reminder.id,
+        )
+    else:
+        # Attempt to send confirmation email
+        doc_name = None
+        if ev.document_id:
+            doc = doc_repo.get_by_id(ev.document_id, user_id)
+            if doc:
+                doc_name = doc.filename
+
+        subject = f"Reminder Confirmation: {ev.event_text[:60]}"
+        lines = [
+            "Your reminder has been confirmed and scheduled.",
+            "",
+            f"Event: {ev.event_text}",
+            f"Event Date: {ev.event_date or 'TBD'}",
+            f"Remind At: {remind_at}",
+        ]
+        if doc_name:
+            lines.append(f"Document: {doc_name}")
+        body = "\n".join(lines)
+
+        try:
+            ok, detail = email_service.send_reminder_email(
+                subject, body, to_address=user_email
+            )
+            if ok:
+                email_status = "sent"
+                log_repo.log(
+                    kind="confirmation",
+                    success=True,
+                    detail="sent",
+                    user_id=user_id,
+                    reminder_id=reminder.id,
+                )
+            else:
+                email_status = "failed"
+                log_repo.log(
+                    kind="confirmation",
+                    success=False,
+                    detail=detail,
+                    user_id=user_id,
+                    reminder_id=reminder.id,
+                )
+        except Exception as e:
+            logger.exception("Failed to send confirmation email for event %s", event_id)
+            email_status = "failed"
+            log_repo.log(
+                kind="confirmation",
+                success=False,
+                detail=f"Exception: {e}",
+                user_id=user_id,
+                reminder_id=reminder.id,
+            )
+
+    # Return updated event, reminder, and email status
     updated_ev = ev_repo.get_by_id(event_id, user_id)
-    return updated_ev, reminder
+    return updated_ev, reminder, email_status
 
 
 def discard_event(user_id: int, event_id: int) -> None:
@@ -260,6 +343,10 @@ def check_and_send_due(user_id: int) -> CheckResult:
             details=[],
         )
 
+    user_repo = UserRepository()
+    user = user_repo.get_by_id(user_id)
+    user_email = (user.email or "").strip() if user else ""
+
     sent = 0
     failed = 0
     skipped = 0
@@ -268,7 +355,11 @@ def check_and_send_due(user_id: int) -> CheckResult:
 
     for r in due:
         try:
-            ok, detail = email_service.send_reminder_email(r.subject or "", r.body or "")
+            ok, detail = email_service.send_reminder_email(
+                r.subject or "",
+                r.body or "",
+                to_address=user_email or None,
+            )
             if ok:
                 rem_repo.set_status(r.id, user_id, "sent", datetime.now().isoformat())
                 sent += 1

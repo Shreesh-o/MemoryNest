@@ -489,13 +489,37 @@ export default function RemindersPage() {
   const confirmMutation = useMutation({
     mutationFn: ({ eventId, remindAt }: { eventId: number; remindAt?: string }) =>
       (import("@/lib/api")).then(m => m.eventsConfirm(eventId, remindAt)),
-    onSuccess: () => {
+    onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ["events", "pending"] });
       queryClient.invalidateQueries({ queryKey: ["reminders", "scheduled"] });
-      toast.success("Event confirmed");
       setConfirmDialogOpen(false);
       setConfirmingEventId(null);
       setConfirmRemindAt("");
+
+      const status = res?.data?.email_status;
+      if (status === "sent") {
+        toast.success("Event confirmed. Confirmation email sent!");
+      } else if (status === "no_email") {
+        toast.info("Event confirmed. Add your email above to receive reminder confirmations.", {
+          action: {
+            label: "Add email",
+            onClick: () => {
+              const el = document.getElementById("reminder-email-input");
+              if (el) {
+                el.focus();
+              } else {
+                setIsEditingEmail(true);
+              }
+            },
+          },
+        });
+      } else if (status === "not_configured") {
+        toast.info("Event confirmed. Email sending is not configured on this server (configure SMTP in .env).");
+      } else if (status === "failed") {
+        toast.warning("Event confirmed, but sending the confirmation email failed.");
+      } else {
+        toast.success("Event confirmed");
+      }
     },
     onError: (err: Error) => {
       toast.error(err.message);
@@ -655,6 +679,7 @@ export default function RemindersPage() {
               className="flex flex-col sm:flex-row items-center gap-2 max-w-md"
             >
               <Input
+                id="reminder-email-input"
                 type="email"
                 placeholder="you@example.com"
                 value={emailInput}

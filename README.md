@@ -21,7 +21,7 @@ MemoryNest is a local, privacy-first web app for storing, searching, and summari
 - Conversation history: per-user, searchable, per-session
 - Summaries: map-reduce for long documents; TTS renders audio; download button
 - Event extraction: regex + dateparser, LLM fallback; .ics export for confirmed events
-- Email reminders: Gmail SMTP with app password, on-demand "check" button, user email management with format validation and Reminders page editor
+- Email reminders: Gmail SMTP with app password, confirmation emails sent to user's address upon event confirmation (with email_status), due reminders delivered to user address, on-demand "check" button, user email management with format validation and Reminders page editor
 - Auth: username/password with bcrypt, JWT cookies (FastAPI) & Streamlit session state, user profile with email management (`PATCH /api/auth/me/email`)
 
 ## Tech Stack
