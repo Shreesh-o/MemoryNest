@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
-import { formatDate } from "@/lib/api";
+import { formatDate, authMe, authUpdateEmail, type UserPublic } from "@/lib/api";
 import {
   Card,
   CardHeader,
@@ -11,6 +11,7 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -409,6 +410,38 @@ export default function RemindersPage() {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [discardingEventId, setDiscardingEventId] = useState<number | null>(null);
   const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
+  const [emailInput, setEmailInput] = useState("");
+  const [isEditingEmail, setIsEditingEmail] = useState(false);
+
+  const { data: user } = useQuery<UserPublic>({
+    queryKey: ["me"],
+    queryFn: authMe,
+  });
+
+  const updateEmailMutation = useMutation({
+    mutationFn: (email: string | null) => authUpdateEmail({ email }),
+    onSuccess: async (res) => {
+      if (!res.ok) {
+        toast.error(res.error?.detail || "Failed to update email");
+        return;
+      }
+      await queryClient.invalidateQueries({ queryKey: ["me"] });
+      toast.success("Email saved");
+      setIsEditingEmail(false);
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || "Failed to update email");
+    },
+  });
+
+  const handleSaveEmail = () => {
+    const trimmed = emailInput.trim();
+    if (!trimmed && !user?.email) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+    updateEmailMutation.mutate(trimmed || null);
+  };
 
   const { data: health } = useQuery<{ email_configured?: boolean }>({
     queryKey: ["health"],
@@ -602,7 +635,110 @@ export default function RemindersPage() {
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="p-6 max-w-4xl mx-auto space-y-6">
+      {user && !user.email ? (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-semibold">
+              Add your email to receive reminder confirmations
+            </CardTitle>
+            <CardDescription>
+              We&apos;ll send you email notifications and calendar invites when reminders are due.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSaveEmail();
+              }}
+              className="flex flex-col sm:flex-row items-center gap-2 max-w-md"
+            >
+              <Input
+                type="email"
+                placeholder="you@example.com"
+                value={emailInput}
+                onChange={(e) => setEmailInput(e.target.value)}
+                disabled={updateEmailMutation.isPending}
+                className="h-9"
+                required
+              />
+              <Button
+                type="submit"
+                disabled={updateEmailMutation.isPending || !emailInput.trim()}
+                className="h-9 w-full sm:w-auto"
+              >
+                {updateEmailMutation.isPending ? (
+                  <>
+                    <SvgRefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save"
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      ) : user?.email ? (
+        isEditingEmail ? (
+          <div className="p-4 rounded-lg border bg-card text-card-foreground shadow-sm">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <span className="text-sm font-medium whitespace-nowrap">Reminder email:</span>
+              <Input
+                type="email"
+                placeholder="you@example.com"
+                value={emailInput}
+                onChange={(e) => setEmailInput(e.target.value)}
+                disabled={updateEmailMutation.isPending}
+                className="h-8 max-w-xs text-sm"
+                autoFocus
+              />
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  className="h-8 text-xs"
+                  onClick={handleSaveEmail}
+                  disabled={updateEmailMutation.isPending}
+                >
+                  {updateEmailMutation.isPending ? "Saving..." : "Save"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs"
+                  onClick={() => {
+                    setIsEditingEmail(false);
+                    setEmailInput(user.email || "");
+                  }}
+                  disabled={updateEmailMutation.isPending}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between text-sm text-muted-foreground bg-muted/40 px-3.5 py-2 rounded-lg border">
+            <div className="flex items-center gap-2 truncate">
+              <span>Reminder email:</span>
+              <span className="font-medium text-foreground truncate">{user.email}</span>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2.5 text-xs text-primary hover:text-primary font-medium"
+              onClick={() => {
+                setEmailInput(user.email || "");
+                setIsEditingEmail(true);
+              }}
+            >
+              Edit
+            </Button>
+          </div>
+        )
+      ) : null}
+
       <Card>
         <CardHeader>
           <CardTitle>Reminders & Events</CardTitle>

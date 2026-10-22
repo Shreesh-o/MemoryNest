@@ -16,6 +16,10 @@ export interface LoginRequest {
   password: string;
 }
 
+export interface UpdateEmailRequest {
+  email?: string | null;
+}
+
 export interface DocumentPublic {
   id: number;
   filename: string;
@@ -220,6 +224,15 @@ export async function authMe(): Promise<UserPublic> {
   }
   return result.data;
 }
+
+export async function authUpdateEmail(data: UpdateEmailRequest) {
+  return fetchApi<UserPublic>("auth/me/email", {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export const updateEmail = authUpdateEmail;
 
 // Documents
 export async function documentsList() {

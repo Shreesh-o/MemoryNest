@@ -119,6 +119,7 @@ class TestAuth:
         assert client.get("/api/documents/1").status_code == 401
         assert client.delete("/api/documents/1").status_code == 401
         assert client.post("/api/documents/upload").status_code == 401
+        assert client.patch("/api/auth/me/email", json={"email": "a@b.com"}).status_code == 401
 
     def test_logout_clears_cookie(self, client):
         """Logout clears the session cookie."""
@@ -146,6 +147,136 @@ class TestAuth:
         for body in [resp.json(), client.get("/api/auth/me").json()]:
             assert "password_hash" not in str(body)
             assert "password" not in str(body).lower() or "password123" not in str(body)
+
+    def test_update_email_success_and_normalization(self, client):
+        """PATCH /api/auth/me/email updates email and normalizes to lowercase."""
+        _register_and_login(client, username="emailuser", password="password123", email=None)
+        # Check GET /api/auth/me initially returns email null
+        me_resp = client.get("/api/auth/me")
+        assert me_resp.status_code == 200
+        assert me_resp.json()["email"] is None
+
+        # Update email with mixed case
+        patch_resp = client.patch("/api/auth/me/email", json={"email": "EmailUser@Example.COM"})
+        assert patch_resp.status_code == 200
+        assert patch_resp.json()["email"] == "emailuser@example.com"
+
+        # Verify GET /api/auth/me returns updated email
+        me_resp2 = client.get("/api/auth/me")
+        assert me_resp2.status_code == 200
+        assert me_resp2.json()["email"] == "emailuser@example.com"
+
+    def test_update_email_invalid_format(self, client):
+        """PATCH /api/auth/me/email with invalid email returns 400."""
+        _register_and_login(client)
+        resp = client.patch("/api/auth/me/email", json={"email": "not-an-email"})
+        assert resp.status_code == 400
+        assert "email" in resp.json()["detail"].lower()
+
+    def test_update_email_duplicate_rejected(self, client):
+        """Updating email to one already used by another user returns 409."""
+        # Register user 1 with email
+        client.post("/api/auth/register", json={
+            "username": "userone",
+            "password": "password123",
+            "email": "userone@example.com",
+        })
+        # Register and login user 2
+        client.post("/api/auth/register", json={
+            "username": "usertwo",
+            "password": "password123",
+        })
+        client.post("/api/auth/login", json={
+            "username": "usertwo",
+            "password": "password123",
+        })
+
+        # User 2 tries to use user 1's email (case-insensitive)
+        resp = client.patch("/api/auth/me/email", json={"email": "USERONE@EXAMPLE.COM"})
+        assert resp.status_code == 409
+        assert "already taken" in resp.json()["detail"].lower()
+
+    def test_update_email_same_email_allowed(self, client):
+        """Updating to the user's own existing email succeeds."""
+        _register_and_login(client, username="sameemail", password="password123", email="same@example.com")
+        resp = client.patch("/api/auth/me/email", json={"email": "SAME@EXAMPLE.COM"})
+        assert resp.status_code == 200
+        assert resp.json()["email"] == "same@example.com"
+
+    def test_update_email_unset_cases(self, client):
+        """PATCH /api/auth/me/email unsets email when null or empty string is sent."""
+        _register_and_login(client, username="unsetuser", password="password123", email="unset@example.com")
+        # Check initially set
+        assert client.get("/api/auth/me").json()["email"] == "unset@example.com"
+
+        # Unset with null
+        resp = client.patch("/api/auth/me/email", json={"email": None})
+        assert resp.status_code == 200
+        assert resp.json()["email"] is None
+        assert client.get("/api/auth/me").json()["email"] is None
+
+        # Re-set
+        client.patch("/api/auth/me/email", json={"email": "reset@example.com"})
+        assert client.get("/api/auth/me").json()["email"] == "reset@example.com"
+
+        # Unset with empty string
+        resp2 = client.patch("/api/auth/me/email", json={"email": ""})
+        assert resp2.status_code == 200
+        assert resp2.json()["email"] is None
+        assert client.get("/api/auth/me").json()["email"] is None
+
+    def test_user_can_only_change_own_email(self, client):
+        """User A and User B cannot affect each other's email."""
+        # Register user A and user B
+        client.post("/api/auth/register", json={
+            "username": "usera",
+            "password": "password123",
+            "email": "usera@example.com",
+        })
+        client.post("/api/auth/register", json={
+            "username": "userb",
+            "password": "password123",
+            "email": "userb@example.com",
+        })
+
+        # Login as user B and change email
+        client.post("/api/auth/login", json={"username": "userb", "password": "password123"})
+        patch_b = client.patch("/api/auth/me/email", json={"email": "new_userb@example.com"})
+        assert patch_b.status_code == 200
+        assert patch_b.json()["email"] == "new_userb@example.com"
+
+        # Login as user A and verify user A's email is untouched
+        client.post("/api/auth/login", json={"username": "usera", "password": "password123"})
+        me_a = client.get("/api/auth/me")
+        assert me_a.status_code == 200
+        assert me_a.json()["email"] == "usera@example.com"
+
+    def test_register_with_email_validation(self, client):
+        """Register validates email and saves normalized lowercase."""
+        # Invalid email at registration
+        bad_resp = client.post("/api/auth/register", json={
+            "username": "bademailreg",
+            "password": "password123",
+            "email": "not-valid-email",
+        })
+        assert bad_resp.status_code == 400
+
+        # Valid email normalized
+        good_resp = client.post("/api/auth/register", json={
+            "username": "goodemailreg",
+            "password": "password123",
+            "email": "Good.Email@Domain.COM",
+        })
+        assert good_resp.status_code == 201
+        assert good_resp.json()["email"] == "good.email@domain.com"
+
+        # Duplicate email at registration rejected with 409
+        dup_resp = client.post("/api/auth/register", json={
+            "username": "dupemailreg",
+            "password": "password123",
+            "email": "good.email@domain.com",
+        })
+        assert dup_resp.status_code == 409
 
 
 class TestDocuments:

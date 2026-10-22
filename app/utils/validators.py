@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 from typing import Tuple
 
@@ -147,3 +148,41 @@ def validate_size(size_bytes: int, max_size_bytes: int) -> Tuple[bool, str]:
 
 def file_type_for(filename: str) -> str:
     return ALLOWED_EXTENSIONS[Path(filename).suffix.lower()]
+
+
+_EMAIL_RE = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
+
+
+def validate_email(email: str) -> Tuple[bool, str]:
+    """Validate email format. Returns (ok, reason)."""
+    if not email or not isinstance(email, str):
+        return False, "Email cannot be empty"
+    cleaned = email.strip()
+    if len(cleaned) > 254:
+        return False, "Email too long (max 254 characters)"
+    if " " in cleaned:
+        return False, "Email cannot contain spaces"
+    if ".." in cleaned:
+        return False, "Invalid email address format"
+    parts = cleaned.split("@")
+    if len(parts) != 2:
+        return False, "Invalid email address format"
+    local_part, domain = parts
+    if not local_part or not domain:
+        return False, "Invalid email address format"
+    if len(local_part) > 64:
+        return False, "Email local part too long"
+    if domain.startswith(".") or domain.endswith(".") or domain.startswith("-") or domain.endswith("-"):
+        return False, "Invalid email domain"
+    domain_parts = domain.split(".")
+    if len(domain_parts) < 2:
+        return False, "Invalid email domain format"
+    for part in domain_parts:
+        if not part or part.startswith("-") or part.endswith("-"):
+            return False, "Invalid email domain format"
+    if not domain_parts[-1].isalpha() or len(domain_parts[-1]) < 2:
+        return False, "Invalid email top-level domain"
+    if not _EMAIL_RE.match(cleaned):
+        return False, "Invalid email address format"
+    return True, ""
+

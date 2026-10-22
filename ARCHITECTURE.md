@@ -35,7 +35,7 @@ memorynest/
 │   │   ├── deps.py          # Dependency injection (get_current_user)
 │   │   ├── schemas.py       # Pydantic request & response schemas
 │   │   └── routers/         # API endpoints
-│   │       ├── auth.py      # /api/auth/register, /login, /me, /logout
+│   │       ├── auth.py      # /api/auth/register, /login, /me, /logout, PATCH /me/email
 │   │       ├── chat.py      # /api/chat, /api/conversations
 │   │       ├── dashboard.py # /api/dashboard
 │   │       ├── documents.py # /api/documents/upload, /retry, etc.
@@ -137,7 +137,7 @@ memorynest/
 | Chat (Ask) | Streaming chat UI, RAG answers with citations |
 | History | Conversation list, keyword search, load/delete |
 | Summaries | Pick doc → generate (map-reduce) → view + TTS play |
-| Reminders | 3 tabs: Extract from doc / Pending confirm / Scheduled + "Check now" + .ics export |
+| Reminders | 3 tabs: Extract from doc / Pending confirm / Scheduled + "Check now" + .ics export + email management card/action |
 
 ---
 

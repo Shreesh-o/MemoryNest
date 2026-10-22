@@ -59,3 +59,43 @@ def test_login_wrong_password(db):
 def test_login_unknown_user(db):
     user, err = login("ghost", "secret123")
     assert user is None and "Invalid" in err
+
+
+def test_register_rejects_invalid_email(db):
+    _, err = register("validuser", "secret123", "not-an-email")
+    assert err is not None
+    assert "email" in err.lower()
+
+
+def test_register_rejects_duplicate_email(db):
+    user, err = register("user1", "secret123", "shared@example.com")
+    assert user is not None and err is None
+    _, err2 = register("user2", "secret123", "shared@example.com")
+    assert "taken" in err2.lower()
+
+
+def test_update_user_email_service(db):
+    from app.services.auth_service import register as service_register, update_user_email
+    user = service_register("serviceuser", "secret123")
+    assert user.email is None
+
+    # Set valid email with mixed case -> normalized
+    updated = update_user_email(user.id, "ServiceUser@Example.COM")
+    assert updated.email == "serviceuser@example.com"
+
+    # Unset email with None
+    updated = update_user_email(user.id, None)
+    assert updated.email is None
+
+    # Set valid email again
+    updated = update_user_email(user.id, "new@example.com")
+    assert updated.email == "new@example.com"
+
+    # Unset email with empty string
+    updated = update_user_email(user.id, "")
+    assert updated.email is None
+
+    # Invalid email raises ValueError
+    with pytest.raises(ValueError, match="email"):
+        update_user_email(user.id, "invalid-email")
+

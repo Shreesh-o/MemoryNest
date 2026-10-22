@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 
-from app.api.schemas import UserPublic, RegisterRequest, LoginRequest
+from app.api.schemas import UserPublic, RegisterRequest, LoginRequest, UpdateEmailRequest
 from app.api.security import create_token
 from app.api.deps import get_current_user
-from app.services.auth_service import register, authenticate
+from app.services.auth_service import register, authenticate, update_user_email
 from app.utils.config import COOKIE_SECURE
 
 
@@ -59,3 +59,16 @@ def api_logout(response: Response) -> dict:
 def api_me(user=Depends(get_current_user)) -> UserPublic:
     """Return the current user."""
     return UserPublic(id=user.id, username=user.username, email=user.email)
+
+
+@router.patch("/api/auth/me/email", response_model=UserPublic)
+def api_update_email(req: UpdateEmailRequest, user=Depends(get_current_user)) -> UserPublic:
+    """Update the current user's email."""
+    try:
+        updated = update_user_email(user.id, req.email)
+    except ValueError as e:
+        msg = str(e)
+        if "already taken" in msg.lower():
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=msg)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
+    return UserPublic(id=updated.id, username=updated.username, email=updated.email)

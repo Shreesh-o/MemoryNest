@@ -151,10 +151,20 @@ def init_db(db_path: Path | None = None) -> None:
     try:
         conn.executescript(SCHEMA)
         conn.commit()
+        _migrate_add_user_email(conn)
         _migrate_add_file_hash(conn)
         _create_file_hash_index(conn)
     finally:
         conn.close()
+
+
+def _migrate_add_user_email(conn: sqlite3.Connection) -> None:
+    """Add email column to users table if it doesn't exist (migration for existing DBs)."""
+    cursor = conn.execute("PRAGMA table_info(users)")
+    columns = [row[1] for row in cursor.fetchall()]
+    if "email" not in columns:
+        conn.execute("ALTER TABLE users ADD COLUMN email TEXT")
+        conn.commit()
 
 
 def _migrate_add_file_hash(conn: sqlite3.Connection) -> None:

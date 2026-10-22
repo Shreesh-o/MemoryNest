@@ -24,6 +24,10 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class UpdateEmailRequest(BaseModel):
+    email: Optional[str] = None
+
+
 class DocumentPublic(BaseModel):
     id: int
     filename: str

@@ -1,0 +1,33 @@
+npm notice run web@0.1.0 dev
+npm notice run next dev -p 3000
+▲ Next.js 16.4.2 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.1.9:3000
+- Environments: .env.local
+✓ Ready in 467ms
+✓ Running next.config.ts took 40ms
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead.
+
+  To migrate automatically, run:
+  npx @next/codemod@canary middleware-to-proxy .
+
+  Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+- Experiments (use with caution):
+  · proxyTimeout: 300000
+
+ GET /login 200 in 1235ms (next.js: 955ms, proxy.ts: 56ms, application-code: 224ms)
+ GET /register; 404 in 132ms (next.js: 83ms, proxy.ts: 4ms, application-code: 45ms)
+ GET /login?callbackUrl=%2F 200 in 321ms (next.js: 288ms, proxy.ts: 3ms, application-code: 31ms)
+ GET / 200 in 236ms (next.js: 167ms, proxy.ts: 7ms, application-code: 63ms)
+ GET /dashboard 200 in 235ms (next.js: 191ms, proxy.ts: 6ms, application-code: 38ms)
+ GET /documents 200 in 155ms (next.js: 139ms, proxy.ts: 3ms, application-code: 14ms)
+ GET /upload 200 in 123ms (next.js: 111ms, proxy.ts: 2ms, application-code: 10ms)
+ GET /summaries 200 in 102ms (next.js: 91ms, proxy.ts: 2ms, application-code: 10ms)
+ GET /chat 200 in 150ms (next.js: 137ms, proxy.ts: 3ms, application-code: 10ms)
+ GET /reminders 200 in 103ms (next.js: 90ms, proxy.ts: 2ms, application-code: 10ms)
+⚠ Fast Refresh had to perform a full reload when ./src/lib/api.ts changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+✓ Compiled in 175ms
+ GET /reminders 200 in 238ms (next.js: 121ms, proxy.ts: 3ms, application-code: 114ms)
+✓ Compiled in 82ms
+✓ Compiled in 179ms
+✓ Compiled in 241ms

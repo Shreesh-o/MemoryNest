@@ -170,3 +170,33 @@ def test_fresh_vs_migrated_db_equal(tmp_path):
     assert fresh_indexes == migrated_indexes, (
         f"Indexes mismatch: fresh={fresh_indexes}, migrated={migrated_indexes}"
     )
+
+
+def test_migration_adds_email_column_to_users():
+    """Test that init_db adds email column to users table if missing."""
+    import tempfile
+    import pathlib
+
+    with tempfile.TemporaryDirectory() as tmp:
+        db_path = pathlib.Path(tmp) / "legacy_users.db"
+        conn = sqlite3.connect(str(db_path))
+        conn.execute("""
+            CREATE TABLE users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+        """)
+        conn.commit()
+        conn.close()
+
+        from app.database.database import init_db
+        init_db(db_path)
+
+        conn = sqlite3.connect(str(db_path))
+        cursor = conn.execute("PRAGMA table_info(users)")
+        columns = [row[1] for row in cursor.fetchall()]
+        assert "email" in columns
+        conn.close()
+

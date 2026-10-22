@@ -61,6 +61,23 @@ class UserRepository(BaseRepository):
         finally:
             conn.close()
 
+    def get_by_email(self, email: str) -> Optional[User]:
+        conn = self._connect()
+        try:
+            row = conn.execute("SELECT * FROM users WHERE LOWER(email) = LOWER(?)", (email.strip(),)).fetchone()
+            return self._row_to_dataclass(row, User) if row else None
+        finally:
+            conn.close()
+
+    def update_email(self, user_id: int, email: Optional[str]) -> Optional[User]:
+        conn = self._connect()
+        try:
+            conn.execute("UPDATE users SET email = ? WHERE id = ?", (email, user_id))
+            conn.commit()
+            return self.get_by_id(user_id)
+        finally:
+            conn.close()
+
     def list_all(self) -> List[User]:
         conn = self._connect()
         try:

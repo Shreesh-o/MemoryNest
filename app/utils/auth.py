@@ -11,6 +11,7 @@ from typing import Optional, Tuple
 from app.database.models import User
 from app.database.repositories import UserRepository
 from app.utils.security import hash_password, verify_password
+from app.utils.validators import validate_email
 
 _USERNAME_RE = re.compile(r"^[a-zA-Z0-9._-]{3,32}$")
 
@@ -27,8 +28,19 @@ def register(
     repo = UserRepository()
     if repo.get_by_username(username):
         return None, "Username is already taken."
+    cleaned_email: Optional[str] = None
+    if email is not None:
+        trimmed = email.strip()
+        if trimmed:
+            ok, reason = validate_email(trimmed)
+            if not ok:
+                return None, reason
+            cleaned_email = trimmed.lower()
+            if repo.get_by_email(cleaned_email):
+                return None, "Email is already taken."
+
     try:
-        user = repo.create(username, hash_password(password), email)
+        user = repo.create(username, hash_password(password), cleaned_email)
         return user, None
     except Exception as e:  # pragma: no cover - defensive
         return None, f"Registration failed: {e}"

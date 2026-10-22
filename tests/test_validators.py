@@ -393,3 +393,39 @@ def test_upload_batch_rejected_file_does_not_stop_valid_files(tmp_path, monkeypa
     docs = doc_repo.list_for_user(user.id)
     ready_docs = [d for d in docs if d.status == "ready"]
     assert len(ready_docs) == 2, "Only valid files should be processed"
+
+
+def test_validate_email():
+    """Test validate_email with valid and invalid email addresses."""
+    from app.utils.validators import validate_email
+
+    valid_emails = [
+        "user@example.com",
+        "first.last@domain.org",
+        "user+tag@domain.co.in",
+        "a_b-c@sub.domain.edu",
+        "123@numbers.com",
+    ]
+    for email in valid_emails:
+        ok, reason = validate_email(email)
+        assert ok is True, f"Expected {email} to be valid, got: {reason}"
+
+    invalid_emails = [
+        "",
+        "   ",
+        "not-an-email",
+        "user@",
+        "@domain.com",
+        "user@domain",
+        "user@.com",
+        "user@domain.",
+        "user@domain.c",
+        "user with space@domain.com",
+        "user@domain..com",
+        "user@domain.com.",
+        "a" * 250 + "@domain.com",  # overall > 254
+        "a" * 65 + "@domain.com",   # local part > 64
+    ]
+    for email in invalid_emails:
+        ok, reason = validate_email(email)
+        assert ok is False, f"Expected {email} to be invalid, but passed"
