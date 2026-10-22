@@ -154,7 +154,17 @@ async function fetchApi<T>(path: string, options: RequestInit = {}): Promise<{
     ...options,
   });
 
-  const data = (await response.json()) as unknown;
+  let data: unknown = {};
+  if (response.status !== 204) {
+    const text = await response.text();
+    if (text) {
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = { detail: text };
+      }
+    }
+  }
 
   if (!response.ok) {
     const errorData = isApiError(data) ? data : { status: response.status, detail: ((data as Record<string, unknown>).detail as string) || "Request failed" };

@@ -325,7 +325,7 @@ export default function DashboardPage() {
                   <div
                     key={convo.id}
                     className="flex items-center gap-3 p-3 rounded-lg border border-muted/50 hover:bg-muted/50 transition-colors cursor-pointer"
-                    onClick={() => router.push(`/chat/${convo.id}`)}
+                    onClick={() => router.push(`/chat?c=${convo.id}`)}
                   >
                     <SvgMessageSquare className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                     <div className="flex-1 min-w-0">
