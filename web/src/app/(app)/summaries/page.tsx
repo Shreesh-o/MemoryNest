@@ -166,6 +166,23 @@ function DocumentCard({
   );
 }
 
+function formatVoiceLabel(engine: string): string {
+  const norm = (engine || "").toLowerCase();
+  if (norm.includes("edge")) {
+    return "Voice: Edge (online)";
+  }
+  if (norm.includes("piper")) {
+    return "Voice: Piper (offline)";
+  }
+  if (norm.includes("espeak")) {
+    return "Voice: espeak-ng (offline)";
+  }
+  if (norm.includes("pyttsx")) {
+    return "Voice: pyttsx3 (offline)";
+  }
+  return `Voice: ${engine}`;
+}
+
 function AudioPlayer({
   summaryId,
   audioBlob,
@@ -178,6 +195,7 @@ function AudioPlayer({
   onClose: () => void;
 }) {
   const audioUrl = URL.createObjectURL(audioBlob);
+  const ext = audioBlob.type === "audio/mpeg" ? "mp3" : "wav";
 
   return (
     <Dialog open onOpenChange={onClose}>
@@ -185,11 +203,16 @@ function AudioPlayer({
         <DialogHeader>
           <DialogTitle>Audio Player</DialogTitle>
           <DialogDescription>
-            Generated with {engine}. Click download to save the file.
+            Listen to your summary audio. Click download to save the file.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 mt-4">
-          <audio controls src={audioUrl} className="w-full" />
+          <audio controls src={audioUrl} className="w-full">
+            Your browser does not support the audio element.
+          </audio>
+          <div className="text-sm text-muted-foreground font-medium">
+            {formatVoiceLabel(engine)}
+          </div>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={onClose}>
               Close
@@ -198,7 +221,7 @@ function AudioPlayer({
               onClick={() => {
                 const a = document.createElement("a");
                 a.href = audioUrl;
-                a.download = `summary_${summaryId}.wav`;
+                a.download = `summary_${summaryId}.${ext}`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
@@ -214,6 +237,7 @@ function AudioPlayer({
     </Dialog>
   );
 }
+
 
 function ErrorDialog({
   isOpen,
@@ -346,9 +370,6 @@ export default function SummariesPage() {
   };
 
   const handleAudioClose = () => {
-    if (audioPlayer) {
-      URL.revokeObjectURL(audioPlayer.audioBlob as unknown as string);
-    }
     setAudioPlayer(null);
   };
 

@@ -201,39 +201,105 @@ def merge_wavs_with_silence(
 
 
 def synthesize_with_piper(
-    text: str, output_path: str, voice: str = TTS_VOICE
+    text: str, output_path: str, voice: str | None = None
 ) -> bool:
     """Synthesize text using Piper TTS engine.
 
-    Requires: pip install piper-tts and a .onnx voice model at
-    models/piper/<voice>.onnx
+    Requires: piper-tts and an onnx voice model at models/piper/<voice>.onnx
     """
     try:
-        import piper
+        import piper  # noqa: F401
     except ImportError:
         logger.warning("piper-tts not installed")
         return False
 
-    model_path = Path("models/piper") / f"{voice}.onnx"
-    if not model_path.exists():
-        logger.warning("Piper model not found at %s", model_path)
+    v = voice or os.environ.get("TTS_VOICE", "en_US-lessac-medium")
+    candidates = [
+        Path("models/piper") / f"{v}.onnx",
+        Path("models/piper") / v,
+        Path(v),
+    ]
+    model_path = next((p for p in candidates if p.exists() and p.is_file()), None)
+    if not model_path:
+        logger.warning("Piper model not found for voice %s in %s", v, candidates)
         return False
 
     try:
-        # Piper API: pipe.Synthesizer(model_path) -> synthesize(text, file_path)
         from piper import PiperVoice
         voice_obj = PiperVoice.load(str(model_path))
-        voice_obj.synthesize(text, output_path)
-        # Verify output
-        if Path(output_path).exists() and Path(output_path).stat().st_size > 1024:
-            logger.info("Piper synthesized %s (%d bytes)", output_path, Path(output_path).stat().st_size)
+        wav_target = str(Path(output_path).with_suffix(".wav"))
+        with wave.open(wav_target, "wb") as wav_file:
+            voice_obj.synthesize_wav(text, wav_file)
+
+        if Path(wav_target).exists() and Path(wav_target).stat().st_size > 1024:
+            logger.info("Piper synthesized %s (%d bytes)", wav_target, Path(wav_target).stat().st_size)
             return True
-        else:
-            logger.error("Piper produced no valid output")
-            return False
+        logger.error("Piper produced no valid output or file < 1KB")
+        return False
     except Exception as e:
         logger.error("Piper synthesis failed: %s", e)
         return False
+
+
+def synthesize_with_edge(
+    text: str, output_path: str, timeout: float = 8.0
+) -> bool:
+    """Synthesize text using edge-tts engine.
+
+    Tries en-IN-NeerjaNeural first, falls back to en-US-AriaNeural.
+    Converts MP3 to WAV with ffmpeg if available; otherwise keeps MP3.
+    """
+    try:
+        import edge_tts
+    except ImportError:
+        logger.warning("edge-tts not installed")
+        return False
+
+    import asyncio
+    import tempfile
+
+    voices = ["en-IN-NeerjaNeural", "en-US-AriaNeural"]
+    has_ffmpeg = shutil.which("ffmpeg") is not None
+
+    for voice in voices:
+        tmp_mp3 = None
+        try:
+            with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp_f:
+                tmp_mp3 = tmp_f.name
+
+            async def _run_edge(v: str, out_f: str):
+                communicate = edge_tts.Communicate(text, v)
+                await communicate.save(out_f)
+
+            asyncio.run(asyncio.wait_for(_run_edge(voice, tmp_mp3), timeout=timeout))
+
+            if Path(tmp_mp3).exists() and Path(tmp_mp3).stat().st_size > 1024:
+                if has_ffmpeg:
+                    wav_target = str(Path(output_path).with_suffix(".wav"))
+                    res = subprocess.run(
+                        ["ffmpeg", "-y", "-i", tmp_mp3, "-ar", "16000", "-ac", "1", wav_target],
+                        capture_output=True,
+                        timeout=15,
+                    )
+                    if res.returncode == 0 and Path(wav_target).exists() and Path(wav_target).stat().st_size > 1024:
+                        logger.info("edge-tts (%s) converted to WAV: %s", voice, wav_target)
+                        return True
+                else:
+                    mp3_target = str(Path(output_path).with_suffix(".mp3"))
+                    shutil.copy2(tmp_mp3, mp3_target)
+                    if Path(mp3_target).exists() and Path(mp3_target).stat().st_size > 1024:
+                        logger.info("edge-tts (%s) saved MP3 (no ffmpeg): %s", voice, mp3_target)
+                        return True
+        except Exception as e:
+            logger.warning("edge-tts failed with voice %s: %s", voice, e)
+        finally:
+            if tmp_mp3 and Path(tmp_mp3).exists():
+                try:
+                    Path(tmp_mp3).unlink(missing_ok=True)
+                except OSError:
+                    pass
+
+    return False
 
 
 def synthesize_with_espeak_ng(
@@ -241,54 +307,37 @@ def synthesize_with_espeak_ng(
 ) -> bool:
     """Synthesize text using espeak-ng CLI.
 
-    Tuning: -s 150 (≈150 wpm), -g 3 (small word gap), -p 50 (pitch),
-           --voice en-us+f3 or en-gb.
+    Tuning: -s 150, -p 45, -g 4, voice en-us+f3 (fallback to en-gb, en).
     """
-    # Try a few voice variants
-    voice_variants = ["en-us+f3", "en-gb", "en"]
-    success = False
+    if shutil.which("espeak-ng") is None:
+        logger.warning("espeak-ng not installed")
+        return False
 
-    for idx, voice in enumerate(voice_variants):
-        tmp_path = f"/tmp/tts_sample_{idx}.wav"
+    voice_variants = ["en-us+f3", "en-gb", "en"]
+    wav_target = str(Path(output_path).with_suffix(".wav"))
+
+    for voice in voice_variants:
         try:
-            # Build espeak-ng command
             cmd = [
                 "espeak-ng",
                 "-v", voice,
-                "-s", "150",   # 150 wpm
-                "-g", "3",      # small word gap
-                "-p", "50",     # pitch 50
-                "-w", tmp_path,
+                "-s", "150",
+                "-p", "45",
+                "-g", "4",
+                "-w", wav_target,
             ]
-            subprocess.run(
+            res = subprocess.run(
                 cmd, input=text, capture_output=True, text=True, timeout=60
             )
-            if subprocess.run(
-                cmd, input=text, capture_output=True, text=True, timeout=60
-            ).returncode != 0 or not Path(tmp_path).exists():
-                # Clean up and try next variant
-                if Path(tmp_path).exists():
-                    Path(tmp_path).unlink(missing_ok=True)
-                continue
-
-            # Verify output size
-            if Path(tmp_path).stat().st_size > 1024:
-                # Copy to final output path
-                import shutil
-                shutil.copy2(tmp_path, output_path)
-                success = True
-                logger.info("espeak-ng variant %d (%s) succeeded, %d bytes", idx, voice, Path(tmp_path).stat().st_size)
-                break
-            else:
-                # Clean up small file
-                if Path(tmp_path).exists():
-                    Path(tmp_path).unlink(missing_ok=True)
+            if res.returncode == 0 and Path(wav_target).exists() and Path(wav_target).stat().st_size > 1024:
+                logger.info("espeak-ng (%s) succeeded: %s (%d bytes)", voice, wav_target, Path(wav_target).stat().st_size)
+                return True
         except Exception as e:
-            logger.error("espeak-ng variant %d failed: %s", idx, e)
-            if Path(tmp_path).exists():
-                Path(tmp_path).unlink(missing_ok=True)
+            logger.error("espeak-ng voice %s failed: %s", voice, e)
+            if Path(wav_target).exists():
+                Path(wav_target).unlink(missing_ok=True)
 
-    return success
+    return False
 
 
 def synthesize_with_pyttsx3(
@@ -305,11 +354,12 @@ def synthesize_with_pyttsx3(
         return False
 
     try:
+        wav_target = str(Path(output_path).with_suffix(".wav"))
         engine = pyttsx3.init()
-        engine.save_to_file(text, output_path)
+        engine.save_to_file(text, wav_target)
         engine.runAndWait()
-        if Path(output_path).exists() and Path(output_path).stat().st_size > 1024:
-            logger.info("pyttsx3 synthesized %s (%d bytes)", output_path, Path(output_path).stat().st_size)
+        if Path(wav_target).exists() and Path(wav_target).stat().st_size > 1024:
+            logger.info("pyttsx3 synthesized %s (%d bytes)", wav_target, Path(wav_target).stat().st_size)
             return True
         else:
             logger.error("pyttsx3 produced no valid output")
@@ -328,7 +378,7 @@ def _select_engine(engine_name: str | None = None) -> str:
 
     Returns the engine name that will be used.
     """
-    engine = engine_name or TTS_ENGINE
+    engine = engine_name or os.environ.get("TTS_ENGINE", "auto")
     engine = engine.lower()
     if engine not in VALID_ENGINES:
         logger.warning("Invalid TTS_ENGINE '%s', defaulting to 'auto'", engine)
@@ -336,173 +386,130 @@ def _select_engine(engine_name: str | None = None) -> str:
     return engine
 
 
-def _try_piper_install() -> bool:
-    """Attempt to install piper-tts via pip. Returns True on success."""
-    try:
-        import subprocess as sp
-        result = sp.run(
-            [os.sys.executable, "-m", "pip", "install", "piper-tts"],
-            capture_output=True, text=True, timeout=120,
-        )
-        if result.returncode == 0:
-            logger.info("piper-tts installed successfully via pip")
-            return True
-        else:
-            logger.error("piper-tts pip install failed: %s", result.stderr[-500:])
-            return False
-    except Exception as e:
-        logger.error("piper-tts pip install exception: %s", e)
-        return False
+def _piper_model_exists(voice: str | None = None) -> bool:
+    """Check if a piper voice model is present."""
+    v = voice or os.environ.get("TTS_VOICE", "en_US-lessac-medium")
+    candidates = [
+        Path("models/piper") / f"{v}.onnx",
+        Path("models/piper") / v,
+        Path(v),
+    ]
+    return any(p.exists() and p.is_file() for p in candidates)
 
 
-def synthesize_to_file(text: str, filename: str | None = None) -> str:
-    """Convert text to speech and save as WAV.
+def synthesize_with_engine(text: str, filename: str | None = None) -> Tuple[str, str]:
+    """Convert text to speech and return (file_path, engine_name).
 
-    Full pipeline:
-    1. Clean text (markdown removal, whitespace collapsing)
-    2. Split into sentences, group into chunks (~400 chars)
-    3. Synthesize each group using the selected engine
-    4. Merge generated WAVs with ~250 ms silence between groups
-    5. Verify final file exists and is > 1 KB
-    6. Raise RuntimeError if anything fails
-
-    Returns the path to the generated WAV file.
+    Engine fallback order:
+    1. If TTS_ENGINE == 'espeak': forces espeak-ng -> pyttsx3.
+    2. If TTS_ENGINE == 'piper': piper -> edge -> espeak-ng -> pyttsx3.
+    3. If TTS_ENGINE == 'edge': edge -> espeak-ng -> pyttsx3.
+    4. Default 'auto': piper (if model exists) -> edge (8s timeout) -> espeak-ng -> pyttsx3.
     """
-    # Text processing pipeline
     clean = clean_text(text)
-    sentences = split_into_sentences(clean)
-    groups = group_sentences(sentences, max_chars=400)
-
-    if not groups:
+    if not clean.strip():
         raise RuntimeError("Audio generation failed: no valid text after cleaning.")
 
-    # If no engine is available, fail immediately
     if not tts_available():
         raise RuntimeError(
             "Audio generation failed: no TTS engine is available. "
-            "Install piper-tts with a voice model, "
+            "Install piper-tts with a voice model, edge-tts, "
             "or ensure espeak-ng or pyttsx3 is installed."
         )
 
-    # Engine selection
-    engine = _select_engine(None)
-
-    # Ensure output directory exists
     AUDIO_DIR.mkdir(parents=True, exist_ok=True)
 
     if filename is None:
-        filename = f"tts_{os.urandom(4).hex()}.wav"
+        base_name = f"tts_{os.urandom(4).hex()}"
+        target_path = str(AUDIO_DIR / f"{base_name}.wav")
+    else:
+        target_path = str(Path(filename))
 
-    output_path = str(AUDIO_DIR / filename)
+    configured = _select_engine()
 
-    # --- Piper engine ---
-    if engine in ("auto", "piper"):
-        # Check if piper is available and model exists
-        model_path = Path("models/piper") / TTS_VOICE
-        piper_available = False
-        try:
-            import piper  # noqa: F401
-            piper_available = True
-        except ImportError:
-            piper_available = False
+    # Determine order of engines to attempt
+    if configured == "espeak":
+        order = ["espeak", "pyttsx3"]
+    elif configured == "piper":
+        order = ["piper", "edge", "espeak", "pyttsx3"]
+    elif configured == "edge":
+        order = ["edge", "espeak", "pyttsx3"]
+    elif configured == "pyttsx3":
+        order = ["pyttsx3", "espeak"]
+    else:  # auto
+        order = []
+        if _piper_model_exists():
+            order.append("piper")
+        order.extend(["edge", "espeak", "pyttsx3"])
 
-        if piper_available and model_path.exists():
-            ok = synthesize_with_piper(text, output_path, TTS_VOICE)
-            if ok:
-                logger.info("Used piper engine for TTS")
-                # Verify and return
-                if Path(output_path).exists() and Path(output_path).stat().st_size > 1024:
-                    return output_path
-                # Fall through if piper produced invalid output
+    for eng in order:
+        if eng == "piper":
+            if synthesize_with_piper(clean, target_path):
+                actual_path = _find_generated_file(target_path)
+                if actual_path:
+                    return actual_path, "piper"
+        elif eng == "edge":
+            if synthesize_with_edge(clean, target_path, timeout=8.0):
+                actual_path = _find_generated_file(target_path)
+                if actual_path:
+                    return actual_path, "edge"
+        elif eng == "espeak":
+            if synthesize_with_espeak_ng(clean, target_path):
+                actual_path = _find_generated_file(target_path)
+                if actual_path:
+                    return actual_path, "espeak-ng"
+        elif eng == "pyttsx3":
+            if synthesize_with_pyttsx3(clean, target_path):
+                actual_path = _find_generated_file(target_path)
+                if actual_path:
+                    return actual_path, "pyttsx3"
 
-        # If piper not available or failed, try installing once
-        if engine == "auto" and not piper_available:
-            logger.info("piper-tts not installed, attempting pip install...")
-            if _try_piper_install():
-                # Check if model appeared
-                if model_path.exists():
-                    ok = synthesize_with_piper(text, output_path, TTS_VOICE)
-                    if ok:
-                        if Path(output_path).exists() and Path(output_path).stat().st_size > 1024:
-                            logger.info("Used piper engine (post-install) for TTS")
-                            return output_path
-
-        # If we get here, piper failed or not available; try espeak
-        if engine in ("auto", "espeak", "piper"):
-            ok = synthesize_with_espeak_ng(text, output_path)
-            if ok:
-                if Path(output_path).exists() and Path(output_path).stat().st_size > 1024:
-                    logger.info("Used espeak-ng engine for TTS")
-                    return output_path
-
-
-    # --- edge engine ---
-    if engine in ("auto", "edge"):
-        # Check if edge-tts is available
-        import edge_tts
-        try:
-            # Simple edge-tts synthesis
-            import asyncio
-            async def _edge_synth():
-                communicate = edge_tts.Communicate(text, "en-IN-NeerjaNeural")
-                await communicate.save(output_path)
-            _edge_synth()
-            if Path(output_path).exists() and Path(output_path).stat().st_size > 1024:
-                logger.info("Used edge-tts engine for TTS")
-                return output_path
-        except ImportError:
-            pass
-    # --- espeak-ng engine ---
-    if engine in ("auto", "espeak"):
-        ok = synthesize_with_espeak_ng(text, output_path)
-        if ok:
-            if Path(output_path).exists() and Path(output_path).stat().st_size > 1024:
-                logger.info("Used espeak-ng engine for TTS")
-                return output_path
-
-    # --- pyttsx3 fallback ---
-    if engine in ("auto", "pyttsx3"):
-        ok = synthesize_with_pyttsx3(text, output_path)
-        if ok:
-            if Path(output_path).exists() and Path(output_path).stat().st_size > 1024:
-                logger.info("Used pyttsx3 fallback for TTS")
-                return output_path
-
-    # If we reached here, all engines failed
     raise RuntimeError(
-        f"Audio generation failed: no TTS engine produced a valid WAV file (>1 KB). "
-        f"Engine used: {TTS_ENGINE}. "
-        "Install piper-tts and provide a .onnx model, or ensure espeak-ng is available."
+        f"Audio generation failed: no TTS engine produced a valid audio file (>1 KB). "
+        f"Engine configured: {configured}."
     )
 
 
-# If we reached here, all engines failed
-    raise RuntimeError(
-        f"Audio generation failed: no TTS engine produced a valid WAV file (>1 KB). "
-        f"Engine used: {TTS_ENGINE}. "
-        "Install piper-tts and provide a .onnx model, or ensure espeak-ng is available."
-    )
+def _find_generated_file(target_path: str) -> Optional[str]:
+    """Find the output file whether saved as .wav or .mp3."""
+    p = Path(target_path)
+    for candidate in [p, p.with_suffix(".wav"), p.with_suffix(".mp3")]:
+        if candidate.exists() and candidate.stat().st_size > 1024:
+            return str(candidate)
+    return None
+
+
+def synthesize_to_file(text: str, filename: str | None = None) -> str:
+    """Convert text to speech and return the output path."""
+    path, _ = synthesize_with_engine(text, filename)
+    return path
 
 
 def tts_available() -> bool:
     """Check if any TTS engine is available.
 
-    Returns True if at least one engine (piper, espeak-ng, or pyttsx3) can be used.
+    Returns True if at least one engine (piper, edge, espeak-ng, or pyttsx3) can be used.
     """
-    # Check piper
+    # Piper
     try:
         import piper  # noqa: F401
-        model_path = Path("models/piper") / TTS_VOICE
-        if model_path.exists():
+        if _piper_model_exists():
             return True
     except ImportError:
         pass
 
-    # Check espeak-ng
+    # Edge
+    try:
+        import edge_tts  # noqa: F401
+        return True
+    except ImportError:
+        pass
+
+    # espeak-ng
     if shutil.which("espeak-ng") is not None:
         return True
 
-    # Check pyttsx3
+    # pyttsx3
     try:
         import pyttsx3  # noqa: F401
         return True
@@ -512,43 +519,7 @@ def tts_available() -> bool:
     return False
 
 
-
-def _synthesize_with_edge(text: str, output_path: str) -> bool:
-    """Synthesize text using edge-tts engine.
-
-    Uses edge-tts package to generate audio, converts MP3 to WAV with ffmpeg.
-    """
-    import edge_tts
-    import asyncio
-    import subprocess
-    
-    try:
-        async def _inner():
-            communicate = edge_tts.Communicate(text, "en-IN-NeerjaNeural")
-            await communicate.save(output_path)  # saves as .mp3
-            
-            # Convert MP3 to WAV with ffmpeg
-            wav_path = Path(output_path).with_suffix(".wav")
-            subprocess.run(
-                ["ffmpeg", "-i", output_path,
-                 "-ar", "16000", "-ac", "1", "-y", str(wav_path)],
-                capture_output=True, timeout=30,
-            )
-            if Path(wav_path).exists() and Path(wav_path).stat().st_size > 1024:
-                Path(output_path).unlink(missing_ok=True)
-                return True
-            if Path(output_path).exists() and Path(output_path).stat().st_size > 1024:
-                return True
-            return False
-        
-        asyncio.run(_inner())
-        return True
-    except Exception as e:
-        logger.error("Edge TTS failed: %s", e)
-        return False
-
 def reset_cache() -> None:
     """Reset any cached state (for testing)."""
-    global TTS_ENGINE
-    # Engines are stateless; nothing to reset here.
     pass
+

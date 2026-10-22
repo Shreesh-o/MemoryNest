@@ -81,8 +81,8 @@ def api_get_summary_audio(
     user: User = Depends(get_current_user),
 ):
     """Serve the audio file for a summary."""
-    from app.services.summary_flow_service import make_audio
     from app.database.repositories import SummaryRepository
+    from app.utils.config import AUDIO_DIR
 
     # First verify the summary belongs to the user
     sum_repo = SummaryRepository()
@@ -91,19 +91,27 @@ def api_get_summary_audio(
     if not summary:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Summary not found")
 
-    # Check if audio file already exists
-    from app.utils.config import AUDIO_DIR
     user_audio_dir = AUDIO_DIR / str(user.id)
-    # Look for existing audio file for this summary
-    audio_files = list(user_audio_dir.glob(f"summary_{summary_id}_*.wav"))
+    if not user_audio_dir.exists():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Audio not found. Generate it first.")
+
+    audio_files = sorted(
+        [
+            f for f in user_audio_dir.glob(f"summary_{summary_id}_*")
+            if f.suffix.lower() in (".wav", ".mp3")
+        ],
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )
     if not audio_files:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Audio not found. Generate it first.")
 
-    audio_path = audio_files[0]  # Use the most recent one
+    audio_path = audio_files[0]
+    media_type = "audio/mpeg" if audio_path.suffix.lower() == ".mp3" else "audio/wav"
     return FileResponse(
         path=str(audio_path),
-        media_type="audio/wav",
-        filename=f"summary_{summary_id}.wav",
+        media_type=media_type,
+        filename=f"summary_{summary_id}{audio_path.suffix}",
     )
 
 
@@ -113,26 +121,4 @@ def api_get_summary_audio_file(
     user: User = Depends(get_current_user),
 ):
     """Serve the audio file for a summary (alias for the audio endpoint)."""
-    from app.database.repositories import SummaryRepository
-    from app.utils.config import AUDIO_DIR
-
-    # First verify the summary belongs to the user
-    sum_repo = SummaryRepository()
-    summary = sum_repo.list_for_user(user.id)
-    summary = next((s for s in summary if s.id == summary_id), None)
-    if not summary:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Summary not found")
-
-    # Check if audio file already exists
-    user_audio_dir = AUDIO_DIR / str(user.id)
-    # Look for existing audio file for this summary
-    audio_files = list(user_audio_dir.glob(f"summary_{summary_id}_*.wav"))
-    if not audio_files:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Audio not found. Generate it first.")
-
-    audio_path = audio_files[0]  # Use the most recent one
-    return FileResponse(
-        path=str(audio_path),
-        media_type="audio/wav",
-        filename=f"summary_{summary_id}.wav",
-    )
+    return api_get_summary_audio(summary_id=summary_id, user=user)

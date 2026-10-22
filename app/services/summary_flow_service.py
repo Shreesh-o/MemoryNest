@@ -107,28 +107,11 @@ def make_audio(user_id: int, summary_id: int) -> Tuple[str, str]:
     output_path = str(user_audio_dir / filename)
 
     try:
-        audio_path = tts_service.synthesize_to_file(summary.summary_text, filename=output_path)
+        audio_path, engine = tts_service.synthesize_with_engine(
+            summary.summary_text, filename=output_path
+        )
     except RuntimeError as e:
         logger.exception("TTS generation failed for summary %s", summary_id)
         raise RuntimeError(str(e))
-
-    # Determine engine used
-    engine = os.environ.get("TTS_ENGINE", "auto").lower()
-    if engine == "auto":
-        # Try to detect which engine was actually used
-        try:
-            import piper  # noqa: F401
-            model_path = Path("models/piper") / tts_service.TTS_VOICE
-            if model_path.exists():
-                engine = "piper"
-            elif tts_service.shutil.which("espeak-ng"):
-                engine = "espeak-ng"
-            else:
-                engine = "pyttsx3"
-        except ImportError:
-            if tts_service.shutil.which("espeak-ng"):
-                engine = "espeak-ng"
-            else:
-                engine = "pyttsx3"
 
     return audio_path, engine
