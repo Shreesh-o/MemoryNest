@@ -20,7 +20,7 @@ MemoryNest is a local, privacy-first web app for storing, searching, and summari
 - Local LLM: Ollama with qwen2.5:3b-instruct (3B, CPU-compatible)
 - Conversation history: per-user, searchable, per-session
 - Summaries: map-reduce for long documents; TTS renders audio; download button
-- Event extraction: regex + dateparser, LLM fallback; .ics export for confirmed events
+- Event extraction: regex + dateparser, LLM fallback; .ics export for confirmed events; month calendar view on the Reminders page
 - Email reminders: Gmail SMTP with app password, confirmation emails sent to user's address upon event confirmation (with email_status), due reminders delivered to user address, on-demand "check" button, user email management with format validation and Reminders page editor
 - Auth: username/password with bcrypt, JWT cookies (FastAPI) & Streamlit session state, user profile with email management (`PATCH /api/auth/me/email`)
 

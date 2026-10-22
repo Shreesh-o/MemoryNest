@@ -74,3 +74,78 @@ INFO:     Finished server process [324287]
 INFO:     Started server process [324419]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'app/database/repositories.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [324419]
+INFO:     Started server process [374863]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'app/database/repositories.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [374863]
+INFO:     Started server process [375414]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'app/api/schemas.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [375414]
+INFO:     Started server process [375776]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'app/services/calendar_service.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [375776]
+INFO:     Started server process [376306]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'app/api/routers/reminders.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [376306]
+INFO:     Started server process [376827]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'app/api/routers/reminders.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [376827]
+INFO:     Started server process [376928]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'app/api/routers/reminders.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [376928]
+INFO:     Started server process [377041]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     127.0.0.1:51918 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51928 - "GET /api/events?status=pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51932 - "GET /api/events HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51936 - "GET /api/documents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51918 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51930 - "GET /api/reminders HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44616 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44616 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44622 - "GET /api/events?status=pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44648 - "GET /api/events HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44632 - "GET /api/reminders HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44658 - "GET /api/documents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45744 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45744 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45754 - "GET /api/events?status=pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45760 - "GET /api/reminders HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45776 - "GET /api/documents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45762 - "GET /api/events HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45762 - "GET /api/calendar/items?start=2026-09-28&end=2026-11-01 HTTP/1.1" 200 OK

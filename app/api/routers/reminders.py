@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
 from app.api.deps import get_current_user
 from app.api.schemas import (
+    CalendarItem,
     CheckRemindersResponse,
     ConfirmEventRequest,
     ConfirmEventResponse,
@@ -16,6 +17,7 @@ from app.api.schemas import (
     ReminderPublic,
 )
 from app.database.models import User
+from app.services.calendar_service import get_calendar_items
 from app.services.reminder_flow_service import (
     build_ics_for_user,
     cancel_reminder,
@@ -175,3 +177,16 @@ def api_check_reminders(
         errors=result.errors,
         details=[{"reminder_id": d[0], "success": d[1], "detail": d[2]} for d in result.details],
     )
+
+
+@router.get("/api/calendar/items", response_model=List[CalendarItem])
+def api_get_calendar_items(
+    start: str = Query(..., description="Start date in YYYY-MM-DD format"),
+    end: str = Query(..., description="End date in YYYY-MM-DD format"),
+    user: User = Depends(get_current_user),
+) -> List[CalendarItem]:
+    """Return calendar items (events and reminders) within the given date range."""
+    try:
+        return get_calendar_items(user.id, start, end)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

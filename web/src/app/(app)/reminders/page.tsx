@@ -24,6 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { SvgRefreshCw, SvgCalendar, SvgDownload, SvgSearch, SvgX, SvgCheck, SvgClock } from "@/components/ui/icons";
 import { toast } from "sonner";
+import { MonthCalendar } from "@/components/reminders/month-calendar";
 
 type Event = {
   id: number;
@@ -492,6 +493,7 @@ export default function RemindersPage() {
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ["events", "pending"] });
       queryClient.invalidateQueries({ queryKey: ["reminders", "scheduled"] });
+      queryClient.invalidateQueries({ queryKey: ["calendar-items"] });
       setConfirmDialogOpen(false);
       setConfirmingEventId(null);
       setConfirmRemindAt("");
@@ -530,6 +532,7 @@ export default function RemindersPage() {
     mutationFn: (eventId: number) => (import("@/lib/api")).then(m => m.eventsDiscard(eventId)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["calendar-items"] });
       toast.success("Event discarded");
       setDiscardingEventId(null);
     },
@@ -543,6 +546,7 @@ export default function RemindersPage() {
     mutationFn: (reminderId: number) => (import("@/lib/api")).then(m => m.remindersCheck()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["reminders", "scheduled"] });
+      queryClient.invalidateQueries({ queryKey: ["calendar-items"] });
       toast.success("Reminder sent");
       setSendingReminderId(null);
     },
@@ -557,6 +561,7 @@ export default function RemindersPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["reminders"] });
       queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["calendar-items"] });
       toast.success("Reminder cancelled");
       setCancellingReminderId(null);
     },
@@ -660,6 +665,13 @@ export default function RemindersPage() {
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
+      <MonthCalendar
+        onConfirmEvent={handleConfirm}
+        onDiscardEvent={handleDiscard}
+        onCancelReminder={handleCancel}
+        onSendReminderNow={handleSendNow}
+      />
+
       {user && !user.email ? (
         <Card className="border-primary/30 bg-primary/5">
           <CardHeader className="pb-3">

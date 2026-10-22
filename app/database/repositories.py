@@ -558,6 +558,33 @@ class EventRepository(BaseRepository):
         finally:
             conn.close()
 
+    def list_in_date_range(
+        self,
+        user_id: int,
+        start_date: str,
+        end_date: str,
+        statuses: Optional[List[str]] = None,
+    ) -> List[Event]:
+        conn = self._connect()
+        try:
+            query = """
+                SELECT * FROM events
+                WHERE user_id = ?
+                  AND event_date IS NOT NULL
+                  AND SUBSTR(event_date, 1, 10) >= ?
+                  AND SUBSTR(event_date, 1, 10) <= ?
+            """
+            params: list = [user_id, start_date, end_date]
+            if statuses:
+                placeholders = ",".join("?" for _ in statuses)
+                query += f" AND status IN ({placeholders})"
+                params.extend(statuses)
+            query += " ORDER BY event_date ASC, id ASC"
+            rows = conn.execute(query, params).fetchall()
+            return [self._row_to_dataclass(r, Event) for r in rows]
+        finally:
+            conn.close()
+
 
 class ReminderRepository(BaseRepository):
     def create(
@@ -652,6 +679,33 @@ class ReminderRepository(BaseRepository):
                 "DELETE FROM reminders WHERE id = ? AND user_id = ?", (reminder_id, user_id)
             )
             conn.commit()
+        finally:
+            conn.close()
+
+    def list_in_date_range(
+        self,
+        user_id: int,
+        start_date: str,
+        end_date: str,
+        statuses: Optional[List[str]] = None,
+    ) -> List[Reminder]:
+        conn = self._connect()
+        try:
+            query = """
+                SELECT * FROM reminders
+                WHERE user_id = ?
+                  AND remind_at IS NOT NULL
+                  AND SUBSTR(remind_at, 1, 10) >= ?
+                  AND SUBSTR(remind_at, 1, 10) <= ?
+            """
+            params: list = [user_id, start_date, end_date]
+            if statuses:
+                placeholders = ",".join("?" for _ in statuses)
+                query += f" AND status IN ({placeholders})"
+                params.extend(statuses)
+            query += " ORDER BY remind_at ASC, id ASC"
+            rows = conn.execute(query, params).fetchall()
+            return [self._row_to_dataclass(r, Reminder) for r in rows]
         finally:
             conn.close()
 

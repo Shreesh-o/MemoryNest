@@ -84,6 +84,17 @@ class ReminderPublic(BaseModel):
     created_at: Optional[str] = None
 
 
+class CalendarItem(BaseModel):
+    id: int
+    kind: str
+    title: str
+    date: str
+    all_day: bool
+    status: str
+    document_id: Optional[int] = None
+    event_id: Optional[int] = None
+
+
 class CheckRemindersResponse(BaseModel):
     configured: bool
     sent: int

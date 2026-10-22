@@ -40,7 +40,7 @@ memorynest/
 │   │       ├── dashboard.py # /api/dashboard
 │   │       ├── documents.py # /api/documents/upload, /retry, etc.
 │   │       ├── health.py    # /api/health (ollama, mock_llm, email_configured)
-│   │       ├── reminders.py # /api/events, /api/reminders, /calendar.ics
+│   │       ├── reminders.py # /api/events, /api/reminders, /calendar.ics, /calendar/items
 │   │       ├── search.py    # /api/search
 │   │       └── summaries.py # /api/documents/{id}/summary, /audio
 │   ├── pages/               # 7 Streamlit UI pages
@@ -51,7 +51,7 @@ memorynest/
 │   │   ├── history.py       # Conversation list, search, load
 │   │   ├── summaries.py     # Generate/play summaries
 │   │   └── reminders.py     # Extract events, confirm, email
-│   ├── services/            # Business logic (13 modules)
+│   ├── services/            # Business logic (14 modules)
 │   │   ├── extraction_service.py   # PDF/DOCX/TXT + OCR router
 │   │   ├── ocr_service.py          # Tesseract wrapper
 │   │   ├── chunking_service.py     # Sentence-aware chunks
@@ -64,7 +64,8 @@ memorynest/
 │   │   ├── event_service.py        # Regex + dateparser + LLM fallback
 │   │   ├── reminder_flow_service.py# Reminders flow, cancellation, due check
 │   │   ├── email_service.py        # SMTP (Gmail app password)
-│   │   └── ics_service.py          # .ics calendar export
+│   │   ├── ics_service.py          # .ics calendar export
+│   │   └── calendar_service.py     # Calendar items aggregation & range validation
 │   ├── database/            # SQLite layer
 │   │   ├── database.py      # Schema + init
 │   │   ├── models.py        # Dataclasses
@@ -124,6 +125,7 @@ memorynest/
 | `event_service` | text → List[event] | regex + dateparser + LLM fallback |
 | `email_service` | subject, body, to_address → (success, detail) | smtplib (Gmail / user recipient with legacy fallback) |
 | `ics_service` | events list → .ics bytes | icalendar |
+| `calendar_service` | user_id, start, end → List[CalendarItem] | sqlite queries (events & reminders) |
 
 ---
 
@@ -137,7 +139,7 @@ memorynest/
 | Chat (Ask) | Streaming chat UI, RAG answers with citations |
 | History | Conversation list, keyword search, load/delete |
 | Summaries | Pick doc → generate (map-reduce) → view + TTS play |
-| Reminders | 3 tabs: Extract from doc / Pending confirm / Scheduled + "Check now" + .ics export + email management card/action + confirmation email on event confirm |
+| Reminders | Month calendar view + 3 tabs: Extract from doc / Pending confirm / Scheduled + "Check now" + .ics export + email management card/action + confirmation email on event confirm |
 
 ---
 

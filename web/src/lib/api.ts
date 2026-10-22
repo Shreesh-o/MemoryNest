@@ -85,6 +85,17 @@ export interface CheckRemindersResponse {
   details?: { reminder_id: number; success: boolean; detail: string }[];
 }
 
+export interface CalendarItem {
+  id: number;
+  kind: "event" | "reminder";
+  title: string;
+  date: string;
+  all_day: boolean;
+  status: string;
+  document_id?: number | null;
+  event_id?: number | null;
+}
+
 export interface ChatMessage {
   role: string;
   content: string;
@@ -334,6 +345,10 @@ export async function calendarIcs(eventIds?: number[]): Promise<Blob> {
     throw new Error("Failed to download calendar");
   }
   return response.blob();
+}
+
+export async function calendarItems(start: string, end: string) {
+  return fetchApi<CalendarItem[]>(`calendar/items?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
 }
 
 // Chat
