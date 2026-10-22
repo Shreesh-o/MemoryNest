@@ -199,10 +199,12 @@ export default function ChatPage() {
     <div className="flex h-screen bg-background">
       {/* Sidebar / Conversation List */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetTrigger>
-          <Button variant="outline" size="icon" className="md:hidden lg:hidden xl:hidden">
-            <SvgMessageSquare className="h-5 w-5" />
-          </Button>
+        <SheetTrigger
+          render={
+            <Button variant="outline" size="icon" className="md:hidden lg:hidden xl:hidden" />
+          }
+        >
+          <SvgMessageSquare className="h-5 w-5" />
         </SheetTrigger>
         <SheetContent side="left" className="w-80 p-0">
           <SheetHeader className="flex flex-row items-center justify-between p-4">

@@ -1,10 +1,13 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
+import { useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
+import { LogOutIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
+import { Button } from "@/components/ui/button"
+import { authLogout } from "@/lib/api"
 
 interface NavItem {
   href: string
@@ -24,6 +27,23 @@ const mainNav: NavItem[] = [
 
 export function Sidebar() {
   const pathname = usePathname()
+  const router = useRouter()
+  const queryClient = useQueryClient()
+
+  const handleLogout = async () => {
+    try {
+      const result = await authLogout()
+      if (result.ok) {
+        queryClient.clear()
+        router.replace("/login")
+      } else {
+        toast.error(result.error?.detail || "Failed to log out")
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to log out"
+      toast.error(msg)
+    }
+  }
 
   return (
     <aside className="hidden md:block fixed inset-y-0 left-0 z-40 w-64 border-r bg-card flex flex-col">
@@ -57,6 +77,17 @@ export function Sidebar() {
           <p className="text-xs text-muted-foreground text-center">
             v0.1.0
           </p>
+          <div className="mt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleLogout}
+              className="w-full flex items-center justify-center gap-2"
+            >
+              <LogOutIcon className="h-4 w-4" />
+              Log out
+            </Button>
+          </div>
         </div>
       </div>
     </aside>

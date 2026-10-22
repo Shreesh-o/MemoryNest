@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, type ReactNode } from "react"
 import {
   Card,
   CardHeader,
@@ -109,15 +109,46 @@ function SearchSkeleton() {
   )
 }
 
-function highlightText(text: string, query: string) {
+function highlightText(text: string, query: string): ReactNode {
   if (!query || !query.trim()) return text
-  const terms = query.trim().split(/\s+/).filter(Boolean)
-  let result = text
-  for (const term of terms) {
-    const regex = new RegExp(`(${term})`, "gi")
-    result = result.replace(regex, '<mark class="bg-yellow-200 px-0.5">$1</mark>')
-  }
-  return result
+
+  const stopWords = new Set(["the", "a", "of", "and", "to", "in", "is", "it", "for", "on", "with", "as", "at", "by", "from", "an", "or"])
+  const terms = query
+    .trim()
+    .split(/\s+/)
+    .filter(
+      (term) => term.length >= 2 && !stopWords.has(term.toLowerCase())
+    )
+
+  if (terms.length === 0) return text
+
+  const uniqueTerms = Array.from(new Set(terms.map((term) => term.toLowerCase())))
+  uniqueTerms.sort((a, b) => b.length - a.length)
+
+  // Build a case-insensitive regex pattern that matches any of the terms
+  const escapedTerms = uniqueTerms.map((term) =>
+    term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+  )
+  const regex = new RegExp(`(${escapedTerms.join("|")})`, "gi")
+  const termSet = new Set(uniqueTerms)
+
+  // Split the text by the regex, keeping the matches
+  const parts = text.split(regex)
+
+  return parts.map((part, index) => {
+    if (!part) return null
+    if (termSet.has(part.toLowerCase())) {
+      return (
+        <mark
+          key={index}
+          className="rounded bg-yellow-200/80 px-0.5 text-foreground dark:bg-yellow-500/30"
+        >
+          {part}
+        </mark>
+      )
+    }
+    return <span key={index}>{part}</span>
+  })
 }
 
 export default function SearchPage() {
