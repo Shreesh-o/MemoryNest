@@ -178,15 +178,21 @@ def render() -> None:
             if st.button("Check & send due reminders", type="primary"):
                 try:
                     result = reminder_flow_service.check_and_send_due(user.id)
-                    if result.sent == 0 and result.failed == 0:
+                    if not result.configured:
+                        st.info(
+                            result.errors[0]
+                            if result.errors
+                            else "Email is not set up. Add EMAIL_USERNAME and EMAIL_APP_PASSWORD to the .env file."
+                        )
+                    elif result.sent == 0 and result.failed == 0:
                         st.info("No due reminders")
                     else:
                         if result.sent:
                             st.success(f"Sent {result.sent} reminder(s)")
                         if result.failed:
                             st.error(f"Failed {result.failed} reminder(s)")
-                            for _, _, detail in result.details:
-                                st.caption(detail)
+                            for err in result.errors:
+                                st.caption(err)
                 except Exception as exc:
                     import logging
                     logging.exception("Check due reminders failed for user %s", user.id)

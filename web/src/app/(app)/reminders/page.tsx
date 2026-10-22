@@ -139,7 +139,7 @@ function EventCard({ event, onConfirm, onDiscard, onExtract, extractingDocId }: 
                   <SvgCheck className="mr-2 h-4 w-4" /> Confirm
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => onDiscard(event.id)} className="text-red-600 hover:bg-red-50" disabled={extractingDocId !== null}>
-                  <SvgX className="h-4 w-4" />
+                  <SvgX className="mr-1 h-4 w-4" /> Discard
                 </Button>
               </>
             )}
@@ -178,7 +178,7 @@ function ReminderCard({ reminder, onSendNow, onCancel, sendingReminderId, cancel
                   <SvgClock className="mr-2 h-4 w-4" /> Send now
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => onCancel(reminder.id)} className="text-red-600 hover:bg-red-50" disabled={sendingReminderId !== null || cancellingReminderId !== null}>
-                  <SvgX className="h-4 w-4" /> Cancel
+                  <SvgX className="mr-1 h-4 w-4" /> Cancel reminder
                 </Button>
               </>
             )}
@@ -280,6 +280,80 @@ function ConfirmDialog({ open, onOpenChange, onConfirm, remindingAt }: {
   );
 }
 
+function CancelReminderDialog({
+  open,
+  onOpenChange,
+  onConfirm,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Cancel reminder</DialogTitle>
+          <DialogDescription>
+            Cancel this reminder? The event goes back to Pending.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex justify-end gap-2 mt-4">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Keep reminder
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={() => {
+              onConfirm();
+              onOpenChange(false);
+            }}
+          >
+            Cancel reminder
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DiscardEventDialog({
+  open,
+  onOpenChange,
+  onConfirm,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Discard event</DialogTitle>
+          <DialogDescription>
+            Are you sure you want to discard this event? This action cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex justify-end gap-2 mt-4">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Keep event
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={() => {
+              onConfirm();
+              onOpenChange(false);
+            }}
+          >
+            Discard
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function DownloadCalendarButton({ eventIds }: { eventIds?: number[] }) {
   const [downloading, setDownloading] = useState(false);
 
@@ -332,6 +406,18 @@ export default function RemindersPage() {
   const [confirmRemindAt, setConfirmRemindAt] = useState<string>("");
   const [sendingReminderId, setSendingReminderId] = useState<number | null>(null);
   const [cancellingReminderId, setCancellingReminderId] = useState<number | null>(null);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [discardingEventId, setDiscardingEventId] = useState<number | null>(null);
+  const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
+
+  const { data: health } = useQuery<{ email_configured?: boolean }>({
+    queryKey: ["health"],
+    queryFn: async () => {
+      const res = await fetch("/api/health");
+      if (!res.ok) return { email_configured: false };
+      return res.json();
+    },
+  });
 
   const { data: pendingEvents, isLoading: pendingLoading, refetch: refetchPending } = useQuery({
     queryKey: ["events", "pending"],
@@ -386,11 +472,13 @@ export default function RemindersPage() {
   const discardMutation = useMutation({
     mutationFn: (eventId: number) => (import("@/lib/api")).then(m => m.eventsDiscard(eventId)),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["events", "pending"] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
       toast.success("Event discarded");
+      setDiscardingEventId(null);
     },
     onError: (err: Error) => {
       toast.error(err.message);
+      setDiscardingEventId(null);
     },
   });
 
@@ -408,9 +496,10 @@ export default function RemindersPage() {
   });
 
   const cancelMutation = useMutation({
-    mutationFn: (reminderId: number) => (import("@/lib/api")).then(m => m.remindersCheck()),
+    mutationFn: (reminderId: number) => (import("@/lib/api")).then(m => m.remindersCancel(reminderId)),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["reminders", "scheduled"] });
+      queryClient.invalidateQueries({ queryKey: ["reminders"] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
       toast.success("Reminder cancelled");
       setCancellingReminderId(null);
     },
@@ -423,12 +512,21 @@ export default function RemindersPage() {
   const checkDueMutation = useMutation({
     mutationFn: () => (import("@/lib/api")).then(m => m.remindersCheck()),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["reminders", "scheduled"] });
-      if (data.data.sent === 0 && data.data.failed === 0) {
-        toast.info("No due reminders");
+      queryClient.invalidateQueries({ queryKey: ["reminders"] });
+      const res = data.data;
+      if (!res.configured) {
+        toast.info(
+          res.errors?.[0] ||
+            "Email is not set up. Add EMAIL_USERNAME and EMAIL_APP_PASSWORD to the .env file."
+        );
       } else {
-        if (data.data.sent) toast.success(`Sent ${data.data.sent} reminder(s)`);
-        if (data.data.failed) toast.error(`Failed ${data.data.failed} reminder(s)`);
+        const firstErr = res.errors && res.errors.length > 0 ? `: ${res.errors[0]}` : "";
+        const msg = `Sent ${res.sent}, failed ${res.failed}${firstErr}`;
+        if (res.failed > 0) {
+          toast.error(msg);
+        } else {
+          toast.success(msg);
+        }
       }
     },
     onError: (err: Error) => {
@@ -453,7 +551,14 @@ export default function RemindersPage() {
   };
 
   const handleDiscard = (eventId: number) => {
-    discardMutation.mutate(eventId);
+    setDiscardingEventId(eventId);
+    setDiscardDialogOpen(true);
+  };
+
+  const handleDiscardConfirm = () => {
+    if (discardingEventId !== null) {
+      discardMutation.mutate(discardingEventId);
+    }
   };
 
   const handleSendNow = (reminderId: number) => {
@@ -463,7 +568,13 @@ export default function RemindersPage() {
 
   const handleCancel = (reminderId: number) => {
     setCancellingReminderId(reminderId);
-    cancelMutation.mutate(reminderId);
+    setCancelDialogOpen(true);
+  };
+
+  const handleCancelConfirm = () => {
+    if (cancellingReminderId !== null) {
+      cancelMutation.mutate(cancellingReminderId);
+    }
   };
 
   const pendingEventsData = pendingEvents || [];
@@ -543,10 +654,17 @@ export default function RemindersPage() {
             <TabsContent value="scheduled" className="mt-4 space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="font-medium">Scheduled reminders</h3>
-                <Button variant="outline" size="sm" onClick={() => checkDueMutation.mutate()} disabled={checkDueMutation.isPending}>
-                  <SvgRefreshCw className={`mr-2 h-4 w-4 ${checkDueMutation.isPending ? "animate-spin" : ""}`} />
-                  Send due reminders
-                </Button>
+                <div className="flex flex-col items-end gap-1">
+                  <Button variant="outline" size="sm" onClick={() => checkDueMutation.mutate()} disabled={checkDueMutation.isPending}>
+                    <SvgRefreshCw className={`mr-2 h-4 w-4 ${checkDueMutation.isPending ? "animate-spin" : ""}`} />
+                    Send due reminders
+                  </Button>
+                  {health && health.email_configured === false && (
+                    <p className="text-xs text-muted-foreground">
+                      Email reminders are off. The calendar download still works.
+                    </p>
+                  )}
+                </div>
               </div>
 
               {scheduledRemindersData.filter(r => r.status === "scheduled").length === 0 ? (
@@ -621,6 +739,18 @@ export default function RemindersPage() {
         onOpenChange={setConfirmDialogOpen}
         onConfirm={handleConfirmSubmit}
         remindingAt={confirmRemindAt}
+      />
+
+      <CancelReminderDialog
+        open={cancelDialogOpen}
+        onOpenChange={setCancelDialogOpen}
+        onConfirm={handleCancelConfirm}
+      />
+
+      <DiscardEventDialog
+        open={discardDialogOpen}
+        onOpenChange={setDiscardDialogOpen}
+        onConfirm={handleDiscardConfirm}
       />
     </div>
   );

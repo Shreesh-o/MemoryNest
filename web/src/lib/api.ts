@@ -68,9 +68,12 @@ export interface ReminderPublic {
 }
 
 export interface CheckRemindersResponse {
+  configured: boolean;
   sent: number;
   failed: number;
-  details: { reminder_id: number; success: boolean; detail: string }[];
+  skipped: number;
+  errors: string[];
+  details?: { reminder_id: number; success: boolean; detail: string }[];
 }
 
 export interface ChatMessage {
@@ -113,6 +116,14 @@ export interface SummaryCreateRequest {
 export interface SummaryAudioResponse {
   engine: string;
   url: string;
+}
+
+export interface HealthResponse {
+  status: string;
+  ollama: string;
+  mock_llm: boolean;
+  tts_engine?: string;
+  email_configured: boolean;
 }
 
 // API Error class
@@ -280,6 +291,12 @@ export async function eventsDiscard(eventId: number) {
 
 export async function remindersList() {
   return fetchApi<ReminderPublic[]>("reminders");
+}
+
+export async function remindersCancel(id: number) {
+  return fetchApi<{ detail?: string }>(`reminders/${id}`, {
+    method: "DELETE",
+  });
 }
 
 export async function remindersCheck() {

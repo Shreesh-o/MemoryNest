@@ -76,9 +76,12 @@ class ReminderPublic(BaseModel):
 
 
 class CheckRemindersResponse(BaseModel):
+    configured: bool
     sent: int
     failed: int
-    details: List[dict]
+    skipped: int
+    errors: List[str]
+    details: List[dict] = []
 
 
 class ChatMessage(BaseModel):

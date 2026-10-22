@@ -6,7 +6,7 @@ No Streamlit imports. Pure business logic for API and page use.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import List, Optional, Tuple
 
@@ -20,9 +20,12 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class CheckResult:
+    configured: bool
     sent: int
     failed: int
-    details: List[Tuple[int, bool, str]]  # (reminder_id, success, detail)
+    skipped: int
+    errors: List[str]
+    details: List[Tuple[int, bool, str]] = field(default_factory=list)  # (reminder_id, success, detail)
 
 
 def extract_events_for_document(user_id: int, doc_id: int) -> List[Event]:
@@ -195,6 +198,27 @@ def build_ics_for_user(user_id: int, event_ids: Optional[List[int]] = None) -> b
     return ics_service.build_ics_from_events_and_reminders(events, reminders, user_email)
 
 
+def cancel_reminder(user_id: int, reminder_id: int) -> None:
+    """Cancel a reminder: delete the reminder row and revert its event to pending.
+
+    Args:
+        user_id: The user ID.
+        reminder_id: The reminder ID to cancel.
+
+    Raises:
+        ValueError: If reminder not found or not owned by user.
+    """
+    rem_repo = ReminderRepository()
+    ev_repo = EventRepository()
+
+    rem = rem_repo.get_by_id(reminder_id, user_id)
+    if not rem:
+        raise ValueError("Reminder not found")
+
+    rem_repo.delete(reminder_id, user_id)
+    ev_repo.set_status(rem.event_id, user_id, "pending")
+
+
 def check_and_send_due(user_id: int) -> CheckResult:
     """Check for due reminders and send them.
 
@@ -202,25 +226,45 @@ def check_and_send_due(user_id: int) -> CheckResult:
         user_id: The user ID.
 
     Returns:
-        CheckResult with counts and details.
+        CheckResult with counts, errors, and details.
     """
-    from app.utils.config import EMAIL_USERNAME, EMAIL_APP_PASSWORD, RECIPIENT_EMAIL
+    import os
+    from app.utils import config
+
+    username = os.environ.get("EMAIL_USERNAME", getattr(config, "EMAIL_USERNAME", ""))
+    password = os.environ.get("EMAIL_APP_PASSWORD", getattr(config, "EMAIL_APP_PASSWORD", ""))
 
     rem_repo = ReminderRepository()
     now = datetime.now().isoformat()
     due = rem_repo.due_scheduled(user_id, now)
 
-    if not due:
-        return CheckResult(sent=0, failed=0, details=[])
+    # If email is not configured (EMAIL_USERNAME or EMAIL_APP_PASSWORD empty):
+    # do NOT attempt sending and do NOT mark any reminder failed
+    if not username or not password:
+        return CheckResult(
+            configured=False,
+            sent=0,
+            failed=0,
+            skipped=len(due),
+            errors=["Email is not set up. Add EMAIL_USERNAME and EMAIL_APP_PASSWORD to the .env file."],
+            details=[],
+        )
 
-    # Check email config
-    if not EMAIL_USERNAME or not EMAIL_APP_PASSWORD or not RECIPIENT_EMAIL:
-        details = [(r.id, False, "Email not configured") for r in due]
-        return CheckResult(sent=0, failed=len(due), details=details)
+    if not due:
+        return CheckResult(
+            configured=True,
+            sent=0,
+            failed=0,
+            skipped=0,
+            errors=[],
+            details=[],
+        )
 
     sent = 0
     failed = 0
-    details = []
+    skipped = 0
+    errors: List[str] = []
+    details: List[Tuple[int, bool, str]] = []
 
     for r in due:
         try:
@@ -232,11 +276,22 @@ def check_and_send_due(user_id: int) -> CheckResult:
             else:
                 rem_repo.set_status(r.id, user_id, "failed")
                 failed += 1
+                err_msg = detail.strip()[:200]
+                errors.append(err_msg)
                 details.append((r.id, False, detail))
         except Exception as e:
             rem_repo.set_status(r.id, user_id, "failed")
             failed += 1
             logger.exception("Failed to send reminder %s", r.id)
+            err_msg = f"Send failed: {str(e).strip()[:200]}"
+            errors.append(err_msg)
             details.append((r.id, False, f"Exception: {e}"))
 
-    return CheckResult(sent=sent, failed=failed, details=details)
+    return CheckResult(
+        configured=True,
+        sent=sent,
+        failed=failed,
+        skipped=skipped,
+        errors=errors,
+        details=details,
+    )

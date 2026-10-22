@@ -17,6 +17,7 @@ from app.api.schemas import (
 from app.database.models import User
 from app.services.reminder_flow_service import (
     build_ics_for_user,
+    cancel_reminder,
     check_and_send_due,
     confirm_event,
     discard_event,
@@ -116,6 +117,18 @@ def api_list_reminders(
     return [_reminder_to_public(r) for r in reminders]
 
 
+@router.delete("/api/reminders/{reminder_id}", status_code=status.HTTP_204_NO_CONTENT)
+def api_cancel_reminder(
+    reminder_id: int,
+    user: User = Depends(get_current_user),
+):
+    """Cancel a reminder (deletes reminder row, returns event to pending)."""
+    try:
+        cancel_reminder(user.id, reminder_id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
 @router.get("/api/calendar.ics")
 def api_calendar_ics(
     event_ids: Optional[str] = Query(None, description="Comma-separated event IDs to include"),
@@ -144,7 +157,10 @@ def api_check_reminders(
     """Check for due reminders and send them."""
     result = check_and_send_due(user.id)
     return CheckRemindersResponse(
+        configured=result.configured,
         sent=result.sent,
         failed=result.failed,
+        skipped=result.skipped,
+        errors=result.errors,
         details=[{"reminder_id": d[0], "success": d[1], "detail": d[2]} for d in result.details],
     )
