@@ -32,7 +32,16 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { SvgRefreshCw, SvgCalendar, SvgDownload, SvgSearch, SvgX, SvgCheck, SvgClock } from "@/components/ui/icons";
+import {
+  CalendarIcon,
+  ClockIcon,
+  CheckIcon,
+  XIcon,
+  RefreshCwIcon,
+  DownloadIcon,
+  SearchIcon,
+  MailIcon,
+} from "lucide-react";
 import { toast } from "sonner";
 import { MonthCalendar } from "@/components/reminders/month-calendar";
 
@@ -103,58 +112,63 @@ async function fetchDocuments(): Promise<Document[]> {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-    pending: "secondary",
-    confirmed: "default",
+  const variants: Record<string, "success" | "secondary" | "destructive" | "warning" | "outline"> = {
+    pending: "warning",
+    confirmed: "success",
     skipped: "outline",
-    scheduled: "default",
+    scheduled: "success",
     sent: "secondary",
     failed: "destructive",
     cancelled: "outline",
   };
   return (
-    <Badge variant={variants[status] || "default"} className="capitalize">
+    <Badge variant={variants[status] || "outline"} className="capitalize font-medium text-xs">
       {status}
     </Badge>
   );
 }
 
-function EventCard({ event, onConfirm, onDiscard, onExtract, extractingDocId }: {
+function EventCard({ event, onConfirm, onDiscard, extractingDocId }: {
   event: Event;
   onConfirm: (id: number) => void;
   onDiscard: (id: number) => void;
-  onExtract: (docId: number) => void;
   extractingDocId: number | null;
 }) {
   return (
-    <Card className="mb-3">
-      <CardContent className="pt-4 pb-4">
-        <div className="flex items-start justify-between gap-4">
+    <Card className="mb-3 border border-border/80 shadow-xs hover:border-border transition-colors">
+      <CardContent className="p-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="font-medium truncate">{event.event_text}</span>
+            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+              <span className="font-semibold text-sm text-foreground truncate">{event.event_text}</span>
               <StatusBadge status={event.status} />
             </div>
-            <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
               {event.raw_date && (
-                <span><SvgClock className="h-4 w-4 inline mr-1" /> Raw: {event.raw_date}</span>
+                <span className="flex items-center gap-1 font-mono">
+                  <ClockIcon className="size-3.5" /> Raw: {event.raw_date}
+                </span>
               )}
               {event.event_date && (
-                <span><SvgCalendar className="h-4 w-4 inline mr-1" /> Date: {event.event_date}</span>
+                <span className="flex items-center gap-1 font-mono">
+                  <CalendarIcon className="size-3.5" /> Date: {event.event_date}
+                </span>
               )}
               {event.document_id && (
-                <span><SvgCalendar className="h-4 w-4 inline mr-1" /> Doc ID: {event.document_id}</span>
+                <span className="flex items-center gap-1">
+                  <span className="font-medium">Doc #{event.document_id}</span>
+                </span>
               )}
             </div>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 shrink-0 pt-1 sm:pt-0">
             {event.status === "pending" && (
               <>
-                <Button variant="outline" size="sm" onClick={() => onConfirm(event.id)} disabled={extractingDocId !== null}>
-                  <SvgCheck className="mr-2 h-4 w-4" /> Confirm
+                <Button variant="outline" size="sm" onClick={() => onConfirm(event.id)} disabled={extractingDocId !== null} className="h-8 text-xs gap-1.5 cursor-pointer">
+                  <CheckIcon className="size-3.5" /> Confirm
                 </Button>
-                <Button variant="ghost" size="sm" onClick={() => onDiscard(event.id)} className="text-red-600 hover:bg-red-50" disabled={extractingDocId !== null}>
-                  <SvgX className="mr-1 h-4 w-4" /> Discard
+                <Button variant="ghost" size="sm" onClick={() => onDiscard(event.id)} className="h-8 text-xs text-destructive hover:bg-destructive/10 cursor-pointer" disabled={extractingDocId !== null}>
+                  <XIcon className="size-3.5 mr-1" /> Discard
                 </Button>
               </>
             )}
@@ -183,24 +197,21 @@ function ReminderCard({
   isSyncing?: boolean;
 }) {
   return (
-    <Card className="mb-3">
-      <CardContent className="pt-4 pb-4">
-        <div className="flex items-start justify-between gap-4">
+    <Card className="mb-3 border border-border/80 shadow-xs hover:border-border transition-colors">
+      <CardContent className="p-4">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <span className="font-medium truncate">{reminder.subject}</span>
+            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+              <span className="font-semibold text-sm text-foreground truncate">{reminder.subject}</span>
               <StatusBadge status={reminder.status} />
               {/* Sync Badge */}
               {reminder.sync_status === "synced" && (
-                <Badge
-                  variant="outline"
-                  className="text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 text-xs font-normal"
-                >
-                  Synced
+                <Badge variant="success" className="text-xs font-normal">
+                  Synced to Google
                 </Badge>
               )}
               {reminder.sync_status === "failed" && (
-                <span className="inline-flex items-center gap-1">
+                <span className="inline-flex items-center gap-1.5">
                   <Badge
                     variant="destructive"
                     className="text-xs font-normal"
@@ -211,15 +222,15 @@ function ReminderCard({
                   {onRetrySync && (
                     <Button
                       variant="outline"
-                      size="sm"
-                      className="h-6 px-2 text-xs text-destructive hover:bg-destructive/10"
+                      size="xs"
+                      className="h-5 px-1.5 text-[11px] text-destructive hover:bg-destructive/10 cursor-pointer"
                       onClick={() => onRetrySync(reminder.id)}
                       disabled={isSyncing}
                     >
                       {isSyncing ? (
-                        <SvgRefreshCw className="mr-1 h-3 w-3 animate-spin" />
+                        <RefreshCwIcon className="mr-1 size-3 animate-spin" />
                       ) : null}
-                      Retry
+                      Retry Sync
                     </Button>
                   )}
                 </span>
@@ -230,19 +241,22 @@ function ReminderCard({
                 </Badge>
               )}
             </div>
-            <p className="text-sm text-muted-foreground mb-2">{reminder.body}</p>
-            <div className="flex items-center gap-3 text-sm text-muted-foreground">
-              <span><SvgClock className="h-4 w-4 inline mr-1" /> {formatDate(reminder.remind_at)}</span>
+            {reminder.body && (
+              <p className="text-xs text-muted-foreground mb-2 leading-relaxed">{reminder.body}</p>
+            )}
+            <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono">
+              <ClockIcon className="size-3.5" />
+              <span>Remind at: {formatDate(reminder.remind_at)}</span>
             </div>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 shrink-0 pt-1 sm:pt-0">
             {reminder.status === "scheduled" && (
               <>
-                <Button variant="outline" size="sm" onClick={() => onSendNow(reminder.id)} disabled={sendingReminderId !== null || cancellingReminderId !== null}>
-                  <SvgClock className="mr-2 h-4 w-4" /> Send now
+                <Button variant="outline" size="sm" onClick={() => onSendNow(reminder.id)} disabled={sendingReminderId !== null || cancellingReminderId !== null} className="h-8 text-xs gap-1.5 cursor-pointer">
+                  <ClockIcon className="size-3.5" /> Send Now
                 </Button>
-                <Button variant="ghost" size="sm" onClick={() => onCancel(reminder.id)} className="text-red-600 hover:bg-red-50" disabled={sendingReminderId !== null || cancellingReminderId !== null}>
-                  <SvgX className="mr-1 h-4 w-4" /> Cancel reminder
+                <Button variant="ghost" size="sm" onClick={() => onCancel(reminder.id)} className="h-8 text-xs text-destructive hover:bg-destructive/10 cursor-pointer" disabled={sendingReminderId !== null || cancellingReminderId !== null}>
+                  <XIcon className="size-3.5 mr-1" /> Cancel
                 </Button>
               </>
             )}
@@ -267,35 +281,35 @@ function ExtractDialog({ open, onOpenChange, onExtract, extractingDocId, documen
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Extract Events from Document</DialogTitle>
-          <DialogDescription>Select a document to extract events from.</DialogDescription>
+          <DialogDescription>Select a processed document to scan for dates, milestones, and deadlines.</DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 mt-4">
+        <div className="space-y-4 mt-3">
           <select
-            className="w-full px-3 py-2 border rounded-md"
+            className="w-full h-10 px-3 py-2 border border-input rounded-lg bg-background text-foreground text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/40 cursor-pointer"
             disabled={extractingDocId !== null}
             onChange={(e) => onExtract(Number(e.target.value))}
             value={extractingDocId || ""}
           >
-            <option value="">Select a document</option>
+            <option value="">Select a document...</option>
             {readyDocs.map((doc) => (
               <option key={doc.id} value={String(doc.id)}>
-                {doc.filename} ({doc.file_type})
+                {doc.filename} ({doc.file_type.toUpperCase()})
               </option>
             ))}
           </select>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={extractingDocId !== null}>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={extractingDocId !== null} className="cursor-pointer">
               Cancel
             </Button>
-            <Button onClick={() => onOpenChange(false)} disabled={extractingDocId === null}>
+            <Button size="sm" onClick={() => onOpenChange(false)} disabled={extractingDocId === null} className="cursor-pointer">
               {extractingDocId !== null ? (
                 <>
-                  <SvgRefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  <RefreshCwIcon className="mr-2 size-3.5 animate-spin" />
                   Extracting...
                 </>
               ) : (
                 <>
-                  <SvgSearch className="mr-2 h-4 w-4" />
+                  <SearchIcon className="mr-2 size-3.5" />
                   Extract
                 </>
               )}
@@ -313,29 +327,103 @@ function ConfirmDialog({ open, onOpenChange, onConfirm, remindingAt }: {
   onConfirm: (remindAt?: string) => void;
   remindingAt?: string;
 }) {
+  const [prevRemindingAt, setPrevRemindingAt] = useState(remindingAt || "");
   const [remindAt, setRemindAt] = useState(remindingAt || "");
+  const [leadTimeOption, setLeadTimeOption] = useState<string>("default");
+
+  if (prevRemindingAt !== (remindingAt || "")) {
+    setPrevRemindingAt(remindingAt || "");
+    setRemindAt(remindingAt || "");
+  }
+
+  const handleLeadTimeChange = (option: string) => {
+    setLeadTimeOption(option);
+    const now = new Date();
+    let target = new Date();
+
+    if (option === "default") {
+      setRemindAt("");
+      return;
+    }
+    if (option === "15m") {
+      target = new Date(now.getTime() + 15 * 60 * 1000);
+    } else if (option === "1h") {
+      target = new Date(now.getTime() + 60 * 60 * 1000);
+    } else if (option === "1d") {
+      target = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    } else if (option === "2d") {
+      target = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+    } else if (option === "1w") {
+      target = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    }
+
+    if (option !== "custom") {
+      const pad = (n: number) => String(n).padStart(2, "0");
+      const formatted = `${target.getFullYear()}-${pad(target.getMonth() + 1)}-${pad(target.getDate())}T${pad(target.getHours())}:${pad(target.getMinutes())}`;
+      setRemindAt(formatted);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Confirm Event</DialogTitle>
-          <DialogDescription>Set reminder time (optional). Defaults to event date at 09:00 or today at 09:00.</DialogDescription>
+          <DialogTitle>Confirm Event & Schedule Reminder</DialogTitle>
+          <DialogDescription>
+            Choose a lead time or set a custom reminder time. Defaults to event date at 09:00.
+          </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 mt-4">
-          <input
-            type="datetime-local"
-            value={remindAt}
-            onChange={(e) => setRemindAt(e.target.value)}
-            className="w-full px-3 py-2 border rounded-md"
-            placeholder="YYYY-MM-DDTHH:MM"
-          />
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <div className="space-y-4 mt-3">
+          {/* Lead-Time Dropdown */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Reminder Lead Time
+            </label>
+            <select
+              value={leadTimeOption}
+              onChange={(e) => handleLeadTimeChange(e.target.value)}
+              className="w-full h-10 px-3 py-2 border border-input rounded-lg bg-background text-foreground text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/40 cursor-pointer"
+            >
+              <option value="default">At event date/time (default)</option>
+              <option value="15m">15 minutes before / from now</option>
+              <option value="1h">1 hour before / from now</option>
+              <option value="1d">1 day before</option>
+              <option value="2d">2 days before</option>
+              <option value="1w">1 week before</option>
+              <option value="custom">Custom date & time...</option>
+            </select>
+          </div>
+
+          {/* Date Time Input */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Notification Date & Time
+            </label>
+            <input
+              type="datetime-local"
+              value={remindAt}
+              onChange={(e) => {
+                setRemindAt(e.target.value);
+                setLeadTimeOption("custom");
+              }}
+              className="w-full h-10 px-3 py-2 border border-input rounded-lg bg-background text-foreground text-sm font-mono outline-none focus:border-ring focus:ring-2 focus:ring-ring/40 cursor-pointer"
+              placeholder="YYYY-MM-DDTHH:MM"
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} className="cursor-pointer">
               Cancel
             </Button>
-            <Button onClick={() => { onConfirm(remindAt || undefined); onOpenChange(false); }}>
-              Confirm
+            <Button
+              size="sm"
+              onClick={() => {
+                onConfirm(remindAt || undefined);
+                onOpenChange(false);
+              }}
+              className="cursor-pointer font-medium"
+            >
+              Schedule Reminder
             </Button>
           </div>
         </div>
@@ -357,23 +445,25 @@ function CancelReminderDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Cancel reminder</DialogTitle>
+          <DialogTitle>Cancel Reminder</DialogTitle>
           <DialogDescription>
-            Cancel this reminder? The event goes back to Pending.
+            Cancel this scheduled reminder? The event will return to Pending status.
           </DialogDescription>
         </DialogHeader>
         <div className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Keep reminder
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} className="cursor-pointer">
+            Keep Reminder
           </Button>
           <Button
             variant="destructive"
+            size="sm"
             onClick={() => {
               onConfirm();
               onOpenChange(false);
             }}
+            className="cursor-pointer"
           >
-            Cancel reminder
+            Cancel Reminder
           </Button>
         </div>
       </DialogContent>
@@ -394,21 +484,23 @@ function DiscardEventDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Discard event</DialogTitle>
+          <DialogTitle>Discard Event</DialogTitle>
           <DialogDescription>
-            Are you sure you want to discard this event? This action cannot be undone.
+            Are you sure you want to discard this event? It will no longer appear on your calendar.
           </DialogDescription>
         </DialogHeader>
         <div className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Keep event
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} className="cursor-pointer">
+            Keep Event
           </Button>
           <Button
             variant="destructive"
+            size="sm"
             onClick={() => {
               onConfirm();
               onOpenChange(false);
             }}
+            className="cursor-pointer"
           >
             Discard
           </Button>
@@ -440,7 +532,7 @@ function DownloadCalendarButton({
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
       toast.success("Calendar downloaded");
-    } catch (err) {
+    } catch {
       toast.error("Failed to download calendar");
     } finally {
       setDownloading(false);
@@ -453,16 +545,16 @@ function DownloadCalendarButton({
       size="sm"
       onClick={handleDownload}
       disabled={downloading}
-      className="text-xs text-muted-foreground hover:text-foreground h-7 px-2"
+      className="text-xs text-muted-foreground hover:text-foreground h-7 px-2 cursor-pointer"
     >
       {downloading ? (
         <>
-          <SvgRefreshCw className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+          <RefreshCwIcon className="mr-1.5 size-3.5 animate-spin" />
           Downloading .ics...
         </>
       ) : (
         <>
-          <SvgDownload className="mr-1.5 h-3.5 w-3.5" />
+          <DownloadIcon className="mr-1.5 size-3.5" />
           {label}
         </>
       )}
@@ -491,13 +583,15 @@ function DisconnectGoogleDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isDisconnecting}>
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={isDisconnecting} className="cursor-pointer">
             Cancel
           </Button>
           <Button
             variant="destructive"
+            size="sm"
             onClick={onConfirm}
             disabled={isDisconnecting}
+            className="cursor-pointer"
           >
             {isDisconnecting ? "Disconnecting..." : "Disconnect"}
           </Button>
@@ -521,18 +615,18 @@ function GoogleCalendarCard({
   if (!status) return null;
 
   return (
-    <Card className="border">
-      <CardContent className="pt-4 pb-4">
+    <Card className="border border-border/80 shadow-xs">
+      <CardContent className="p-4 sm:p-5">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-sm sm:text-base">Google Calendar</span>
+            <div className="flex items-center gap-2.5">
+              <span className="font-heading font-semibold text-sm sm:text-base text-foreground">Google Calendar Sync</span>
               {status.connected ? (
-                <Badge variant="outline" className="text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 text-xs">
+                <Badge variant="success" className="text-xs">
                   Connected
                 </Badge>
               ) : status.configured ? (
-                <Badge variant="outline" className="text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-xs">
+                <Badge variant="warning" className="text-xs">
                   Not connected
                 </Badge>
               ) : (
@@ -543,31 +637,31 @@ function GoogleCalendarCard({
             </div>
 
             {!status.configured ? (
-              <p className="text-xs text-muted-foreground">
-                Google Calendar sync is not configured on this server. Set <code className="px-1 py-0.5 rounded bg-muted">GOOGLE_CLIENT_ID</code> and <code className="px-1 py-0.5 rounded bg-muted">GOOGLE_CLIENT_SECRET</code> in <code className="px-1 py-0.5 rounded bg-muted">.env</code> (see setup docs).
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Google Calendar sync is not configured on this server. Set <code className="px-1 py-0.5 rounded bg-muted font-mono text-[11px]">GOOGLE_CLIENT_ID</code> and <code className="px-1 py-0.5 rounded bg-muted font-mono text-[11px]">GOOGLE_CLIENT_SECRET</code> in <code className="px-1 py-0.5 rounded bg-muted font-mono text-[11px]">.env</code>.
               </p>
             ) : status.connected ? (
-              <p className="text-xs text-muted-foreground">
-                Connected as <span className="font-medium text-foreground">{status.google_email || "Google Account"}</span>. Confirmed events automatically appear in your Google Calendar.
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Connected as <span className="font-semibold text-foreground">{status.google_email || "Google Account"}</span>. Confirmed reminders automatically sync to your calendar.
               </p>
             ) : (
-              <p className="text-xs text-muted-foreground">
-                Connect your Google account so confirmed reminders automatically sync to your Google Calendar.
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Connect your Google account so scheduled reminders automatically sync as events to your Google Calendar.
               </p>
             )}
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
             {status.configured && !status.connected && (
-              <Button size="sm" onClick={onConnect} disabled={isConnecting} className="h-8 text-xs">
+              <Button size="sm" onClick={onConnect} disabled={isConnecting} className="h-8 text-xs gap-1.5 cursor-pointer font-medium">
                 {isConnecting ? (
                   <>
-                    <SvgRefreshCw className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    <RefreshCwIcon className="size-3.5 animate-spin" />
                     Connecting...
                   </>
                 ) : (
                   <>
-                    <SvgCalendar className="mr-1.5 h-3.5 w-3.5" />
+                    <CalendarIcon className="size-3.5" />
                     Connect Google Calendar
                   </>
                 )}
@@ -579,7 +673,7 @@ function GoogleCalendarCard({
                 variant="outline"
                 size="sm"
                 onClick={onDisconnectClick}
-                className="h-8 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                className="h-8 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive cursor-pointer"
               >
                 Disconnect
               </Button>
@@ -744,12 +838,12 @@ export default function RemindersPage() {
     },
   });
 
-  const { data: pendingEvents, isLoading: pendingLoading, refetch: refetchPending } = useQuery({
+  const { data: pendingEvents, isLoading: pendingLoading } = useQuery({
     queryKey: ["events", "pending"],
     queryFn: () => fetchEvents("pending"),
   });
 
-  const { data: scheduledReminders, isLoading: scheduledLoading, refetch: refetchScheduled } = useQuery({
+  const { data: scheduledReminders, isLoading: scheduledLoading } = useQuery({
     queryKey: ["reminders", "scheduled"],
     queryFn: fetchReminders,
   });
@@ -790,7 +884,7 @@ export default function RemindersPage() {
       setConfirmRemindAt("");
 
       const emailStatus = res?.data?.email_status;
-      const googleStatus = res?.data?.google_status;
+      const googleStatusRes = res?.data?.google_status;
 
       const parts = ["Reminder set."];
       if (emailStatus === "sent") {
@@ -799,17 +893,17 @@ export default function RemindersPage() {
         parts.push("Email delivery failed.");
       }
 
-      if (googleStatus === "synced") {
+      if (googleStatusRes === "synced") {
         parts.push("Added to Google Calendar.");
-      } else if (googleStatus === "failed") {
+      } else if (googleStatusRes === "failed") {
         parts.push("Google Calendar sync failed.");
       }
 
       const message = parts.join(" ");
 
-      if (googleStatus === "failed" || emailStatus === "failed") {
+      if (googleStatusRes === "failed" || emailStatus === "failed") {
         toast.warning(message);
-      } else if (emailStatus === "no_email" && !googleStatus) {
+      } else if (emailStatus === "no_email" && !googleStatusRes) {
         toast.info(message, {
           action: {
             label: "Add email",
@@ -847,7 +941,7 @@ export default function RemindersPage() {
   });
 
   const sendNowMutation = useMutation({
-    mutationFn: (reminderId: number) => (import("@/lib/api")).then(m => m.remindersCheck()),
+    mutationFn: (id: number) => (import("@/lib/api")).then(m => { void id; return m.remindersCheck(); }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["reminders", "scheduled"] });
       queryClient.invalidateQueries({ queryKey: ["calendar-items"] });
@@ -949,16 +1043,16 @@ export default function RemindersPage() {
 
   if (pendingLoading || scheduledLoading || allEventsLoading || docsLoading) {
     return (
-      <div className="p-6 max-w-4xl mx-auto">
-        <Card>
+      <div className="max-w-6xl mx-auto py-8">
+        <Card className="border border-border/80">
           <CardHeader>
-            <CardTitle>Reminders & Events</CardTitle>
-            <CardDescription>Manage extracted events and reminders</CardDescription>
+            <CardTitle>Reminders & Calendar</CardTitle>
+            <CardDescription>Loading calendar schedule and notifications...</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="h-24 animate-pulse bg-muted rounded-lg" />
+                <div key={i} className="h-24 animate-pulse bg-muted rounded-xl" />
               ))}
             </div>
           </CardContent>
@@ -970,7 +1064,31 @@ export default function RemindersPage() {
   const isGoogleConnected = Boolean(google?.connected);
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto space-y-6">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-border/60">
+        <div>
+          <h1 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+            Reminders & Calendar
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Track extracted dates, confirm milestones, and sync notifications to Google Calendar or .ics
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setExtractDialogOpen(true)}
+            className="text-xs h-8 gap-1.5 cursor-pointer"
+          >
+            <SearchIcon className="size-3.5" />
+            <span>Scan Document</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* Interactive Month Calendar View */}
       <MonthCalendar
         onConfirmEvent={handleConfirm}
         onDiscardEvent={handleDiscard}
@@ -980,7 +1098,7 @@ export default function RemindersPage() {
         isSyncingReminderId={syncingReminderId}
       />
 
-      {/* Google Calendar Card */}
+      {/* Google Calendar Integration Card */}
       <GoogleCalendarCard
         status={google}
         onConnect={() => connectGoogleMutation.mutate()}
@@ -988,14 +1106,16 @@ export default function RemindersPage() {
         isConnecting={connectGoogleMutation.isPending}
       />
 
+      {/* Email Notification Card / Manager */}
       {user && !user.email ? (
         <Card className="border-primary/30 bg-primary/5">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold">
-              Add your email to receive reminder confirmations
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <MailIcon className="size-4.5 text-primary" />
+              Add your email to receive reminder notifications
             </CardTitle>
-            <CardDescription>
-              We&apos;ll send you email notifications and calendar invites when reminders are due.
+            <CardDescription className="text-xs">
+              MemoryNest sends automated email notifications and calendar invites when reminders are due.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -1013,21 +1133,21 @@ export default function RemindersPage() {
                 value={emailInput}
                 onChange={(e) => setEmailInput(e.target.value)}
                 disabled={updateEmailMutation.isPending}
-                className="h-9"
+                className="h-9 text-sm"
                 required
               />
               <Button
                 type="submit"
                 disabled={updateEmailMutation.isPending || !emailInput.trim()}
-                className="h-9 w-full sm:w-auto"
+                className="h-9 w-full sm:w-auto font-medium cursor-pointer"
               >
                 {updateEmailMutation.isPending ? (
                   <>
-                    <SvgRefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    <RefreshCwIcon className="mr-2 size-3.5 animate-spin" />
                     Saving...
                   </>
                 ) : (
-                  "Save"
+                  "Save Email"
                 )}
               </Button>
             </form>
@@ -1035,22 +1155,24 @@ export default function RemindersPage() {
         </Card>
       ) : user?.email ? (
         isEditingEmail ? (
-          <div className="p-4 rounded-lg border bg-card text-card-foreground shadow-sm">
+          <div className="p-4 rounded-xl border border-border bg-card text-card-foreground shadow-xs">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-              <span className="text-sm font-medium whitespace-nowrap">Reminder email:</span>
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
+                Notification Email:
+              </span>
               <Input
                 type="email"
                 placeholder="you@example.com"
                 value={emailInput}
                 onChange={(e) => setEmailInput(e.target.value)}
                 disabled={updateEmailMutation.isPending}
-                className="h-8 max-w-xs text-sm"
+                className="h-8.5 max-w-xs text-sm"
                 autoFocus
               />
               <div className="flex items-center gap-2">
                 <Button
                   size="sm"
-                  className="h-8 text-xs"
+                  className="h-8.5 text-xs font-medium cursor-pointer"
                   onClick={handleSaveEmail}
                   disabled={updateEmailMutation.isPending}
                 >
@@ -1059,7 +1181,7 @@ export default function RemindersPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8 text-xs"
+                  className="h-8.5 text-xs cursor-pointer"
                   onClick={() => {
                     setIsEditingEmail(false);
                     setEmailInput(user.email || "");
@@ -1072,15 +1194,16 @@ export default function RemindersPage() {
             </div>
           </div>
         ) : (
-          <div className="flex items-center justify-between text-sm text-muted-foreground bg-muted/40 px-3.5 py-2 rounded-lg border">
+          <div className="flex items-center justify-between text-xs text-muted-foreground bg-muted/40 px-4 py-2.5 rounded-xl border border-border/80">
             <div className="flex items-center gap-2 truncate">
-              <span>Reminder email:</span>
-              <span className="font-medium text-foreground truncate">{user.email}</span>
+              <MailIcon className="size-4 text-primary shrink-0" />
+              <span>Notification address:</span>
+              <span className="font-semibold text-foreground truncate">{user.email}</span>
             </div>
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 px-2.5 text-xs text-primary hover:text-primary font-medium"
+              className="h-7 px-2.5 text-xs text-primary hover:text-primary font-medium cursor-pointer"
               onClick={() => {
                 setEmailInput(user.email || "");
                 setIsEditingEmail(true);
@@ -1092,31 +1215,40 @@ export default function RemindersPage() {
         )
       ) : null}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Reminders & Events</CardTitle>
-          <CardDescription>Manage extracted events and reminders</CardDescription>
+      {/* Tabs for Events and Reminders */}
+      <Card className="border border-border/80 shadow-xs">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold">Events & Scheduled Reminders</CardTitle>
+          <CardDescription className="text-xs">Review pending dates extracted from documents and manage active notification alerts</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 pt-0">
           <Tabs defaultValue="pending" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="pending">Pending ({pendingEventsData.filter(e => e.status === "pending").length})</TabsTrigger>
-              <TabsTrigger value="scheduled">Scheduled ({scheduledRemindersData.filter(r => r.status === "scheduled").length})</TabsTrigger>
-              <TabsTrigger value="all">All Events ({allEventsData.length})</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-3 max-w-md">
+              <TabsTrigger value="pending" className="cursor-pointer text-xs">
+                Pending ({pendingEventsData.filter(e => e.status === "pending").length})
+              </TabsTrigger>
+              <TabsTrigger value="scheduled" className="cursor-pointer text-xs">
+                Scheduled ({scheduledRemindersData.filter(r => r.status === "scheduled").length})
+              </TabsTrigger>
+              <TabsTrigger value="all" className="cursor-pointer text-xs">
+                All ({allEventsData.length})
+              </TabsTrigger>
             </TabsList>
 
+            {/* Pending Tab */}
             <TabsContent value="pending" className="mt-4 space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="font-medium">Events awaiting confirmation</h3>
-                <Button variant="outline" size="sm" onClick={() => setExtractDialogOpen(true)} disabled={extractingDocId !== null}>
-                  <SvgSearch className="mr-2 h-4 w-4" /> Find dates in a document
+                <h3 className="text-sm font-semibold text-foreground">Events awaiting confirmation</h3>
+                <Button variant="outline" size="sm" onClick={() => setExtractDialogOpen(true)} disabled={extractingDocId !== null} className="text-xs h-7.5 gap-1.5 cursor-pointer">
+                  <SearchIcon className="size-3.5" /> Find dates in document
                 </Button>
               </div>
 
               {pendingEventsData.filter(e => e.status === "pending").length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <SvgCalendar className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                  <p>No pending events. Extract events from a document to get started.</p>
+                <div className="text-center py-12 text-muted-foreground border border-dashed border-border/80 rounded-xl bg-muted/20">
+                  <CalendarIcon className="mx-auto size-10 mb-2 opacity-40" />
+                  <p className="text-sm font-medium text-foreground">No pending events</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Extract dates from a document to get started</p>
                 </div>
               ) : (
                 <>
@@ -1126,7 +1258,6 @@ export default function RemindersPage() {
                       event={event}
                       onConfirm={handleConfirm}
                       onDiscard={handleDiscard}
-                      onExtract={handleExtract}
                       extractingDocId={extractingDocId}
                     />
                   ))}
@@ -1145,26 +1276,28 @@ export default function RemindersPage() {
               )}
             </TabsContent>
 
+            {/* Scheduled Tab */}
             <TabsContent value="scheduled" className="mt-4 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-medium">Scheduled reminders</h3>
-                <div className="flex flex-col items-end gap-1">
-                  <Button variant="outline" size="sm" onClick={() => checkDueMutation.mutate()} disabled={checkDueMutation.isPending}>
-                    <SvgRefreshCw className={`mr-2 h-4 w-4 ${checkDueMutation.isPending ? "animate-spin" : ""}`} />
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <h3 className="text-sm font-semibold text-foreground">Scheduled notification reminders</h3>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={() => checkDueMutation.mutate()} disabled={checkDueMutation.isPending} className="text-xs h-7.5 gap-1.5 cursor-pointer">
+                    <RefreshCwIcon className={`size-3.5 ${checkDueMutation.isPending ? "animate-spin" : ""}`} />
                     Send due reminders
                   </Button>
                   {health && health.email_configured === false && (
-                    <p className="text-xs text-muted-foreground">
-                      Email reminders are off. The calendar download still works.
+                    <p className="text-[11px] text-muted-foreground">
+                      Email service not configured. ICS downloads work.
                     </p>
                   )}
                 </div>
               </div>
 
               {scheduledRemindersData.filter(r => r.status === "scheduled").length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <SvgClock className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                  <p>No scheduled reminders. Confirm events to schedule reminders.</p>
+                <div className="text-center py-12 text-muted-foreground border border-dashed border-border/80 rounded-xl bg-muted/20">
+                  <ClockIcon className="mx-auto size-10 mb-2 opacity-40" />
+                  <p className="text-sm font-medium text-foreground">No scheduled reminders</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Confirm pending events to schedule notifications</p>
                 </div>
               ) : (
                 <>
@@ -1195,12 +1328,13 @@ export default function RemindersPage() {
               )}
             </TabsContent>
 
+            {/* All Tab */}
             <TabsContent value="all" className="mt-4 space-y-4">
-              <h3 className="font-medium">All events</h3>
+              <h3 className="text-sm font-semibold text-foreground">All document events</h3>
               {allEventsData.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <SvgCalendar className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                  <p>No events yet.</p>
+                <div className="text-center py-12 text-muted-foreground border border-dashed border-border/80 rounded-xl bg-muted/20">
+                  <CalendarIcon className="mx-auto size-10 mb-2 opacity-40" />
+                  <p className="text-sm font-medium text-foreground">No events recorded yet</p>
                 </div>
               ) : (
                 <>
@@ -1210,7 +1344,6 @@ export default function RemindersPage() {
                       event={event}
                       onConfirm={handleConfirm}
                       onDiscard={handleDiscard}
-                      onExtract={handleExtract}
                       extractingDocId={extractingDocId}
                     />
                   ))}
@@ -1232,6 +1365,7 @@ export default function RemindersPage() {
         </CardContent>
       </Card>
 
+      {/* Dialogs */}
       <ExtractDialog
         open={extractDialogOpen}
         onOpenChange={setExtractDialogOpen}

@@ -8,6 +8,11 @@ import {
   ChevronDownIcon,
   ChevronUpIcon,
   BellIcon,
+  CalendarIcon,
+  CheckIcon,
+  ClockIcon,
+  XIcon,
+  RotateCwIcon,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -25,7 +30,6 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { SvgCalendar, SvgCheck, SvgClock, SvgX } from "@/components/ui/icons";
 import { calendarItems, type CalendarItem } from "@/lib/api";
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -53,8 +57,8 @@ export function CalendarSyncBadge({
   if (status === "synced") {
     return (
       <Badge
-        variant="outline"
-        className="text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 text-[10px] py-0 px-1.5 font-normal"
+        variant="success"
+        className="text-[10px] py-0 px-1.5 font-normal"
       >
         Synced
       </Badge>
@@ -71,14 +75,18 @@ export function CalendarSyncBadge({
           <Button
             variant="ghost"
             size="sm"
-            className="h-5 px-1.5 text-[10px] text-destructive hover:bg-destructive/10"
+            className="h-5 px-1.5 text-[10px] text-destructive hover:bg-destructive/10 cursor-pointer"
             onClick={(e) => {
               e.stopPropagation();
               onRetry();
             }}
             disabled={isRetrying}
           >
-            {isRetrying ? "..." : "Retry"}
+            {isRetrying ? (
+              <RotateCwIcon className="size-2.5 animate-spin" />
+            ) : (
+              "Retry"
+            )}
           </Button>
         )}
       </span>
@@ -116,7 +124,6 @@ export function MonthCalendar({
 }: MonthCalendarProps) {
   const [isOpen, setIsOpen] = useState(true);
 
-  // Initialize with current date in Asia/Kolkata
   const [currentYear, setCurrentYear] = useState(() => new Date().getFullYear());
   const [currentMonth, setCurrentMonth] = useState(() => new Date().getMonth());
   const [selectedDate, setSelectedDate] = useState<string>(() => formatLocalDate(new Date()));
@@ -127,7 +134,6 @@ export function MonthCalendar({
     const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
     const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
 
-    // Monday = 0, ..., Sunday = 6
     const startDayOfWeek = (firstDayOfMonth.getDay() + 6) % 7;
     const totalDaysInMonth = lastDayOfMonth.getDate();
 
@@ -168,7 +174,7 @@ export function MonthCalendar({
       });
     }
 
-    // Next month padding (complete weeks)
+    // Next month padding
     const remainingCells = (7 - (days.length % 7)) % 7;
     for (let i = 1; i <= remainingCells; i++) {
       const d = new Date(currentYear, currentMonth + 1, i);
@@ -189,7 +195,7 @@ export function MonthCalendar({
   const endDateStr = calendarDays[calendarDays.length - 1]?.dateStr || "";
 
   // Fetch items for the visible range
-  const { data: items = [], isLoading } = useQuery<CalendarItem[]>({
+  const { data: items = [] } = useQuery<CalendarItem[]>({
     queryKey: ["calendar-items", startDateStr, endDateStr],
     queryFn: async () => {
       if (!startDateStr || !endDateStr) return [];
@@ -258,15 +264,15 @@ export function MonthCalendar({
   const selectedDayItems = itemsByDate[selectedDate] || [];
 
   return (
-    <Card className="mb-6 border">
+    <Card className="mb-6 border border-border/80 shadow-xs">
       <CardHeader
-        className="py-3 px-4 flex flex-row items-center justify-between cursor-pointer select-none bg-muted/20"
+        className="py-3 px-4 flex flex-row items-center justify-between cursor-pointer select-none bg-muted/20 hover:bg-muted/30 transition-colors"
         onClick={() => setIsOpen(!isOpen)}
       >
-        <div className="flex items-center gap-2">
-          <SvgCalendar className="h-4 w-4 text-primary" />
-          <CardTitle className="text-base font-semibold">Calendar View</CardTitle>
-          <span className="text-xs text-muted-foreground font-normal">
+        <div className="flex items-center gap-2.5">
+          <CalendarIcon className="size-4.5 text-primary" />
+          <CardTitle className="text-base font-semibold tracking-tight">Calendar View</CardTitle>
+          <span className="text-xs text-muted-foreground font-medium">
             ({monthLabel})
           </span>
         </div>
@@ -274,14 +280,14 @@ export function MonthCalendar({
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 w-7 p-0"
+            className="size-7 p-0 cursor-pointer"
             onClick={(e) => {
               e.stopPropagation();
               setIsOpen(!isOpen);
             }}
             aria-label={isOpen ? "Collapse calendar" : "Expand calendar"}
           >
-            {isOpen ? <ChevronUpIcon className="h-4 w-4" /> : <ChevronDownIcon className="h-4 w-4" />}
+            {isOpen ? <ChevronUpIcon className="size-4" /> : <ChevronDownIcon className="size-4" />}
           </Button>
         </div>
       </CardHeader>
@@ -289,22 +295,22 @@ export function MonthCalendar({
       {isOpen && (
         <CardContent className="pt-4 px-3 sm:px-4 pb-4 space-y-4">
           {/* Calendar Header Controls */}
-          <div className="flex flex-wrap items-center justify-between gap-2 pb-2">
-            <h3 className="text-base sm:text-lg font-bold tracking-tight">{monthLabel}</h3>
+          <div className="flex flex-wrap items-center justify-between gap-2 pb-1">
+            <h3 className="font-heading text-base sm:text-lg font-bold tracking-tight text-foreground">{monthLabel}</h3>
             <div className="flex items-center gap-1.5">
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 px-2 text-xs"
+                className="size-8 p-0 cursor-pointer"
                 onClick={goToPrevMonth}
                 aria-label="Previous month"
               >
-                <ChevronLeftIcon className="h-4 w-4" />
+                <ChevronLeftIcon className="size-4" />
               </Button>
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 px-2.5 text-xs font-medium"
+                className="h-8 px-3 text-xs font-medium cursor-pointer"
                 onClick={goToToday}
               >
                 Today
@@ -312,17 +318,17 @@ export function MonthCalendar({
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 px-2 text-xs"
+                className="size-8 p-0 cursor-pointer"
                 onClick={goToNextMonth}
                 aria-label="Next month"
               >
-                <ChevronRightIcon className="h-4 w-4" />
+                <ChevronRightIcon className="size-4" />
               </Button>
             </div>
           </div>
 
           {/* Weekday headers */}
-          <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-muted-foreground py-1">
+          <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground py-1">
             {WEEKDAYS.map((day) => (
               <div key={day} className="py-0.5">
                 {day}
@@ -331,7 +337,7 @@ export function MonthCalendar({
           </div>
 
           {/* Month grid */}
-          <div className="grid grid-cols-7 gap-1 bg-border/40 p-1 rounded-lg border">
+          <div className="grid grid-cols-7 gap-1 bg-border/40 p-1 rounded-xl border border-border/60">
             {calendarDays.map((day) => {
               const dayItems = itemsByDate[day.dateStr] || [];
               const visibleItems = dayItems.slice(0, 3);
@@ -344,18 +350,18 @@ export function MonthCalendar({
                   onClick={() => handleDayClick(day.dateStr)}
                   role="button"
                   tabIndex={0}
-                  className={`min-h-[64px] sm:min-h-[96px] p-1 sm:p-1.5 rounded-md flex flex-col justify-start transition-colors cursor-pointer select-none bg-background text-foreground hover:bg-accent/40 ${
-                    !day.isCurrentMonth ? "opacity-40" : ""
+                  className={`min-h-[64px] sm:min-h-[96px] p-1 sm:p-1.5 rounded-lg flex flex-col justify-start transition-all cursor-pointer select-none bg-card text-card-foreground hover:bg-accent/40 ${
+                    !day.isCurrentMonth ? "opacity-35" : ""
                   } ${
                     isSelected ? "ring-2 ring-primary ring-offset-1" : ""
                   } ${
-                    day.isToday ? "border border-primary/50 bg-primary/[0.03]" : ""
+                    day.isToday ? "border border-primary/50 bg-primary/[0.04]" : "border border-border/30"
                   }`}
                 >
                   {/* Day header number */}
                   <div className="flex items-center justify-between mb-1">
                     <span
-                      className={`text-xs inline-flex items-center justify-center rounded-full h-5 w-5 ${
+                      className={`text-xs inline-flex items-center justify-center rounded-full size-5.5 ${
                         day.isToday
                           ? "bg-primary text-primary-foreground font-bold shadow-xs"
                           : "font-medium"
@@ -380,9 +386,9 @@ export function MonthCalendar({
                           <div
                             key={`rem-${item.id}`}
                             title={item.title}
-                            className="bg-sky-50 dark:bg-sky-950/50 text-sky-800 dark:text-sky-300 border border-sky-300 dark:border-sky-800 text-[10px] font-medium px-1.5 py-0.5 rounded truncate flex items-center gap-1 shadow-2xs"
+                            className="bg-info/10 text-info border border-info/30 text-[10px] font-medium px-1.5 py-0.5 rounded truncate flex items-center gap-1 shadow-2xs"
                           >
-                            <BellIcon className="h-2.5 w-2.5 shrink-0 text-sky-600 dark:text-sky-400" />
+                            <BellIcon className="size-2.5 shrink-0" />
                             <span className="truncate">{item.title}</span>
                           </div>
                         );
@@ -396,7 +402,7 @@ export function MonthCalendar({
                             title={item.title}
                             className="bg-primary text-primary-foreground text-[10px] font-medium px-1.5 py-0.5 rounded truncate flex items-center gap-1 shadow-2xs"
                           >
-                            <SvgCheck className="h-2.5 w-2.5 shrink-0" />
+                            <CheckIcon className="size-2.5 shrink-0" />
                             <span className="truncate">{item.title}</span>
                           </div>
                         );
@@ -407,9 +413,9 @@ export function MonthCalendar({
                         <div
                           key={`ev-${item.id}`}
                           title={item.title}
-                          className="border border-amber-500/80 text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 text-[10px] font-medium px-1.5 py-0.5 rounded truncate flex items-center gap-1 shadow-2xs"
+                          className="border border-warning/50 text-warning-foreground bg-warning/15 text-[10px] font-medium px-1.5 py-0.5 rounded truncate flex items-center gap-1 shadow-2xs"
                         >
-                          <SvgClock className="h-2.5 w-2.5 shrink-0 text-amber-600 dark:text-amber-400" />
+                          <ClockIcon className="size-2.5 shrink-0" />
                           <span className="truncate">{item.title}</span>
                         </div>
                       );
@@ -427,17 +433,17 @@ export function MonthCalendar({
                     {dayItems.slice(0, 4).map((item, idx) => (
                       <span
                         key={idx}
-                        className={`h-1.5 w-1.5 rounded-full ${
+                        className={`size-1.5 rounded-full ${
                           item.kind === "reminder"
-                            ? "bg-sky-500"
+                            ? "bg-info"
                             : item.status === "confirmed"
                             ? "bg-primary"
-                            : "bg-amber-500"
+                            : "bg-warning"
                         }`}
                       />
                     ))}
                     {dayItems.length > 4 && (
-                      <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground" />
+                      <span className="size-1.5 rounded-full bg-muted-foreground" />
                     )}
                   </div>
                 </div>
@@ -446,7 +452,7 @@ export function MonthCalendar({
           </div>
 
           {/* Mobile view: list of selected day's items below calendar */}
-          <div className="block sm:hidden border rounded-lg p-3 bg-muted/10 space-y-2 mt-3">
+          <div className="block sm:hidden border border-border/80 rounded-xl p-3 bg-muted/20 space-y-2 mt-3">
             <div className="flex items-center justify-between text-xs font-semibold">
               <span>Items on {selectedDate}:</span>
               <span className="text-muted-foreground">({selectedDayItems.length})</span>
@@ -458,15 +464,15 @@ export function MonthCalendar({
                 {selectedDayItems.map((item) => (
                   <div
                     key={`${item.kind}-${item.id}`}
-                    className="flex items-center justify-between p-2 rounded border bg-card text-xs gap-2"
+                    className="flex items-center justify-between p-2.5 rounded-lg border border-border/80 bg-card text-xs gap-2"
                   >
                     <div className="flex items-center gap-1.5 truncate">
                       {item.kind === "reminder" ? (
-                        <BellIcon className="h-3 w-3 text-sky-500 shrink-0" />
+                        <BellIcon className="size-3.5 text-info shrink-0" />
                       ) : item.status === "confirmed" ? (
-                        <SvgCheck className="h-3 w-3 text-primary shrink-0" />
+                        <CheckIcon className="size-3.5 text-primary shrink-0" />
                       ) : (
-                        <SvgClock className="h-3 w-3 text-amber-500 shrink-0" />
+                        <ClockIcon className="size-3.5 text-warning shrink-0" />
                       )}
                       <span className="truncate font-medium">{item.title}</span>
                     </div>
@@ -495,7 +501,7 @@ export function MonthCalendar({
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base">
-              <SvgCalendar className="h-4 w-4 text-primary" />
+              <CalendarIcon className="size-4.5 text-primary" />
               Events & Reminders
             </DialogTitle>
             <DialogDescription>
@@ -508,7 +514,7 @@ export function MonthCalendar({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-3 mt-3 max-h-[60vh] overflow-y-auto pr-1">
+          <div className="space-y-3 mt-2 max-h-[60vh] overflow-y-auto pr-1">
             {selectedDayItems.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-6">
                 No events or reminders scheduled for this date.
@@ -517,18 +523,18 @@ export function MonthCalendar({
               selectedDayItems.map((item) => (
                 <div
                   key={`${item.kind}-${item.id}`}
-                  className="p-3 rounded-lg border bg-card space-y-2 shadow-2xs"
+                  className="p-3.5 rounded-xl border border-border/80 bg-card space-y-2 shadow-2xs"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 mb-1 flex-wrap">
                         {item.kind === "reminder" ? (
-                          <span className="inline-flex items-center gap-1 text-xs font-semibold text-sky-600 dark:text-sky-400">
-                            <BellIcon className="h-3.5 w-3.5" /> Reminder
+                          <span className="inline-flex items-center gap-1 text-xs font-semibold text-info">
+                            <BellIcon className="size-3.5" /> Reminder
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary">
-                            <SvgCalendar className="h-3.5 w-3.5" /> Event
+                            <CalendarIcon className="size-3.5" /> Event
                           </span>
                         )}
                         <Badge
@@ -546,37 +552,37 @@ export function MonthCalendar({
                         )}
                       </div>
                       <p className="text-sm font-medium leading-snug">{item.title}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
+                      <p className="text-xs text-muted-foreground mt-1 font-mono">
                         {item.all_day ? "All-day" : item.date}
                       </p>
                     </div>
                   </div>
 
-                  {/* Actions depending on kind and status */}
-                  <div className="flex justify-end gap-1.5 pt-1 border-t">
+                  {/* Actions */}
+                  <div className="flex justify-end gap-1.5 pt-2 border-t border-border/60">
                     {item.kind === "event" && item.status === "pending" && (
                       <>
                         <Button
                           variant="outline"
                           size="sm"
-                          className="h-7 text-xs"
+                          className="h-7.5 text-xs gap-1 cursor-pointer"
                           onClick={() => {
                             setDialogOpen(false);
                             onConfirmEvent(item.id);
                           }}
                         >
-                          <SvgCheck className="mr-1 h-3.5 w-3.5" /> Confirm
+                          <CheckIcon className="size-3" /> Confirm
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-7 text-xs text-destructive hover:bg-destructive/10"
+                          className="h-7.5 text-xs text-destructive hover:bg-destructive/10 cursor-pointer"
                           onClick={() => {
                             setDialogOpen(false);
                             onDiscardEvent(item.id);
                           }}
                         >
-                          <SvgX className="mr-1 h-3.5 w-3.5" /> Discard
+                          <XIcon className="size-3 mr-1" /> Discard
                         </Button>
                       </>
                     )}
@@ -586,24 +592,24 @@ export function MonthCalendar({
                         <Button
                           variant="outline"
                           size="sm"
-                          className="h-7 text-xs"
+                          className="h-7.5 text-xs gap-1 cursor-pointer"
                           onClick={() => {
                             setDialogOpen(false);
                             onSendReminderNow(item.id);
                           }}
                         >
-                          <SvgClock className="mr-1 h-3.5 w-3.5" /> Send now
+                          <ClockIcon className="size-3" /> Send now
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-7 text-xs text-destructive hover:bg-destructive/10"
+                          className="h-7.5 text-xs text-destructive hover:bg-destructive/10 cursor-pointer"
                           onClick={() => {
                             setDialogOpen(false);
                             onCancelReminder(item.id);
                           }}
                         >
-                          <SvgX className="mr-1 h-3.5 w-3.5" /> Cancel
+                          <XIcon className="size-3 mr-1" /> Cancel
                         </Button>
                       </>
                     )}
