@@ -209,3 +209,37 @@ INFO:     127.0.0.1:53680 - "GET /api/events HTTP/1.1" 200 OK
 INFO:     127.0.0.1:53644 - "GET /api/documents HTTP/1.1" 200 OK
 INFO:     127.0.0.1:53684 - "GET /health HTTP/1.1" 404 Not Found
 INFO:     127.0.0.1:34590 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:53374 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53374 - "GET /api/google/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53386 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53394 - "GET /api/events?status=pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53374 - "GET /api/documents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53402 - "GET /api/reminders HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53416 - "GET /api/events HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53416 - "GET /api/calendar/items?start=2026-09-28&end=2026-11-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53416 - "POST /api/auth/logout HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53416 - "GET /api/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:40688 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:39462 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39476 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39484 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39462 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39476 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39476 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39462 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39476 - "GET /api/google/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39484 - "GET /api/events?status=pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39492 - "GET /api/reminders HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39502 - "GET /api/events HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39508 - "GET /api/documents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39508 - "GET /api/calendar/items?start=2026-09-28&end=2026-11-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39508 - "GET /api/summaries HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39508 - "POST /api/summaries/1/audio HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39508 - "GET /api/summaries/1/audio HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39070 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:38546 - "GET /api/conversations HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38546 - "GET /api/conversations/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59206 - "GET /health HTTP/1.1" 404 Not Found
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Loading weights:   0%|          | 0/103 [00:00<?, ?it/s]Loading weights: 100%|██████████| 103/103 [00:00<00:00, 4448.20it/s]
+INFO:     127.0.0.1:46256 - "GET /health HTTP/1.1" 404 Not Found
