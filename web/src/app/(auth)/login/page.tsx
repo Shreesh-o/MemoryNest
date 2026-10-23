@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
+import { ShieldCheckIcon, AlertCircleIcon, Loader2Icon } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
@@ -56,16 +57,34 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">MemoryNest</CardTitle>
-          <CardDescription>Sign in to your knowledge vault</CardDescription>
+    <div className="relative min-h-screen flex items-center justify-center bg-background px-4 py-12 selection:bg-primary/20">
+      {/* Subtle decorative background blur */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 -z-10 flex items-center justify-center overflow-hidden"
+      >
+        <div className="size-[28rem] rounded-full bg-primary/5 blur-3xl" />
+      </div>
+
+      <Card className="w-full max-w-md border border-border/80 shadow-lg dark:shadow-2xl">
+        <CardHeader className="text-center pb-4 pt-6">
+          <div className="mx-auto mb-3 flex size-11 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-xs">
+            <ShieldCheckIcon className="size-6" />
+          </div>
+          <CardTitle className="font-heading text-2xl font-bold tracking-tight text-foreground">
+            MemoryNest
+          </CardTitle>
+          <CardDescription className="text-sm text-muted-foreground mt-1">
+            Sign in to your private knowledge vault
+          </CardDescription>
         </CardHeader>
-        <CardContent>
+
+        <CardContent className="pt-2">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="username" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Username
+              </Label>
               <Input
                 id="username"
                 name="username"
@@ -76,10 +95,14 @@ export default function LoginPage() {
                 placeholder="Enter your username"
                 required
                 disabled={isLoading}
+                className="h-10 text-sm"
               />
             </div>
+
             <div className="space-y-1.5">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Password
+              </Label>
               <Input
                 id="password"
                 name="password"
@@ -91,22 +114,44 @@ export default function LoginPage() {
                 required
                 minLength={6}
                 disabled={isLoading}
+                className="h-10 text-sm"
               />
             </div>
+
             {error && (
-              <div className="text-sm text-destructive" role="alert">
-                {error}
+              <div
+                className="flex items-center gap-2 rounded-lg border border-destructive/20 bg-destructive/10 p-2.5 text-xs font-medium text-destructive animate-in fade-in"
+                role="alert"
+              >
+                <AlertCircleIcon className="size-4 shrink-0" />
+                <span>{error}</span>
               </div>
             )}
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Signing in..." : "Sign in"}
+
+            <Button
+              type="submit"
+              className="w-full h-10 font-semibold shadow-xs transition-all hover:shadow cursor-pointer"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2Icon className="size-4 mr-2 animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                "Sign in"
+              )}
             </Button>
           </form>
         </CardContent>
-        <CardFooter className="flex justify-center">
+
+        <CardFooter className="flex justify-center border-t border-border/60 bg-muted/20 py-4">
           <p className="text-sm text-muted-foreground">
             Don&apos;t have an account?{" "}
-            <Link href="/register" className="text-primary hover:underline">
+            <Link
+              href="/register"
+              className="font-medium text-foreground underline-offset-4 hover:underline hover:text-primary transition-colors"
+            >
               Sign up
             </Link>
           </p>
