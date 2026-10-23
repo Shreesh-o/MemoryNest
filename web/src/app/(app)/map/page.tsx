@@ -24,11 +24,11 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card"
-import { Slider } from "@/components/ui/slider"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Slider as BaseUISlider } from "@base-ui/react/slider"
 import { getGraph, refreshGraph, type GraphNode, type GraphEdge } from "@/lib/api"
 
 // Import react-force-graph-2d dynamically with SSR disabled
@@ -426,15 +426,20 @@ setSelectedNodeData(null)
                   {Math.round(minScore * 100)}%
                 </span>
               </div>
-              <Slider
+              <BaseUISlider.Root
                 id="minScore"
                 min={0.3}
                 max={0.9}
                 step={0.05}
-                value={[minScore]}
-                onValueChange={([v]) => setMinScore(v)}
+                value={minScore}
+                onValueChange={(v: number) => setMinScore(v)}
                 className="w-full"
-              />
+              >
+                <BaseUISlider.Track className="relative h-2 w-full grow overflow-hidden rounded-full bg-secondary">
+                  <BaseUISlider.Indicator className="h-full bg-primary" />
+                </BaseUISlider.Track>
+                <BaseUISlider.Thumb className="block h-5 w-5 rounded-full border-2 border-primary bg-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50" />
+              </BaseUISlider.Root>
             </div>
             <div className="flex gap-2">
               <Button
