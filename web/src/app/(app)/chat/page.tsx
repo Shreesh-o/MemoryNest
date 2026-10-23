@@ -24,12 +24,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Badge } from "@/components/ui/badge"
 import {
   Popover,
   PopoverTrigger,
   PopoverContent,
 } from "@/components/ui/popover"
-import { Check, Search, X, ChevronDown, Layers } from "lucide-react"
 import {
   Sheet,
   SheetContent,
@@ -44,16 +44,25 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import {
-  SvgPlus,
-  SvgTrash2,
-  SvgMessageSquare,
-  SvgSend,
-  SvgLoader2,
-  SvgRefreshCw,
-  SvgAlertTriangle,
-  SvgAlertCircle,
-  SvgFileText,
-} from "@/components/ui/icons"
+  CheckIcon,
+  SearchIcon,
+  XIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  LayersIcon,
+  PlusIcon,
+  Trash2Icon,
+  MessageSquareIcon,
+  SendIcon,
+  Loader2Icon,
+  RefreshCwIcon,
+  AlertTriangleIcon,
+  AlertCircleIcon,
+  FileTextIcon,
+  BotIcon,
+  UserIcon,
+  SparklesIcon,
+} from "lucide-react"
 import { toast } from "sonner"
 import Markdown from "react-markdown"
 
@@ -112,18 +121,18 @@ function ConversationList({
 }) {
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      <div className="p-3 border-b shrink-0">
-        <Button onClick={onNewChat} className="w-full justify-start gap-2" variant="outline">
-          <SvgPlus className="h-4 w-4" />
-          <span>New chat</span>
+      <div className="p-3 border-b border-border/80 shrink-0">
+        <Button onClick={onNewChat} className="w-full justify-start gap-2 h-9 text-xs font-semibold cursor-pointer" variant="outline">
+          <PlusIcon className="size-4" />
+          <span>New Chat</span>
         </Button>
       </div>
       <div className="flex-1 overflow-y-auto min-h-0 p-2 space-y-1">
         {conversations.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground px-4">
-            <SvgMessageSquare className="mx-auto h-8 w-8 mb-2 opacity-40" />
-            <p className="text-sm font-medium">No conversations yet</p>
-            <p className="text-xs text-muted-foreground mt-1">Start a new chat to begin</p>
+          <div className="text-center py-10 text-muted-foreground px-4">
+            <MessageSquareIcon className="mx-auto size-8 mb-2 opacity-30" />
+            <p className="text-xs font-medium text-foreground">No conversations yet</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Start a chat to ask questions</p>
           </div>
         ) : (
           conversations.map((convo) => {
@@ -132,33 +141,33 @@ function ConversationList({
               <div
                 key={convo.id}
                 className={cn(
-                  "group flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer text-left transition-colors relative",
+                  "group flex items-center gap-2.5 px-3 py-2.5 rounded-lg cursor-pointer text-left transition-all relative border border-transparent",
                   isActive
-                    ? "bg-accent text-accent-foreground font-medium"
-                    : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                    ? "bg-accent text-accent-foreground font-medium border-border/60 shadow-2xs"
+                    : "hover:bg-muted/60 text-muted-foreground hover:text-foreground"
                 )}
                 onClick={() => onSelect(convo.id)}
               >
-                <SvgMessageSquare className="h-4 w-4 shrink-0 opacity-70" />
+                <MessageSquareIcon className="size-3.5 shrink-0 opacity-70" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm truncate leading-snug">
-                    {convo.title || "Untitled"}
+                  <p className="text-xs truncate font-medium leading-snug">
+                    {convo.title || "Untitled Conversation"}
                   </p>
-                  <p className="text-xs text-muted-foreground truncate opacity-70 mt-0.5">
+                  <p className="text-[10px] text-muted-foreground truncate opacity-70 mt-0.5">
                     {formatRelativeTime(convo.updated_at || convo.created_at)}
                   </p>
                 </div>
                 <Button
                   variant="ghost"
-                  size="icon"
+                  size="icon-xs"
                   aria-label="Delete conversation"
-                  className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+                  className="size-6 shrink-0 text-muted-foreground hover:text-destructive opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 transition-opacity cursor-pointer"
                   onClick={(e) => {
                     e.stopPropagation()
                     onDelete(convo)
                   }}
                 >
-                  <SvgTrash2 className="h-3.5 w-3.5" />
+                  <Trash2Icon className="size-3" />
                 </Button>
               </div>
             )
@@ -178,7 +187,6 @@ function ChatContent() {
   const conversationId = cParam ? parseInt(cParam, 10) : null
   const isValidId = conversationId !== null && !isNaN(conversationId) && conversationId > 0
 
-  // Adjust state when cParam changes during render
   const [prevCParam, setPrevCParam] = useState<string | null>(cParam)
   const [messages, setMessages] = useState<Message[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -221,7 +229,6 @@ function ChatContent() {
     return []
   })
 
-  // Adjust state during render when docParam changes
   if (prevDocParam !== docParam) {
     setPrevDocParam(docParam)
     if (docParam) {
@@ -259,7 +266,6 @@ function ChatContent() {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const lastUserQuestionRef = useRef<string>("")
 
-  // Fetch conversations list with React Query
   const { data: conversations = [] } = useQuery({
     queryKey: ["conversations"],
     queryFn: async () => {
@@ -271,7 +277,6 @@ function ChatContent() {
     },
   })
 
-  // Fetch current conversation if ID is valid
   const {
     data: fetchedConversation,
     isError: isConversationError,
@@ -292,7 +297,6 @@ function ChatContent() {
   const activeConversation = isValidId && fetchedConversation ? fetchedConversation : null
   const notFound = Boolean(cParam && (!isValidId || isConversationError))
 
-  // Populate messages from active conversation (including sources and scope)
   const conversationMessages: Message[] = useMemo(() => {
     if (messages.length > 0) return messages
     if (activeConversation?.messages && activeConversation.id === conversationId) {
@@ -328,14 +332,12 @@ function ChatContent() {
     return readyDocuments.filter((d) => d.filename.toLowerCase().includes(q))
   }, [readyDocuments, docSearchQuery])
 
-  // Sort newest first
   const sortedConversations = [...conversations].sort((a, b) => {
     const timeA = new Date(a.updated_at || a.created_at || 0).getTime()
     const timeB = new Date(b.updated_at || b.created_at || 0).getTime()
     return timeB - timeA
   })
 
-  // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
       const res = await conversationsDelete(id)
@@ -360,7 +362,6 @@ function ChatContent() {
     },
   })
 
-  // Auto-grow textarea up to 6 rows (~150px)
   const adjustTextareaHeight = useCallback(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto"
@@ -373,7 +374,6 @@ function ChatContent() {
     adjustTextareaHeight()
   }, [input, adjustTextareaHeight])
 
-  // Scroll to bottom when messages or loading state changes
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [conversationMessages, isLoadingChat])
@@ -425,10 +425,8 @@ function ChatContent() {
         }
         setMessages([...currentList, userMessage, assistantMessage])
 
-        // Refresh conversation list immediately
         await queryClient.invalidateQueries({ queryKey: ["conversations"] })
 
-        // Update active conversation & keep URL in sync if this was a new chat
         if (conversationId !== newConvoId) {
           setJustCreatedId(newConvoId)
           await queryClient.invalidateQueries({ queryKey: ["conversation", newConvoId] })
@@ -473,15 +471,15 @@ function ChatContent() {
 
   return (
     <div className="-m-4 md:-m-6 h-[calc(100dvh-4rem)] flex overflow-hidden min-h-0 bg-background">
-      {/* Desktop left column (w-72, border-r) */}
-      <aside className="hidden md:flex flex-col w-72 shrink-0 border-r bg-card min-h-0">
-        <div className="p-3 border-b shrink-0 flex items-center justify-between">
+      {/* Desktop Left Conversations Column */}
+      <aside className="hidden md:flex flex-col w-72 shrink-0 border-r border-border/80 bg-sidebar text-sidebar-foreground min-h-0">
+        <div className="p-3.5 border-b border-sidebar-border shrink-0 flex items-center justify-between">
           <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Conversations
+            History
           </span>
-          <span className="text-xs text-muted-foreground font-mono">
+          <Badge variant="outline" className="font-mono text-[10px] px-1.5 py-0">
             {sortedConversations.length}
-          </span>
+          </Badge>
         </div>
         <ConversationList
           conversations={sortedConversations}
@@ -492,11 +490,11 @@ function ChatContent() {
         />
       </aside>
 
-      {/* Mobile drawer Sheet */}
+      {/* Mobile Drawer Sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent side="left" className="w-80 p-0 flex flex-col min-h-0">
-          <SheetHeader className="p-4 border-b">
-            <SheetTitle>Conversations</SheetTitle>
+          <SheetHeader className="p-4 border-b border-border/80">
+            <SheetTitle className="font-heading text-base font-semibold">Conversations</SheetTitle>
           </SheetHeader>
           <ConversationList
             conversations={sortedConversations}
@@ -514,34 +512,34 @@ function ChatContent() {
         </SheetContent>
       </Sheet>
 
-      {/* Right column */}
+      {/* Right Column: Chat Window */}
       <div className="flex-1 flex flex-col min-w-0 min-h-0 bg-background">
-        {/* Header */}
-        <div className="border-b bg-background px-4 py-3 shrink-0 flex items-center justify-between">
-          <div className="flex items-center gap-2 min-w-0">
+        {/* Top Header */}
+        <div className="border-b border-border/80 bg-background/90 backdrop-blur-xs px-4 py-2.5 shrink-0 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
             <Button
               variant="outline"
-              size="icon"
-              className="md:hidden shrink-0"
+              size="icon-sm"
+              className="md:hidden shrink-0 cursor-pointer"
               onClick={() => setSheetOpen(true)}
               aria-label="Open conversation list"
             >
-              <SvgMessageSquare className="h-4 w-4" />
+              <MessageSquareIcon className="size-4" />
             </Button>
             <div className="min-w-0">
-              <h1 className="text-base font-semibold truncate">
+              <h2 className="text-sm font-semibold truncate text-foreground">
                 {notFound
                   ? "Conversation not found"
                   : activeConversation
                   ? activeConversation.title || "Chat"
-                  : "New Chat"}
-              </h1>
-              <p className="text-xs text-muted-foreground truncate">
+                  : "New Conversation"}
+              </h2>
+              <p className="text-[11px] text-muted-foreground truncate">
                 {notFound
-                  ? "This conversation could not be found"
+                  ? "This thread could not be found"
                   : activeConversation
                   ? formatRelativeTime(activeConversation.updated_at || activeConversation.created_at)
-                  : "Start a new conversation"}
+                  : "Grounding answers with local RAG citations"}
               </p>
             </div>
           </div>
@@ -549,55 +547,57 @@ function ChatContent() {
             variant="outline"
             size="sm"
             onClick={handleNewChat}
-            className="gap-1.5 shrink-0"
+            className="text-xs h-7.5 gap-1.5 shrink-0 cursor-pointer"
           >
-            <SvgPlus className="h-4 w-4" />
-            <span className="hidden sm:inline">New chat</span>
+            <PlusIcon className="size-3.5" />
+            <span className="hidden sm:inline">New Chat</span>
           </Button>
         </div>
 
-        {/* Message area */}
+        {/* Message Scroll Area */}
         <div className="flex-1 overflow-y-auto min-h-0 p-4 md:p-6">
-          <div className="max-w-3xl mx-auto w-full space-y-4">
+          <div className="max-w-3xl mx-auto w-full space-y-5">
             {notFound ? (
               <div className="flex items-center justify-center min-h-[300px]">
-                <Card className="max-w-md w-full text-center">
+                <Card className="max-w-md w-full text-center border-border">
                   <CardHeader>
-                    <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-2">
-                      <SvgAlertCircle className="h-6 w-6 text-muted-foreground" />
+                    <div className="mx-auto size-12 rounded-xl bg-muted/60 flex items-center justify-center mb-2">
+                      <AlertCircleIcon className="size-6 text-muted-foreground" />
                     </div>
-                    <CardTitle className="text-lg">Conversation not found</CardTitle>
-                    <CardDescription>
-                      This conversation does not exist or you do not have permission to view it.
+                    <CardTitle className="text-base font-semibold">Conversation not found</CardTitle>
+                    <CardDescription className="text-xs">
+                      This thread does not exist or may have been deleted.
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <Button onClick={handleNewChat} className="w-full gap-2">
-                      <SvgPlus className="h-4 w-4" />
-                      New chat
+                    <Button onClick={handleNewChat} size="sm" className="w-full gap-2 cursor-pointer">
+                      <PlusIcon className="size-4" />
+                      Start New Chat
                     </Button>
                   </CardContent>
                 </Card>
               </div>
             ) : conversationMessages.length === 0 && !isLoadingChat && !error ? (
-              <div className="flex flex-col items-center justify-center min-h-[320px] text-center max-w-md mx-auto py-8">
-                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
-                  <SvgMessageSquare className="h-6 w-6 text-muted-foreground" />
+              <div className="flex flex-col items-center justify-center min-h-[340px] text-center max-w-lg mx-auto py-10">
+                <div className="size-13 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-4 ring-1 ring-primary/20">
+                  <SparklesIcon className="size-6.5" />
                 </div>
-                <h2 className="text-lg font-semibold mb-2">Start a conversation</h2>
-                <p className="text-sm text-muted-foreground mb-6">
-                  Ask questions about your documents. I&apos;ll search through your uploaded files
-                  and provide answers with citations.
+                <h2 className="font-heading text-lg font-bold text-foreground mb-1.5">
+                  Ask Your Knowledge Vault
+                </h2>
+                <p className="text-xs text-muted-foreground mb-6 leading-relaxed max-w-md">
+                  Query your uploaded files with semantic precision. Answers include verifiable document citations and chunk similarities.
                 </p>
                 <div className="space-y-2 w-full">
                   {SUGGESTED_QUESTIONS.map((q, i) => (
                     <Button
                       key={i}
                       variant="outline"
-                      className="w-full justify-start text-left h-auto py-2.5 px-3.5 text-sm font-normal"
+                      className="w-full justify-between text-left h-auto py-2.5 px-3.5 text-xs font-normal border-border/80 hover:border-border hover:bg-muted/40 transition-all cursor-pointer group"
                       onClick={() => handleSend(q)}
                     >
-                      {q}
+                      <span className="truncate">{q}</span>
+                      <ChevronRightIcon className="size-3.5 text-muted-foreground opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
                     </Button>
                   ))}
                 </div>
@@ -614,20 +614,21 @@ function ChatContent() {
                   >
                     <div
                       className={cn(
-                        "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium",
+                        "size-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 shadow-2xs",
                         msg.role === "user"
                           ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-muted-foreground"
+                          : "bg-muted text-muted-foreground ring-1 ring-border/50"
                       )}
                     >
-                      {msg.role === "user" ? "You" : "AI"}
+                      {msg.role === "user" ? <UserIcon className="size-3.5" /> : <BotIcon className="size-3.5" />}
                     </div>
+
                     <div
                       className={cn(
-                        "rounded-lg p-3.5",
+                        "rounded-xl px-4 py-3 text-sm leading-relaxed transition-all",
                         msg.role === "user"
-                          ? "bg-primary text-primary-foreground max-w-[85%] ml-auto"
-                          : "bg-muted/50 border border-border/50 max-w-[90%]"
+                          ? "bg-primary text-primary-foreground max-w-[85%] ml-auto shadow-xs"
+                          : "bg-card border border-border/80 text-card-foreground max-w-[90%] shadow-xs"
                       )}
                     >
                       <div
@@ -640,57 +641,47 @@ function ChatContent() {
                       >
                         <Markdown>{msg.content}</Markdown>
                       </div>
+
                       {msg.role === "assistant" && msg.scope && (
-                        <p className="mt-2 text-xs text-muted-foreground">
+                        <p className="mt-2.5 text-[11px] text-muted-foreground font-medium pt-2 border-t border-border/40">
                           {(() => {
                             if (
                               msg.scope.scope === "all" ||
                               !msg.scope.document_ids ||
                               msg.scope.document_ids.length === 0
                             ) {
-                              return "Searched: all documents"
+                              return "Scope: All documents searched"
                             }
                             const names = msg.scope.document_ids.map((id) => {
                               const found = readyDocuments.find((d) => d.id === id)
                               if (found) return found.filename
                               const srcFound = msg.sources?.find((s) => s.document_id === id)
                               if (srcFound) return srcFound.document
-                              return `Document #${id}`
+                              return `Doc #${id}`
                             })
-                            return `Searched: ${names.join(", ")}`
+                            return `Scope: ${names.join(", ")}`
                           })()}
                         </p>
                       )}
+
                       {msg.sources && msg.sources.length > 0 && (
                         <details className="mt-2.5 group text-xs border-t border-border/50 pt-2">
-                          <summary className="flex items-center gap-1.5 text-muted-foreground cursor-pointer font-medium hover:text-foreground">
-                            <SvgFileText className="h-3.5 w-3.5" />
-                            <span>Sources ({msg.sources.length})</span>
-                            <svg
-                              className="ml-auto h-3.5 w-3.5 transition-transform group-open:rotate-90"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M9 5l7 7-7 7"
-                              />
-                            </svg>
+                          <summary className="flex items-center gap-1.5 text-muted-foreground cursor-pointer font-medium hover:text-foreground select-none">
+                            <FileTextIcon className="size-3.5 text-primary" />
+                            <span>Citations ({msg.sources.length})</span>
+                            <ChevronRightIcon className="ml-auto size-3.5 transition-transform group-open:rotate-90" />
                           </summary>
-                          <div className="mt-2 space-y-1.5 pl-4 border-l-2 border-muted">
+                          <div className="mt-2 space-y-1.5 pl-3 border-l-2 border-primary/40">
                             {msg.sources.map((source, idx) => (
-                              <div key={idx} className="text-muted-foreground">
-                                <span className="font-medium text-foreground">
+                              <div key={idx} className="text-muted-foreground text-[11px] leading-snug">
+                                <span className="font-semibold text-foreground">
                                   {source.document}
                                 </span>
                                 {source.chunk_index !== undefined && (
-                                  <span> · chunk {source.chunk_index}</span>
+                                  <span className="font-mono text-muted-foreground"> · chunk #{source.chunk_index}</span>
                                 )}
                                 {source.similarity !== undefined && (
-                                  <span> · similarity {source.similarity.toFixed(3)}</span>
+                                  <span className="font-mono text-muted-foreground"> · similarity {source.similarity.toFixed(3)}</span>
                                 )}
                               </div>
                             ))}
@@ -701,39 +692,39 @@ function ChatContent() {
                   </div>
                 ))}
 
-                {/* Thinking... state */}
+                {/* Thinking / Streaming Indicator */}
                 {isLoadingChat && (
                   <div className="flex gap-3">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground">
-                      AI
+                    <div className="size-7 rounded-lg bg-muted flex items-center justify-center shrink-0 mt-0.5 ring-1 ring-border/50 text-muted-foreground">
+                      <BotIcon className="size-3.5" />
                     </div>
-                    <div className="flex-1 bg-muted/40 border border-border/50 rounded-lg p-3.5 space-y-2 max-w-[85%]">
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
-                        <SvgLoader2 className="h-3.5 w-3.5 animate-spin" />
-                        <span>Thinking...</span>
+                    <div className="flex-1 bg-card border border-border/80 rounded-xl p-4 space-y-2.5 max-w-[85%] shadow-xs">
+                      <div className="flex items-center gap-2 text-xs text-primary font-medium">
+                        <Loader2Icon className="size-3.5 animate-spin" />
+                        <span>Searching documents and generating response...</span>
                       </div>
-                      <div className="h-3 bg-muted animate-pulse rounded w-3/4" />
-                      <div className="h-3 bg-muted animate-pulse rounded w-1/2" />
+                      <div className="h-2.5 bg-muted animate-pulse rounded-full w-3/4" />
+                      <div className="h-2.5 bg-muted animate-pulse rounded-full w-1/2" />
                     </div>
                   </div>
                 )}
 
-                {/* Error card */}
+                {/* Error Banner */}
                 {error && (
-                  <div className="border border-destructive bg-destructive/10 text-destructive p-4 rounded-lg">
+                  <div className="border border-destructive/40 bg-destructive/10 text-destructive p-4 rounded-xl shadow-xs">
                     <div className="flex items-start gap-3">
-                      <SvgAlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                      <AlertTriangleIcon className="size-5 shrink-0 mt-0.5" />
                       <div className="flex-1">
-                        <p className="font-medium">The language model is not running</p>
-                        <p className="text-sm opacity-90 mt-1">{error}</p>
+                        <p className="font-semibold text-sm">Language model error</p>
+                        <p className="text-xs opacity-90 mt-1 leading-relaxed">{error}</p>
                         <Button
                           variant="outline"
                           size="sm"
-                          className="mt-3 gap-1.5"
+                          className="mt-3 text-xs h-7.5 gap-1.5 border-destructive/30 hover:bg-destructive/10 cursor-pointer"
                           onClick={handleRetry}
                         >
-                          <SvgRefreshCw className="h-3.5 w-3.5" />
-                          Retry
+                          <RefreshCwIcon className="size-3.5" />
+                          Retry Query
                         </Button>
                       </div>
                     </div>
@@ -746,8 +737,8 @@ function ChatContent() {
           </div>
         </div>
 
-        {/* Bottom pinned input bar */}
-        <div className="border-t p-3 md:p-4 bg-background shrink-0">
+        {/* Pinned Bottom Input Bar */}
+        <div className="border-t border-border/80 p-3 md:p-4 bg-background shrink-0">
           <div className="max-w-3xl mx-auto w-full">
             <form
               onSubmit={(e) => {
@@ -757,10 +748,10 @@ function ChatContent() {
                 }
               }}
             >
-              {/* Document scope selector */}
+              {/* Scope Selector */}
               {isLoadingDocs ? (
                 <div className="flex items-center gap-2 mb-2">
-                  <Skeleton className="h-7 w-32 rounded-md" />
+                  <Skeleton className="h-6 w-32 rounded-md" />
                 </div>
               ) : readyDocuments.length === 0 ? (
                 <div className="flex items-center gap-2 mb-2 text-xs text-muted-foreground">
@@ -769,9 +760,9 @@ function ChatContent() {
                     size="xs"
                     type="button"
                     disabled
-                    className="h-7 gap-1.5 text-xs font-normal opacity-60 cursor-not-allowed"
+                    className="h-6.5 gap-1.5 text-xs font-normal opacity-60 cursor-not-allowed"
                   >
-                    <Layers className="h-3.5 w-3.5" />
+                    <LayersIcon className="size-3" />
                     <span>All documents</span>
                   </Button>
                   <span>
@@ -780,7 +771,7 @@ function ChatContent() {
                       href="/upload"
                       className="text-primary hover:underline font-medium"
                     >
-                      Upload documents
+                      Upload files
                     </Link>
                   </span>
                 </div>
@@ -794,15 +785,15 @@ function ChatContent() {
                           size="xs"
                           type="button"
                           className={cn(
-                            "h-7 gap-1.5 text-xs font-normal max-w-[260px] border-border/80 transition-colors",
+                            "h-6.5 gap-1.5 text-xs font-normal max-w-[260px] border-border/80 transition-colors cursor-pointer",
                             validSelectedDocIds.length > 0 &&
-                              "border-primary/60 bg-primary/5 text-foreground font-medium"
+                              "border-primary/60 bg-primary/10 text-foreground font-medium"
                           )}
                           title={triggerLabel}
                         >
-                          <Layers className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          <LayersIcon className="size-3 text-muted-foreground shrink-0" />
                           <span className="truncate">{triggerLabel}</span>
-                          <ChevronDown className="h-3 w-3 opacity-60 shrink-0 ml-0.5" />
+                          <ChevronDownIcon className="size-3 opacity-60 shrink-0 ml-0.5" />
                         </Button>
                       }
                     />
@@ -810,11 +801,10 @@ function ChatContent() {
                       align="start"
                       side="top"
                       sideOffset={6}
-                      className="w-80 p-0 shadow-lg border border-border bg-popover text-popover-foreground rounded-lg overflow-hidden"
+                      className="w-80 p-0 shadow-lg border border-border bg-popover text-popover-foreground rounded-xl overflow-hidden"
                     >
-                      {/* Search box */}
                       <div className="p-2 border-b border-border/60 flex items-center gap-1.5 bg-muted/20">
-                        <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0 ml-1" />
+                        <SearchIcon className="size-3.5 text-muted-foreground shrink-0 ml-1" />
                         <Input
                           value={docSearchQuery}
                           onChange={(e) => setDocSearchQuery(e.target.value)}
@@ -824,18 +814,18 @@ function ChatContent() {
                         {docSearchQuery && (
                           <Button
                             variant="ghost"
-                            size="icon"
-                            className="h-5 w-5 text-muted-foreground hover:text-foreground shrink-0"
+                            size="icon-xs"
+                            className="size-5 text-muted-foreground hover:text-foreground shrink-0 cursor-pointer"
                             onClick={() => setDocSearchQuery("")}
                             type="button"
                             aria-label="Clear search"
                           >
-                            <X className="h-3 w-3" />
+                            <XIcon className="size-3" />
                           </Button>
                         )}
                       </div>
 
-                      {/* "All documents" row */}
+                      {/* All documents option */}
                       <div
                         role="checkbox"
                         aria-checked={validSelectedDocIds.length === 0}
@@ -851,21 +841,21 @@ function ChatContent() {
                       >
                         <div
                           className={cn(
-                            "w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors",
+                            "size-4 rounded border flex items-center justify-center shrink-0 transition-colors",
                             validSelectedDocIds.length === 0
                               ? "bg-primary border-primary text-primary-foreground"
                               : "border-muted-foreground/40 bg-background"
                           )}
                         >
-                          {validSelectedDocIds.length === 0 && <Check className="h-3 w-3 stroke-[3]" />}
+                          {validSelectedDocIds.length === 0 && <CheckIcon className="size-3 stroke-[3]" />}
                         </div>
                         <div className="flex-1 min-w-0">
                           <span className="font-medium text-foreground">All documents</span>
                         </div>
-                        <span className="text-[11px] text-muted-foreground shrink-0">Entire library</span>
+                        <span className="text-[10px] text-muted-foreground font-mono shrink-0">Entire library</span>
                       </div>
 
-                      {/* Document list */}
+                      {/* Documents list */}
                       <div className="max-h-56 overflow-y-auto p-1 space-y-0.5">
                         {filteredDocs.length === 0 ? (
                           <div className="py-6 text-center text-xs text-muted-foreground">
@@ -896,19 +886,19 @@ function ChatContent() {
                                   }
                                 }}
                                 className={cn(
-                                  "flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-xs hover:bg-muted/70 cursor-pointer select-none transition-colors",
-                                  isSelected && "bg-muted/40 font-medium"
+                                  "flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs hover:bg-muted/70 cursor-pointer select-none transition-colors",
+                                  isSelected && "bg-muted/50 font-medium"
                                 )}
                               >
                                 <div
                                   className={cn(
-                                    "w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors",
+                                    "size-4 rounded border flex items-center justify-center shrink-0 transition-colors",
                                     isSelected
                                       ? "bg-primary border-primary text-primary-foreground"
                                       : "border-muted-foreground/40 bg-background"
                                   )}
                                 >
-                                  {isSelected && <Check className="h-3 w-3 stroke-[3]" />}
+                                  {isSelected && <CheckIcon className="size-3 stroke-[3]" />}
                                 </div>
                                 <span className="truncate flex-1 text-foreground" title={doc.filename}>
                                   {doc.filename}
@@ -933,7 +923,7 @@ function ChatContent() {
                           <button
                             type="button"
                             onClick={() => updateSelectedDocIds([])}
-                            className="text-primary hover:underline font-medium"
+                            className="text-primary hover:underline font-medium cursor-pointer"
                           >
                             Reset to all
                           </button>
@@ -947,7 +937,7 @@ function ChatContent() {
                       variant="ghost"
                       size="xs"
                       type="button"
-                      className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                      className="h-6.5 px-2 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
                       onClick={() => updateSelectedDocIds([])}
                     >
                       Clear
@@ -955,6 +945,8 @@ function ChatContent() {
                   )}
                 </div>
               )}
+
+              {/* Chat Input Field & Send Button */}
               <div className="flex items-end gap-2">
                 <div className="flex-1 relative">
                   <Textarea
@@ -969,7 +961,7 @@ function ChatContent() {
                     rows={1}
                     disabled={isLoadingChat || notFound}
                     style={{ minHeight: "42px" }}
-                    className="min-h-[42px] max-h-[150px] resize-none py-2.5 pr-4 text-sm leading-relaxed overflow-y-auto"
+                    className="min-h-[42px] max-h-[150px] resize-none py-2.5 pr-4 text-sm leading-relaxed overflow-y-auto rounded-xl"
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault()
@@ -984,17 +976,17 @@ function ChatContent() {
                   type="submit"
                   size="icon"
                   disabled={!input.trim() || isLoadingChat || notFound}
-                  className="h-10 w-10 shrink-0"
+                  className="size-10 shrink-0 rounded-xl cursor-pointer shadow-xs"
                   aria-label="Send message"
                 >
                   {isLoadingChat ? (
-                    <SvgLoader2 className="h-4 w-4 animate-spin" />
+                    <Loader2Icon className="size-4 animate-spin" />
                   ) : (
-                    <SvgSend className="h-4 w-4" />
+                    <SendIcon className="size-4" />
                   )}
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground text-center mt-2">
+              <p className="text-[11px] text-muted-foreground text-center mt-2">
                 Press Enter to send, Shift+Enter for new line
               </p>
             </form>
@@ -1002,7 +994,7 @@ function ChatContent() {
         </div>
       </div>
 
-      {/* Confirmation Dialog for Delete */}
+      {/* Delete Confirmation Dialog */}
       <Dialog
         open={!!conversationToDelete}
         onOpenChange={(open) => {
@@ -1021,21 +1013,25 @@ function ChatContent() {
           <div className="flex justify-end gap-2 mt-4">
             <Button
               variant="outline"
+              size="sm"
               onClick={() => setConversationToDelete(null)}
               disabled={deleteMutation.isPending}
+              className="cursor-pointer"
             >
               Cancel
             </Button>
             <Button
               variant="destructive"
+              size="sm"
               onClick={() => {
                 if (conversationToDelete) {
                   deleteMutation.mutate(conversationToDelete.id)
                 }
               }}
               disabled={deleteMutation.isPending}
+              className="cursor-pointer"
             >
-              {deleteMutation.isPending ? "Deleting..." : "Delete"}
+              {deleteMutation.isPending ? "Deleting..." : "Delete Permanently"}
             </Button>
           </div>
         </DialogContent>
@@ -1053,7 +1049,7 @@ export default function ChatPage() {
     <Suspense
       fallback={
         <div className="-m-4 md:-m-6 h-[calc(100dvh-4rem)] flex items-center justify-center">
-          <SvgLoader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <Loader2Icon className="size-8 animate-spin text-muted-foreground" />
         </div>
       }
     >
