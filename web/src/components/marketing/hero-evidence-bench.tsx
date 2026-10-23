@@ -116,7 +116,7 @@ export function HeroEvidenceBench() {
               onClick={() => setActiveScenarioId(scenario.id)}
               className={`px-3 py-1.5 rounded-lg font-medium transition-all shrink-0 flex items-center gap-1.5 ${
                 isSelected
-                  ? "bg-background text-foreground shadow-xs border border-border/80 font-semibold"
+                  ? "bg-background text-foreground shadow-xs border border-border/80 font-semibold hover:bg-muted/80"
                   : "text-muted-foreground hover:text-foreground hover:bg-background/40"
               }`}
             >
@@ -131,7 +131,7 @@ export function HeroEvidenceBench() {
         {/* Bench Header & Coordinates */}
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3 text-xs">
           <div className="flex items-center gap-2">
-            <span className="size-2 rounded-full bg-emerald-500 animate-pulse" aria-hidden="true" />
+            <span className="size-2 rounded-full bg-emerald-500 animate-beacon" aria-hidden="true" />
             <span className="font-mono text-[11px] font-semibold tracking-wider uppercase text-foreground">
               {active.filename}
             </span>
@@ -181,7 +181,7 @@ export function HeroEvidenceBench() {
 
               {/* Exact Citation Tether Chip */}
               <div className="mt-1 pt-2 border-t border-border/40 flex items-center justify-between">
-                <div className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-2 py-1 text-[11px] font-mono font-medium text-primary border border-primary/20">
+                <div className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-2 py-1 text-[11px] font-mono font-medium text-primary border border-primary/20 animate-beacon">
                   <CornerDownRight className="size-3" aria-hidden="true" />
                   <span>
                     Citation: [{active.filename} · p.{active.page}]

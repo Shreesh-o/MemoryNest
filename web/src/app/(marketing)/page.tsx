@@ -11,11 +11,11 @@ import { CTASection } from "@/components/marketing/cta-section"
 export const metadata: Metadata = {
   title: "MemoryNest — Local-First Personal Knowledge Manager",
   description:
-    "A local-first personal knowledge manager: upload PDFs, DOCX, TXT, and scanned images with OCR. Ask questions with verifiable citations, summarize documents, and stay on top of deadlines with zero cloud lock-in.",
+    "A local-first personal knowledge manager: cited document Q&A, Document Map relationships, and deadline tracking on your own machine.",
   openGraph: {
     title: "MemoryNest — Local-First Personal Knowledge Manager",
     description:
-      "Local-first personal knowledge manager: upload, ask, summarize, and never lose a deadline with local Ollama LLM and ChromaDB vector search.",
+      "A local-first personal knowledge manager: cited document Q&A, Document Map relationships, and deadline tracking on your own machine.",
     type: "website",
   },
 }

@@ -14,7 +14,14 @@ export default function AuthLayout({
   children: React.ReactNode
 }) {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-background">Loading...</div>}>
+    <Suspense
+      fallback={
+        <main tabIndex={-1} className="min-h-screen flex items-center justify-center bg-background p-4">
+          <h1 className="sr-only">MemoryNest Authentication</h1>
+          <div className="text-sm font-mono text-muted-foreground">Loading authentication enclave...</div>
+        </main>
+      }
+    >
       <AuthLayoutClient>{children}</AuthLayoutClient>
     </Suspense>
   )

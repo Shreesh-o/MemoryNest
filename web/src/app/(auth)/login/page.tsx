@@ -57,7 +57,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="relative min-h-screen w-full flex flex-col items-center justify-center bg-background px-4 py-12 selection:bg-primary/15 selection:text-foreground">
+    <main tabIndex={-1} className="relative min-h-screen w-full flex flex-col items-center justify-center bg-background px-4 py-12 selection:bg-primary/15 selection:text-foreground focus:outline-none">
       {/* Back to Home Link */}
       <div className="w-full max-w-md mb-4 flex justify-between items-center text-xs font-mono text-muted-foreground">
         <Link
@@ -75,9 +75,9 @@ export default function LoginPage() {
           <div className="mx-auto mb-3 flex size-11 items-center justify-center rounded-xl bg-foreground text-background shadow-xs">
             <Archive className="size-5" aria-hidden="true" />
           </div>
-          <CardTitle className="font-heading text-2xl font-bold tracking-tight text-foreground">
+          <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground">
             MemoryNest
-          </CardTitle>
+          </h1>
           <CardDescription className="text-xs sm:text-sm text-muted-foreground mt-1 font-sans">
             Sign in to access your local personal knowledge vault
           </CardDescription>
@@ -161,6 +161,6 @@ export default function LoginPage() {
           </p>
         </CardFooter>
       </Card>
-    </div>
+    </main>
   )
 }

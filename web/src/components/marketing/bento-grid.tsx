@@ -171,7 +171,7 @@ export function BentoGrid() {
                   <div className="font-semibold text-foreground">Notice of Non-Renewal</div>
                   <div className="text-muted-foreground text-[11px]">Due: November 1, 2026 · 60-day buffer</div>
                 </div>
-                <span className="rounded bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 px-2 py-0.5 text-[10px] font-mono font-bold">
+                <span className="rounded bg-amber-500/10 text-amber-900 dark:text-amber-200 border border-amber-500/30 px-2 py-0.5 text-[10px] font-mono font-bold">
                   PENDING
                 </span>
               </div>

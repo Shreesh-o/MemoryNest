@@ -16,7 +16,7 @@ export function HeroSection() {
           <div className="flex flex-col items-start text-left lg:col-span-5">
             {/* Archival Coordinate Badge */}
             <div className="inline-flex items-center gap-2 rounded-lg border border-border/80 bg-muted/50 px-3 py-1 text-xs font-mono font-medium text-foreground mb-6 shadow-2xs">
-              <span className="size-2 rounded-full bg-emerald-500 animate-pulse" aria-hidden="true" />
+              <span className="size-2 rounded-full bg-emerald-500 animate-beacon" aria-hidden="true" />
               <span>LOCAL-FIRST KNOWLEDGE ENCLAVE</span>
             </div>
 
