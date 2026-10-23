@@ -43,7 +43,7 @@ export function AuthLayoutClient({
       fallback={
         <main tabIndex={-1} className="min-h-screen flex items-center justify-center bg-background p-4">
           <h1 className="sr-only">MemoryNest Authentication</h1>
-          <div className="text-sm font-mono text-muted-foreground">Loading authentication enclave...</div>
+          <div className="text-sm font-medium text-muted-foreground">Loading...</div>
         </main>
       }
     >

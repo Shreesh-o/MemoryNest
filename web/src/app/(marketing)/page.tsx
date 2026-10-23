@@ -9,13 +9,13 @@ import { TechStack } from "@/components/marketing/tech-stack"
 import { CTASection } from "@/components/marketing/cta-section"
 
 export const metadata: Metadata = {
-  title: "MemoryNest — Local-First Personal Knowledge Manager",
+  title: "MemoryNest — Local-First Personal Knowledge Vault",
   description:
-    "A local-first personal knowledge manager: cited document Q&A, Document Map relationships, and deadline tracking on your own machine.",
+    "A local-first personal knowledge manager: upload documents, ask questions with grounded citations, summarize, and track deadlines locally.",
   openGraph: {
-    title: "MemoryNest — Local-First Personal Knowledge Manager",
+    title: "MemoryNest — Local-First Personal Knowledge Vault",
     description:
-      "A local-first personal knowledge manager: cited document Q&A, Document Map relationships, and deadline tracking on your own machine.",
+      "A local-first personal knowledge manager: upload documents, ask questions with grounded citations, summarize, and track deadlines locally.",
     type: "website",
   },
 }

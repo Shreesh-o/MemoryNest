@@ -1,34 +1,36 @@
-import { UploadCloud, Cpu, CalendarCheck, Binary, ChevronRight } from "lucide-react"
+"use client"
+
+import * as React from "react"
+import { motion, useReducedMotion } from "motion/react"
+import { UploadCloud, Brain, MessageSquareText, CalendarCheck } from "lucide-react"
 
 export function HowItWorks() {
-  const stages = [
+  const shouldReduceMotion = useReducedMotion()
+
+  const steps = [
     {
       step: "01",
-      title: "Local Ingestion & Deduplication",
-      desc: "Drop in PDFs, Word documents, plain text, or scanned receipts. PyMuPDF, python-docx, and Tesseract extract raw content with SHA-256 hashing to eliminate redundant processing.",
+      title: "Upload",
+      desc: "Drop in PDFs, Word docs, TXT files, or scanned receipts. Instant SHA-256 deduplication ensures no duplicate processing.",
       icon: UploadCloud,
-      meta: "PyMuPDF · Tesseract OCR · SHA-256",
     },
     {
       step: "02",
-      title: "Sentence Chunker & Vectorization",
-      desc: "Text is partitioned into sentence-aware chunks of approximately 450 characters. Embeddings are generated locally using the sentence-transformers all-MiniLM-L6-v2 model and stored in ChromaDB.",
-      icon: Binary,
-      meta: "450-char chunks · ChromaDB vector store",
+      title: "Understand",
+      desc: "PyMuPDF, docx, and Tesseract extract text, followed by sentence-aware chunking (~450 char) and local embedding generation.",
+      icon: Brain,
     },
     {
       step: "03",
-      title: "Grounded Retrieval & Local Inference",
-      desc: "Queries trigger vector similarity retrieval. If chunks satisfy the strict similarity gate, Ollama executes local inference (qwen2.5:3b) with verifiable citations; otherwise, it reports insufficient context.",
-      icon: Cpu,
-      meta: "Ollama (qwen2.5:3b) · Sim Gate > 0.30",
+      title: "Ask & Explore",
+      desc: "Converse with your local Ollama LLM, inspect grounded citations, run semantic queries, or explore the interactive Document Map.",
+      icon: MessageSquareText,
     },
     {
       step: "04",
-      title: "Temporal Parsing & Calendar Stream",
-      desc: "Regex patterns and LLM date extractors detect deadlines and obligations, streaming them into an in-app monthly calendar with scheduled reminders and optional Google Calendar OAuth synchronization.",
+      title: "Stay on Top of Deadlines",
+      desc: "Regex and LLM scanners automatically surface upcoming dates into your month view, with optional Google Calendar sync.",
       icon: CalendarCheck,
-      meta: "In-app calendar · Google Calendar OAuth",
     },
   ]
 
@@ -36,61 +38,67 @@ export function HowItWorks() {
     <section
       id="how-it-works"
       aria-labelledby="how-it-works-heading"
-      className="py-16 sm:py-24 bg-background relative overflow-hidden border-t border-border/70"
+      className="py-20 sm:py-28 bg-background relative overflow-hidden"
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="text-left max-w-3xl mb-12 sm:mb-16">
-          <div className="inline-flex items-center gap-1.5 rounded-md border border-border/80 bg-muted/60 px-2.5 py-1 text-xs font-mono uppercase tracking-wider text-muted-foreground mb-3 shadow-2xs">
-            <span>PIPELINE SPECIFICATION // 4-STAGE ENCLAVE</span>
+        <div className="text-center max-w-3xl mx-auto mb-16 sm:mb-20">
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-muted/60 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary mb-4 shadow-2xs">
+            Simple, Transparent Pipeline
           </div>
           <h2
             id="how-it-works-heading"
             className="font-heading text-3xl font-extrabold tracking-tight sm:text-4xl lg:text-5xl text-foreground text-balance"
           >
-            How MemoryNest processes documents.
+            How MemoryNest works
           </h2>
           <p className="mt-4 text-base sm:text-lg text-muted-foreground leading-relaxed text-balance">
-            Four sequential stages from binary disk read to grounded answers and calendar milestones.
-            Every computation occurs inside your local user boundary.
+            Four streamlined stages from raw file ingestion to actionable recall. All executing on
+            your machine.
           </p>
         </div>
 
-        {/* 4 Architectural Process Plates */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-          {stages.map((stage) => {
-            const Icon = stage.icon
-            return (
-              <div
-                key={stage.step}
-                className="rounded-2xl border border-border/80 bg-card p-6 shadow-sm paper-folio flex flex-col justify-between hover:border-primary/40 transition-colors"
-              >
-                <div>
-                  <div className="flex items-center justify-between border-b border-border/50 pb-3 mb-4">
-                    <span className="font-mono text-xs font-bold text-primary">
-                      PHASE {stage.step}
-                    </span>
-                    <div className="size-8 rounded-lg bg-muted flex items-center justify-center text-foreground">
-                      <Icon className="size-4" aria-hidden="true" />
+        {/* Steps Container */}
+        <div className="relative">
+          {/* Desktop Connecting Line */}
+          <div
+            aria-hidden="true"
+            className="hidden lg:block absolute top-1/2 left-12 right-12 -translate-y-12 h-0.5 bg-gradient-to-r from-border via-primary/30 to-border -z-10"
+          />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 relative">
+            {steps.map((item, index) => {
+              const Icon = item.icon
+              return (
+                <motion.div
+                  key={item.step}
+                  initial={shouldReduceMotion ? false : { opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-40px" }}
+                  transition={{ duration: 0.4, delay: shouldReduceMotion ? 0 : index * 0.1 }}
+                  className="rounded-2xl border border-border/70 bg-card p-6 shadow-xs flex flex-col items-center text-center relative group hover:border-primary/40 hover:shadow-md transition-all"
+                >
+                  {/* Number Badge with Icon */}
+                  <div className="relative mb-5">
+                    <div className="size-14 rounded-2xl bg-muted border border-border flex items-center justify-center text-foreground group-hover:bg-primary group-hover:text-primary-foreground group-hover:border-primary transition-colors shadow-2xs">
+                      <Icon className="size-6" aria-hidden="true" />
                     </div>
+                    <span className="absolute -top-2 -right-2 rounded-full bg-primary px-2 py-0.5 text-[10px] font-mono font-bold text-primary-foreground shadow-2xs">
+                      {item.step}
+                    </span>
                   </div>
 
-                  <h3 className="font-heading text-base font-bold text-foreground mb-2">
-                    {stage.title}
+                  <h3 className="font-heading text-lg font-bold text-foreground mb-2">
+                    {item.title}
                   </h3>
 
-                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                    {stage.desc}
+                  <p className="text-sm text-muted-foreground leading-relaxed text-balance">
+                    {item.desc}
                   </p>
-                </div>
-
-                <div className="mt-6 pt-3 border-t border-border/50 font-mono text-[11px] text-muted-foreground flex items-center gap-1">
-                  <ChevronRight className="size-3 text-primary shrink-0" aria-hidden="true" />
-                  <span>{stage.meta}</span>
-                </div>
-              </div>
-            )
-          })}
+                </motion.div>
+              )
+            })}
+          </div>
         </div>
       </div>
     </section>
