@@ -2,12 +2,9 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
-import { formatDate } from "@/lib/api";
 import {
   Card,
   CardHeader,
-  CardTitle,
-  CardDescription,
   CardContent,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,10 +16,20 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Separator } from "@/components/ui/separator";
-import { SvgRefreshCw, SvgFileText, SvgVolume2, SvgDownload, SvgAlertCircle } from "@/components/ui/icons";
+import {
+  FileTextIcon,
+  Volume2Icon,
+  DownloadIcon,
+  AlertCircleIcon,
+  RefreshCwIcon,
+  SparklesIcon,
+  AudioLinesIcon,
+  LayersIcon,
+} from "lucide-react";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { EmptyState } from "@/components/ui/empty-state";
+import Link from "next/link";
 
 type Document = {
   id: number;
@@ -62,14 +69,14 @@ async function fetchSummaries(): Promise<Summary[]> {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-    ready: "default",
+  const variants: Record<string, "success" | "secondary" | "destructive" | "warning" | "outline"> = {
+    ready: "success",
     uploaded: "secondary",
-    processing: "secondary",
+    processing: "warning",
     error: "destructive",
   };
   return (
-    <Badge variant={variants[status] || "default"} className="capitalize">
+    <Badge variant={variants[status] || "outline"} className="capitalize font-mono text-2xs">
       {status}
     </Badge>
   );
@@ -81,7 +88,7 @@ function DocumentCard({
   onSummarize,
   onListen,
   summarizingDocId,
-  generatingAudioId
+  generatingAudioId,
 }: {
   doc: Document;
   existingSummary: Summary | null;
@@ -94,71 +101,81 @@ function DocumentCard({
   const isGeneratingAudio = generatingAudioId === existingSummary?.id;
 
   return (
-    <Card className="mb-4">
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between gap-4">
+    <Card className="border border-border/80 shadow-xs hover:border-border transition-colors">
+      <CardHeader className="p-4 sm:p-5 pb-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="font-medium truncate">{doc.filename}</span>
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <span className="font-semibold text-sm sm:text-base text-foreground truncate">{doc.filename}</span>
               <StatusBadge status={doc.status} />
             </div>
-            <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-              <span><SvgFileText className="h-4 w-4 inline mr-1" /> {doc.chunk_count} chunks</span>
-              <span>{doc.file_type}</span>
+            <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1 font-mono">
+                <LayersIcon className="size-3.5 text-muted-foreground" />
+                {doc.chunk_count} chunk{doc.chunk_count !== 1 ? "s" : ""}
+              </span>
+              <span className="font-mono uppercase text-2xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                {doc.file_type}
+              </span>
             </div>
           </div>
-        </div>
-      </CardHeader>
-      <CardContent className="pt-0 space-y-4">
-        {existingSummary ? (
-          <>
-            <div className="prose prose-sm max-w-none">
-              <ScrollArea className="max-h-64">
-                <p className="whitespace-pre-wrap">{existingSummary.summary_text}</p>
-              </ScrollArea>
-            </div>
-            <div className="flex items-center gap-2">
+          <div className="shrink-0 flex items-center gap-2">
+            {existingSummary ? (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => onListen(existingSummary.id)}
                 disabled={isGeneratingAudio || isSummarizing}
+                className="h-8 text-xs gap-1.5 cursor-pointer shadow-2xs"
               >
                 {isGeneratingAudio ? (
                   <>
-                    <SvgRefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    <RefreshCwIcon className="size-3.5 animate-spin text-primary" />
                     Generating audio...
                   </>
                 ) : (
                   <>
-                    <SvgVolume2 className="mr-2 h-4 w-4" />
+                    <Volume2Icon className="size-3.5 text-primary" />
                     Listen
                   </>
                 )}
               </Button>
-            </div>
-          </>
+            ) : (
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => onSummarize(doc.id)}
+                disabled={isSummarizing}
+                className="h-8 text-xs gap-1.5 cursor-pointer shadow-2xs"
+              >
+                {isSummarizing ? (
+                  <>
+                    <RefreshCwIcon className="size-3.5 animate-spin" />
+                    Summarizing...
+                  </>
+                ) : (
+                  <>
+                    <SparklesIcon className="size-3.5" />
+                    Summarize
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="p-4 sm:p-5 pt-0">
+        {existingSummary ? (
+          <div className="rounded-xl border border-border/60 bg-muted/20 p-3.5 sm:p-4 mt-2">
+            <ScrollArea className="max-h-60">
+              <p className="text-xs sm:text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed font-sans">
+                {existingSummary.summary_text}
+              </p>
+            </ScrollArea>
+          </div>
         ) : (
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">No summary yet</p>
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => onSummarize(doc.id)}
-              disabled={isSummarizing}
-            >
-              {isSummarizing ? (
-                <>
-                  <SvgRefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                  Summarizing...
-                </>
-              ) : (
-                <>
-                  <SvgFileText className="mr-2 h-4 w-4" />
-                  Summarize
-                </>
-              )}
-            </Button>
+          <div className="flex items-center justify-between py-2 text-xs text-muted-foreground">
+            <span>No summary generated yet.</span>
           </div>
         )}
       </CardContent>
@@ -187,7 +204,7 @@ function AudioPlayer({
   summaryId,
   audioBlob,
   engine,
-  onClose
+  onClose,
 }: {
   summaryId: number;
   audioBlob: Blob;
@@ -199,25 +216,35 @@ function AudioPlayer({
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md p-6">
         <DialogHeader>
-          <DialogTitle>Audio Player</DialogTitle>
-          <DialogDescription>
-            Listen to your summary audio. Click download to save the file.
+          <div className="flex items-center gap-2 mb-1">
+            <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+              <AudioLinesIcon className="size-4" />
+            </div>
+            <DialogTitle className="text-base font-semibold">Audio Player</DialogTitle>
+          </div>
+          <DialogDescription className="text-xs text-muted-foreground">
+            Listen to your document summary audio. Download to keep the audio offline.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 mt-4">
-          <audio controls src={audioUrl} className="w-full">
-            Your browser does not support the audio element.
-          </audio>
-          <div className="text-sm text-muted-foreground font-medium">
-            {formatVoiceLabel(engine)}
+        <div className="space-y-4 mt-3">
+          <div className="rounded-xl border border-border/80 bg-muted/40 p-3 flex flex-col gap-2">
+            <audio controls src={audioUrl} className="w-full h-10">
+              Your browser does not support the audio element.
+            </audio>
+            <div className="flex items-center justify-between text-2xs text-muted-foreground pt-1">
+              <span className="font-mono font-medium">{formatVoiceLabel(engine)}</span>
+              <span className="uppercase font-mono">{ext}</span>
+            </div>
           </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={onClose}>
+          <div className="flex justify-end gap-2 pt-1">
+            <Button variant="outline" size="sm" onClick={onClose} className="h-8 text-xs cursor-pointer">
               Close
             </Button>
             <Button
+              size="sm"
+              className="h-8 text-xs gap-1.5 cursor-pointer"
               onClick={() => {
                 const a = document.createElement("a");
                 a.href = audioUrl;
@@ -228,7 +255,7 @@ function AudioPlayer({
                 toast.success("Audio downloaded");
               }}
             >
-              <SvgDownload className="mr-2 h-4 w-4" />
+              <DownloadIcon className="size-3.5" />
               Download
             </Button>
           </div>
@@ -238,13 +265,12 @@ function AudioPlayer({
   );
 }
 
-
 function ErrorDialog({
   isOpen,
   onClose,
   title,
   message,
-  onRetry
+  onRetry,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -256,21 +282,30 @@ function ErrorDialog({
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md p-6">
         <DialogHeader>
-          <div className="flex items-center gap-2">
-            <SvgAlertCircle className="h-5 w-5 text-destructive" />
-            <DialogTitle>{title}</DialogTitle>
+          <div className="flex items-center gap-2 mb-1">
+            <AlertCircleIcon className="size-5 text-destructive shrink-0" />
+            <DialogTitle className="text-base font-semibold text-destructive">{title}</DialogTitle>
           </div>
-          <DialogDescription>{message}</DialogDescription>
+          <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
+            {message}
+          </DialogDescription>
         </DialogHeader>
-        <div className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" onClick={onClose}>
+        <div className="flex justify-end gap-2 mt-4 pt-2 border-t border-border/60">
+          <Button variant="outline" size="sm" onClick={onClose} className="h-8 text-xs cursor-pointer">
             Dismiss
           </Button>
           {onRetry && (
-            <Button onClick={() => { onRetry(); onClose(); }}>
-              <SvgRefreshCw className="mr-2 h-4 w-4" />
+            <Button
+              size="sm"
+              onClick={() => {
+                onRetry();
+                onClose();
+              }}
+              className="h-8 text-xs gap-1.5 cursor-pointer"
+            >
+              <RefreshCwIcon className="size-3.5" />
               Retry
             </Button>
           )}
@@ -282,20 +317,21 @@ function ErrorDialog({
 
 export default function SummariesPage() {
   useEffect(() => {
-    document.title = "Summaries — MemoryNest"
-  }, [])
+    document.title = "Summaries — MemoryNest";
+  }, []);
+
   const queryClient = useQueryClient();
   const [summarizingDocId, setSummarizingDocId] = useState<number | null>(null);
   const [generatingAudioId, setGeneratingAudioId] = useState<number | null>(null);
   const [audioPlayer, setAudioPlayer] = useState<{ summaryId: number; audioBlob: Blob; engine: string } | null>(null);
   const [errorState, setErrorState] = useState<{ title: string; message: string; onRetry?: () => void } | null>(null);
 
-  const { data: documents, isLoading: docsLoading, refetch: refetchDocuments } = useQuery({
+  const { data: documents, isLoading: docsLoading } = useQuery({
     queryKey: ["documents"],
     queryFn: fetchDocuments,
   });
 
-  const { data: summaries, isLoading: summariesLoading, refetch: refetchSummaries } = useQuery({
+  const { data: summaries, isLoading: summariesLoading } = useQuery({
     queryKey: ["summaries"],
     queryFn: fetchSummaries,
   });
@@ -329,7 +365,6 @@ export default function SummariesPage() {
     mutationFn: ({ summaryId }: { summaryId: number }) => (import("@/lib/api")).then(m => m.summaryAudioCreate(summaryId)),
     onSuccess: async (data, variables) => {
       if (data.ok && data.data) {
-        // Fetch the actual audio file
         try {
           const { summaryAudioGet } = await import("@/lib/api");
           const audioBlob = await summaryAudioGet(variables.summaryId);
@@ -339,7 +374,7 @@ export default function SummariesPage() {
             engine: data.data.engine,
           });
           toast.success("Audio generated");
-        } catch (err) {
+        } catch {
           toast.error("Failed to load audio");
         }
       }
@@ -369,83 +404,83 @@ export default function SummariesPage() {
     audioCreateMutation.mutate({ summaryId });
   };
 
-  const handleAudioClose = () => {
-    setAudioPlayer(null);
-  };
-
-  const handleErrorClose = () => {
-    setErrorState(null);
-  };
-
   const readyDocs = documents?.filter(d => d.status === "ready") || [];
 
   if (docsLoading || summariesLoading) {
     return (
-      <div className="p-6 max-w-4xl mx-auto">
-        <Card>
-          <CardHeader>
-            <CardTitle>Document Summaries</CardTitle>
-            <CardDescription>Generate and listen to summaries of your documents</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="h-24 animate-pulse bg-muted rounded-lg" />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Document Summaries</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+            Generate and listen to executive summaries of your knowledge base.
+          </p>
+        </div>
+        <div className="space-y-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Card key={i} className="border border-border/80 p-5">
+              <div className="h-6 w-1/3 bg-muted animate-pulse rounded-md mb-3" />
+              <div className="h-4 w-1/2 bg-muted/60 animate-pulse rounded-md mb-4" />
+              <div className="h-20 w-full bg-muted/40 animate-pulse rounded-xl" />
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <Card>
-        <CardHeader>
-          <CardTitle>Document Summaries</CardTitle>
-          <CardDescription>Generate and listen to summaries of your documents</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {readyDocs.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <SvgFileText className="mx-auto h-12 w-12 mb-4 opacity-50" />
-              <p className="text-lg">No processed documents yet</p>
-              <p className="mt-2">Upload some files first, then come back to generate summaries.</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {readyDocs.map((doc) => {
-                const existingSummary = summaries?.find(s => s.document_id === doc.id) || null;
-                return (
-                  <DocumentCard
-                    key={doc.id}
-                    doc={doc}
-                    existingSummary={existingSummary}
-                    onSummarize={handleSummarize}
-                    onListen={handleListen}
-                    summarizingDocId={summarizingDocId}
-                    generatingAudioId={generatingAudioId}
-                  />
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+    <div className="max-w-4xl mx-auto space-y-6">
+      <div>
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Document Summaries</h1>
+        <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+          Generate and listen to executive summaries of your knowledge base.
+        </p>
+      </div>
+
+      {readyDocs.length === 0 ? (
+        <EmptyState
+          icon={<FileTextIcon className="size-6" />}
+          title="No processed documents yet"
+          description="Upload some files first, then return here to generate AI summaries and audio readings."
+          action={
+            <Link href="/upload">
+              <Button size="sm" className="cursor-pointer gap-1.5">
+                Upload documents
+              </Button>
+            </Link>
+          }
+        />
+      ) : (
+        <div className="space-y-4">
+          {readyDocs.map((doc) => {
+            const existingSummary = summaries?.find(s => s.document_id === doc.id) || null;
+            return (
+              <DocumentCard
+                key={doc.id}
+                doc={doc}
+                existingSummary={existingSummary}
+                onSummarize={handleSummarize}
+                onListen={handleListen}
+                summarizingDocId={summarizingDocId}
+                generatingAudioId={generatingAudioId}
+              />
+            );
+          })}
+        </div>
+      )}
 
       {audioPlayer && (
         <AudioPlayer
           summaryId={audioPlayer.summaryId}
           audioBlob={audioPlayer.audioBlob}
           engine={audioPlayer.engine}
-          onClose={handleAudioClose}
+          onClose={() => setAudioPlayer(null)}
         />
       )}
 
       <ErrorDialog
         isOpen={!!errorState}
-        onClose={handleErrorClose}
+        onClose={() => setErrorState(null)}
         title={errorState?.title || "Error"}
         message={errorState?.message || "An unexpected error occurred"}
         onRetry={errorState?.onRetry}
