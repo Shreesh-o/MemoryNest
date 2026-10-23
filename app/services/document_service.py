@@ -5,11 +5,16 @@ No Streamlit imports. Pure business logic for document management.
 
 from __future__ import annotations
 
+import logging
 from typing import List, Optional
 
-from app.database.repositories import DocumentRepository
+from app.database.repositories import ChunkRepository, DocumentRepository
 from app.database.models import Document
+from app.services import vector_service
 from app.services.ingest_service import process_document
+from app.services.link_service import rebuild_links
+
+logger = logging.getLogger(__name__)
 
 
 def list_documents(user_id: int) -> List[Document]:
@@ -38,6 +43,12 @@ def delete_document(user_id: int, doc_id: int) -> None:
     doc_repo = DocumentRepository()
     doc_repo.delete(doc_id, user_id)
 
+    # Rebuild document links (non-blocking, best effort)
+    try:
+        rebuild_links(user_id)
+    except Exception as e:
+        logger.warning("Failed to rebuild document links for user %s after delete: %s", user_id, e)
+
 
 def retry_extraction(user_id: int, doc_id: int) -> None:
     """Retry document extraction for a failed document.
@@ -52,5 +63,26 @@ def retry_extraction(user_id: int, doc_id: int) -> None:
     if doc.status != "error":
         raise ValueError(f"Document {doc_id} is not in error state (status: {doc.status})")
 
+    # Clean up existing chunks and vectors before reprocessing
+    chunk_repo = ChunkRepository()
+    vs = vector_service.get_vector_service()
+    chroma_ids = chunk_repo.delete_for_document(doc_id, user_id)
+    if chroma_ids:
+        try:
+            vs.collection.delete(ids=chroma_ids)
+        except Exception:
+            logger.warning("Failed to delete Chroma vectors for doc %s during retry", doc_id)
+
+    # Also delete any existing events
+    from app.database.repositories import EventRepository
+    ev_repo = EventRepository()
+    ev_repo.delete_for_document(doc_id, user_id)
+
     # Re-process the document
     process_document(doc.id, user_id, doc.stored_path, doc.file_type, doc.filename)
+
+    # Rebuild document links (non-blocking, best effort)
+    try:
+        rebuild_links(user_id)
+    except Exception as e:
+        logger.warning("Failed to rebuild document links for user %s after retry: %s", user_id, e)

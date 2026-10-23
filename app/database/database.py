@@ -140,6 +140,20 @@ CREATE TABLE IF NOT EXISTS google_connections (
     connected_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS document_links (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    doc_a INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+    doc_b INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+    score REAL NOT NULL,
+    shared_terms TEXT NOT NULL DEFAULT '[]',
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CHECK (doc_a < doc_b),
+    UNIQUE (user_id, doc_a, doc_b)
+);
+
+CREATE INDEX IF NOT EXISTS idx_document_links_user ON document_links(user_id);
+
 CREATE INDEX IF NOT EXISTS idx_documents_user ON documents(user_id);
 CREATE INDEX IF NOT EXISTS idx_chunks_user ON document_chunks(user_id);
 CREATE INDEX IF NOT EXISTS idx_chunks_doc ON document_chunks(document_id);
@@ -170,6 +184,7 @@ def init_db(db_path: Path | None = None) -> None:
         _create_file_hash_index(conn)
         _migrate_add_google_connections(conn)
         _migrate_add_reminder_google_sync(conn)
+        _migrate_add_document_links(conn)
     finally:
         conn.close()
 
@@ -243,4 +258,23 @@ def _migrate_add_reminder_google_sync(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE reminders ADD COLUMN sync_status TEXT NOT NULL DEFAULT 'not_synced'")
     if "sync_error" not in columns:
         conn.execute("ALTER TABLE reminders ADD COLUMN sync_error TEXT")
+    conn.commit()
+
+
+def _migrate_add_document_links(conn: sqlite3.Connection) -> None:
+    """Ensure document_links table and index exist for existing DBs."""
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS document_links (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            doc_a INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+            doc_b INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+            score REAL NOT NULL,
+            shared_terms TEXT NOT NULL DEFAULT '[]',
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            CHECK (doc_a < doc_b),
+            UNIQUE (user_id, doc_a, doc_b)
+        )
+    """)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_document_links_user ON document_links(user_id)")
     conn.commit()

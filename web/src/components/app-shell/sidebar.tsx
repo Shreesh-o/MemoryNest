@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { LogOutIcon } from "lucide-react"
+import { LogOutIcon, Share2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { authLogout } from "@/lib/api"
@@ -18,6 +18,7 @@ interface NavItem {
 const mainNav: NavItem[] = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/documents", label: "Documents" },
+  { href: "/map", label: "Document Map" },
   { href: "/upload", label: "Upload" },
   { href: "/summaries", label: "Summaries" },
   { href: "/reminders", label: "Reminders" },

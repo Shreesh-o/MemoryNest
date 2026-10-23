@@ -12,6 +12,7 @@ from app.database.models import (
     Conversation,
     Document,
     DocumentChunk,
+    DocumentLink,
     Event,
     GoogleConnection,
     Message,
@@ -833,5 +834,56 @@ class GoogleConnectionRepository(BaseRepository):
             )
             conn.commit()
             return cur.rowcount > 0
+        finally:
+            conn.close()
+
+
+class DocumentLinkRepository(BaseRepository):
+    def replace_links_for_user(self, user_id: int, links: List[dict]) -> None:
+        """Replace all document links for a user in a single transaction.
+
+        Args:
+            user_id: The user ID.
+            links: List of dicts with keys: doc_a, doc_b, score, shared_terms.
+                   doc_a must be < doc_b.
+        """
+        conn = self._connect()
+        try:
+            conn.execute("DELETE FROM document_links WHERE user_id = ?", (user_id,))
+            if links:
+                conn.executemany(
+                    """INSERT INTO document_links
+                       (user_id, doc_a, doc_b, score, shared_terms)
+                       VALUES (?, ?, ?, ?, ?)""",
+                    [(user_id, link["doc_a"], link["doc_b"], link["score"], link["shared_terms"])
+                     for link in links],
+                )
+            conn.commit()
+        finally:
+            conn.close()
+
+    def list_links(self, user_id: int) -> List[DocumentLink]:
+        """List all document links for a user."""
+        conn = self._connect()
+        try:
+            rows = conn.execute(
+                "SELECT * FROM document_links WHERE user_id = ? ORDER BY score DESC",
+                (user_id,),
+            ).fetchall()
+            return [self._row_to_dataclass(r, DocumentLink) for r in rows]
+        finally:
+            conn.close()
+
+    def list_links_for_document(self, user_id: int, doc_id: int) -> List[DocumentLink]:
+        """List document links involving a specific document."""
+        conn = self._connect()
+        try:
+            rows = conn.execute(
+                """SELECT * FROM document_links
+                   WHERE user_id = ? AND (doc_a = ? OR doc_b = ?)
+                   ORDER BY score DESC""",
+                (user_id, doc_id, doc_id),
+            ).fetchall()
+            return [self._row_to_dataclass(r, DocumentLink) for r in rows]
         finally:
             conn.close()

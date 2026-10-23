@@ -13,7 +13,7 @@ User → Next.js Web UI (:3000)   [or Streamlit UI :8501]
              ↓
         Auth (bcrypt + JWT cookie)
              ↓
-        Services (22 modules)
+        Services (24 modules)
              ↓
     ┌─────────────────────────────────────┐
     │  SQLite (metadata, users, chunks)   │
@@ -38,14 +38,15 @@ memorynest/
 │   │       ├── auth.py      # /api/auth/register, /login, /me, /logout, PATCH /me/email
 │   │       ├── chat.py      # /api/chat, /api/conversations
 │   │       ├── dashboard.py # /api/dashboard
-│   │       ├── documents.py # /api/documents/upload, /retry, etc.
+│   │       ├── documents.py # /api/documents/upload, /retry, /file, /content, /html
 │   │       ├── google.py    # /api/google/status, /connect, /callback, /disconnect
 │   │       ├── health.py    # /api/health (ollama, mock_llm, email_configured)
 │   │       ├── reminders.py # /api/events, /api/reminders, /api/reminders/{id}/sync, /calendar.ics, /calendar/items
 │   │       ├── search.py    # /api/search
-│   │       └── summaries.py # /api/documents/{id}/summary, /audio
+│   │       ├── summaries.py # /api/documents/{id}/summary, /audio
+│   │       └── links.py     # /api/graph, /api/documents/{id}/related, /api/graph/refresh
 │   ├── pages/               # 7 Streamlit UI pages
-│   ├── services/            # Business logic (22 modules)
+│   ├── services/            # Business logic (24 modules)
 │   │   ├── auth_service.py         # User registration, login, email updates
 │   │   ├── calendar_service.py     # Calendar items aggregation & range validation
 │   │   ├── chat_service.py         # Conversation sessions & query routing
@@ -61,12 +62,14 @@ memorynest/
 │   │   ├── ics_service.py          # .ics calendar export
 │   │   ├── ingest_service.py       # Upload pipeline (extract, chunk, embed, events)
 │   │   ├── llm_service.py          # Ollama client (+ mock)
+│   │   ├── link_service.py         # Document Map: embedding similarity + TF-IDF shared terms
 │   │   ├── ocr_service.py          # Tesseract wrapper
 │   │   ├── rag_service.py          # Query → embed → retrieve → LLM
 │   │   ├── reminder_flow_service.py# Reminders flow, cancellation, due check, sync
 │   │   ├── search_service.py       # Vector & text search
 │   │   ├── summary_flow_service.py # Summarization & audio synthesis flow
 │   │   ├── summary_service.py      # Map-reduce summarization
+│   │   ├── text_cache_service.py   # Extracted text/HTML cache (disk, invalidated on retry/delete)
 │   │   └── tts_service.py          # piper/edge/espeak/pyttsx3 TTS
 │   ├── database/            # SQLite layer
 │   │   ├── database.py      # Schema + init + migrations
@@ -84,8 +87,9 @@ memorynest/
 ├── data/                    # Runtime (gitignored)
 │   ├── uploads/
 │   ├── audio/
-│   └── chroma/
-├── tests/                   # 246 passing unit and API tests
+│   ├── chroma/
+│   └── text_cache/          # Cached extracted text & DOCX HTML
+├── tests/                   # 271 passing unit and API tests
 ├── requirements.txt
 ├── .env.example
 └── README.md
@@ -107,6 +111,7 @@ memorynest/
 | `reminders` | Scheduled reminders & sync | id, user_id, event_id, remind_at, channel, subject, body, status, sent_at, google_event_id, sync_status, sync_error |
 | `notification_logs` | Audit trail | id, user_id, reminder_id, kind, success, detail |
 | `google_connections` | Google OAuth | id, user_id (UNIQUE), google_email, refresh_token_encrypted, scope, connected_at |
+| `document_links` | Document Map (related docs) | id, user_id, doc_a, doc_b, score, shared_terms, created_at |
 
 **Security**: Every user-owned row has `user_id` with FK `ON DELETE CASCADE`. Chroma metadata also stores `user_id`; all queries filter on it.
 
@@ -138,6 +143,7 @@ memorynest/
 | `summary_flow_service` | doc_id, user_id, engine → summary, audio_url | summary_service, tts_service, repositories |
 | `summary_service` | full_text → summary | llm + chunking (map-reduce) |
 | `tts_service` | text, engine → .wav path, engine_name | piper (neural offline) / edge-tts (online neural, ffmpeg) / espeak-ng / pyttsx3 |
+| `link_service` | user_id → document links | embedding_service, vector_service, repositories |
 
 ---
 
@@ -152,21 +158,57 @@ memorynest/
 | History | Conversation list, keyword search, load conversation, delete thread |
 | Summaries | Pick doc → generate (map-reduce/direct) → view + TTS audio synthesis with engine badge (edge/piper/espeak) + audio download |
 | Reminders | Month calendar view + Google Calendar card (connect/disconnect/status) + sync status badges with retry + 3 tabs (Pending/Scheduled/All) + email management card + combined toast confirmation + secondary .ics export |
+| Document Viewer | Full document view: Original tab (PDF iframe, image zoom, DOCX rendered HTML, TXT) + Extracted text tab (search, highlight, copy, OCR notice). Header with actions: Download, Delete, Summarize, Extract events, Ask about document. |
 
 ---
 
-## 6. Config (via `.env`)
+## 6. New Document Viewer Endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/documents/{doc_id}/file` | Stream original file with correct Content-Type. `Content-Disposition: inline` (or `attachment` with `?download=1`). Security: path traversal protection, `X-Content-Type-Options: nosniff`, `Content-Security-Policy: sandbox`. |
+| `GET /api/documents/{doc_id}/content` | Returns `{text, char_count, truncated, file_type}`. Re-runs extraction on stored file, caches result on disk (`data/text_cache/<doc_id>.txt`), invalidated on retry/delete. Caps at ~500k chars. Normalizes whitespace, fixes hyphenated line breaks. |
+| `GET /api/documents/{doc_id}/html` | DOCX only (400 for other types). Converts with mammoth, sanitizes with nh3 (allows headings, p, lists, tables, strong/em, links with rel="noopener noreferrer", images as data URIs with size cap). Cached like text. |
+
+---
+
+## 7. Document Map Endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/graph?min_score=0.45` | Get the full Document Map graph. Returns `{nodes: [...], edges: [...], unlinked: [...]}`. Nodes are documents with ≥1 edge above min_score; unlinked are documents with no edges above threshold. Edges are stored links with score ≥ min_score. min_score defaults to LINK_MIN_SIMILARITY (0.45), validated between 0.20–0.95. |
+| `GET /api/documents/{doc_id}/related?min_score=...` | Get up to 5 related documents for a specific document. Returns `[{id, filename, file_type, score, shared_terms}]` sorted by score descending. 404 if document not found or not owned by user. |
+| `POST /api/graph/refresh` | Rebuild the Document Map for the current user. Computes embedding similarity between all ready documents using LINK_STORE_MIN_SIMILARITY (0.30) as storage floor, keeping top LINK_MAX_PER_DOC neighbors per doc. Returns `{documents, edges}` counts. |
+
+**Storage vs. Read Thresholds**: Links are stored with a low floor (LINK_STORE_MIN_SIMILARITY=0.30) to capture more relationships, but filtered at read time using LINK_MIN_SIMILARITY=0.45 (configurable via min_score query param). This allows users to explore weaker connections without re-computing.
+
+---
+
+## 8. Config (via `.env`)
 ```
 OLLAMA_HOST, OLLAMA_MODEL, EMBEDDING_MODEL, DB_PATH, CHROMA_DIR, UPLOAD_DIR, AUDIO_DIR
 RAG_TOP_K, RAG_MIN_SIMILARITY, CHUNK_SIZE, CHUNK_OVERLAP
 EMAIL_HOST, EMAIL_PORT, EMAIL_USERNAME, EMAIL_APP_PASSWORD, RECIPIENT_EMAIL
 TTS_ENGINE, TTS_VOICE
 GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI, FRONTEND_URL, TOKEN_ENCRYPTION_KEY
+LINK_MIN_SIMILARITY=0.45, LINK_STORE_MIN_SIMILARITY=0.30, LINK_MAX_PER_DOC=3
 ```
 
 ---
 
-## 7. What's Explicitly OUT of Scope
+## 9. Document Map Auto-Rebuild Behavior
+
+The Document Map is kept fresh automatically:
+
+- **After successful document upload**: Rebuilds once at the end of the multi-file upload request (if any document was successfully processed).
+- **After document deletion**: Rebuilds immediately after the document is deleted.
+- **After retry extraction**: Rebuilds after a failed document is successfully reprocessed.
+
+All rebuilds run in try/except blocks — if the rebuild fails, the error is logged but the main operation (upload, delete, retry) continues unaffected. This ensures the Document Map is eventually consistent without blocking user actions.
+
+For manual rebuilds, use `POST /api/graph/refresh` or run `scripts/rebuild_links.py` (rebuilds for all users).
+
+## 9. What's Explicitly OUT of Scope
 
 - Knowledge Graph (Neo4j)
 - WhatsApp notifications
@@ -177,7 +219,7 @@ GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI, FRONTEND_URL, TOKEN
 
 ---
 
-## 8. Decision Points for You
+## 10. Decision Points for You
 
 | Component | Can Remove? | Impact |
 |-----------|-------------|--------|
@@ -196,7 +238,7 @@ GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI, FRONTEND_URL, TOKEN
 
 ---
 
-## 9. Minimal Viable Subset (If Cutting Hard)
+## 11. Minimal Viable Subset (If Cutting Hard)
 
 Keep only:
 - `main.py` (auth + nav)
@@ -212,7 +254,7 @@ Removes: summaries, TTS, events, reminders, email, google calendar, history, doc
 
 ---
 
-## 10. Future Scope
+## 12. Future Scope
 
 - Knowledge Graph (Neo4j): entities/relations extracted from documents, graph-RAG traversals
 - WhatsApp notifications: replace/supplement email with WhatsApp Business API

@@ -17,6 +17,7 @@ import {
 const mainNav = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/documents", label: "Documents" },
+  { href: "/map", label: "Document Map" },
   { href: "/upload", label: "Upload" },
   { href: "/summaries", label: "Summaries" },
   { href: "/reminders", label: "Reminders" },

@@ -32,6 +32,7 @@ class DocumentPublic(BaseModel):
     id: int
     filename: str
     file_type: str
+    size_bytes: int = 0
     status: str
     chunk_count: int
     error_message: Optional[str] = None
@@ -183,3 +184,40 @@ class GoogleConnectResponse(BaseModel):
 class GoogleDisconnectResponse(BaseModel):
     status: str = "ok"
     disconnected: bool = True
+
+
+class GraphNode(BaseModel):
+    id: int
+    label: str
+    file_type: str
+    link_count: int
+
+
+class GraphEdge(BaseModel):
+    source: int
+    target: int
+    score: float
+    shared_terms: List[str]
+
+
+class GraphResponse(BaseModel):
+    nodes: List[GraphNode]
+    edges: List[GraphEdge]
+    unlinked: List[GraphNode]
+
+
+class RelatedDocument(BaseModel):
+    id: int
+    filename: str
+    file_type: str
+    score: float
+    shared_terms: List[str]
+
+
+class RelatedResponse(BaseModel):
+    related: List[RelatedDocument]
+
+
+class GraphRefreshResponse(BaseModel):
+    documents: int
+    edges: int

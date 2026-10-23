@@ -24,6 +24,7 @@ export interface DocumentPublic {
   id: number;
   filename: string;
   file_type: string;
+  size_bytes: number;
   status: string;
   chunk_count: number;
   error_message?: string | null;
@@ -262,7 +263,7 @@ export async function documentsList() {
 }
 
 export async function documentsGet(id: number) {
-  return fetchApi<UserPublic>(`documents/${id}`);
+  return fetchApi<DocumentPublic>(`documents/${id}`);
 }
 
 export async function documentsDelete(id: number) {
@@ -282,6 +283,26 @@ export async function documentsRetry(id: number) {
   return fetchApi<IngestResultResponse>(`documents/${id}/retry`, {
     method: "POST",
   });
+}
+
+export async function documentsFile(id: number, download = false) {
+  const url = download ? `/api/documents/${id}/file?download=1` : `/api/documents/${id}/file`;
+  const response = await fetch(url, { credentials: "include" });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to fetch file");
+  }
+  return response.blob();
+}
+
+export async function documentsContent(id: number) {
+  return fetchApi<{ text: string; char_count: number; truncated: boolean; file_type: string }>(
+    `documents/${id}/content`
+  );
+}
+
+export async function documentsHtml(id: number) {
+  return fetchApi<{ html: string }>(`documents/${id}/html`);
 }
 
 // Format date helper - treats API timestamps as UTC
@@ -405,6 +426,51 @@ export async function summaryAudioGet(summaryId: number): Promise<Blob> {
     throw new Error("Failed to fetch audio");
   }
   return response.blob();
+}
+
+// Graph / Document Map
+export interface GraphNode {
+  id: number;
+  label: string;
+  file_type: string;
+  link_count: number;
+  // ForceGraph2D adds these during simulation
+  x?: number;
+  y?: number;
+  vx?: number;
+  vy?: number;
+  fx?: number | null;
+  fy?: number | null;
+}
+
+export interface GraphEdge {
+  source: number;
+  target: number;
+  score: number;
+  shared_terms: string[];
+  // ForceGraph2D uses source/target as IDs initially, then replaces with node objects
+}
+
+export interface GraphResponse {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+  unlinked: GraphNode[];
+}
+
+export interface GraphRefreshResponse {
+  documents: number;
+  edges: number;
+}
+
+export async function getGraph(minScore?: number) {
+  const params = minScore !== undefined ? `?min_score=${minScore}` : "";
+  return fetchApi<GraphResponse>(`graph${params}`);
+}
+
+export async function refreshGraph() {
+  return fetchApi<GraphRefreshResponse>("graph/refresh", {
+    method: "POST",
+  });
 }
 
 // Google Calendar & Reminders Sync

@@ -119,3 +119,14 @@ class GoogleConnection:
     refresh_token_encrypted: str
     scope: str
     connected_at: Optional[str] = None
+
+
+@dataclass
+class DocumentLink:
+    id: int
+    user_id: int
+    doc_a: int
+    doc_b: int
+    score: float
+    shared_terms: str
+    created_at: Optional[str] = None

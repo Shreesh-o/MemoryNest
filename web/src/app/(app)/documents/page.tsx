@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { formatDate } from "@/lib/api";
 import {
   Card,
@@ -35,7 +36,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
-import { SvgRefreshCw, SvgEye, SvgTrash2, SvgRotateCcw } from "@/components/ui/icons";
+import { SvgRefreshCw, SvgEye, SvgTrash2, SvgRotateCcw, SvgArrowLeft } from "@/components/ui/icons";
 import { toast } from "sonner";
 
 type Document = {
@@ -140,9 +141,9 @@ function DocumentSkeleton() {
   );
 }
 
-function DocumentsTable({ documents, onPreview, onDelete, onRetry }: {
+function DocumentsTable({ documents, onView, onDelete, onRetry }: {
   documents: Document[];
-  onPreview: (doc: Document) => void;
+  onView: (id: number) => void;
   onDelete: (id: number) => void;
   onRetry: (id: number) => void;
 }) {
@@ -180,8 +181,8 @@ function DocumentsTable({ documents, onPreview, onDelete, onRetry }: {
                     </svg>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => onPreview(doc)}>
-                      <SvgEye className="mr-2 h-4 w-4" /> Preview
+                    <DropdownMenuItem onClick={() => onView(doc.id)}>
+                      <SvgEye className="mr-2 h-4 w-4" /> View
                     </DropdownMenuItem>
                     {doc.status === "failed" && (
                       <>
@@ -206,9 +207,9 @@ function DocumentsTable({ documents, onPreview, onDelete, onRetry }: {
   );
 }
 
-function DocumentCard({ doc, onPreview, onDelete, onRetry }: {
+function DocumentCard({ doc, onView, onDelete, onRetry }: {
   doc: Document;
-  onPreview: (doc: Document) => void;
+  onView: (id: number) => void;
   onDelete: (id: number) => void;
   onRetry: (id: number) => void;
 }) {
@@ -227,8 +228,8 @@ function DocumentCard({ doc, onPreview, onDelete, onRetry }: {
       </CardHeader>
       <CardContent className="flex-1 flex flex-col justify-end pt-0">
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => onPreview(doc)} className="flex-1">
-            <SvgEye className="mr-2 h-4 w-4" /> Preview
+          <Button variant="outline" size="sm" onClick={() => onView(doc.id)} className="flex-1">
+            <SvgEye className="mr-2 h-4 w-4" /> View
           </Button>
           {doc.status === "failed" && (
             <Button variant="outline" size="sm" onClick={() => onRetry(doc.id)} className="text-blue-600 border-blue-600 hover:bg-blue-50">
@@ -241,28 +242,6 @@ function DocumentCard({ doc, onPreview, onDelete, onRetry }: {
         </div>
       </CardContent>
     </Card>
-  );
-}
-
-function PreviewDialog({ document, open, onOpenChange }: {
-  document: Document | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}) {
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[80vh]">
-        <DialogHeader>
-          <DialogTitle>{document?.filename}</DialogTitle>
-          <DialogDescription>
-            {document?.file_type.toUpperCase()} &bull; {document?.chunk_count} chunks &bull; {formatDate(document?.created_at)}
-          </DialogDescription>
-        </DialogHeader>
-        <div className="mt-4 max-h-[60vh] overflow-y-auto p-4 bg-muted/50 rounded-md border whitespace-pre-wrap font-mono text-sm">
-          {document?.text_preview || "No preview available"}
-        </div>
-      </DialogContent>
-    </Dialog>
   );
 }
 
@@ -299,9 +278,9 @@ export default function DocumentsPage() {
   useEffect(() => {
     document.title = "Documents — MemoryNest"
   }, [])
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [viewMode, setViewMode] = useState<ViewMode>("table");
-  const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   const [deleteDoc, setDeleteDoc] = useState<Document | null>(null);
 
   const { data: documents, isLoading, isError, error, refetch } = useQuery({
@@ -337,8 +316,8 @@ export default function DocumentsPage() {
     if (doc) setDeleteDoc(doc);
   };
 
-  const handlePreview = (doc: Document) => {
-    setPreviewDoc(doc);
+  const handleView = (id: number) => {
+    router.push(`/documents/${id}`);
   };
 
   const handleRetry = (id: number) => {
@@ -448,7 +427,7 @@ export default function DocumentsPage() {
           ) : viewMode === "table" ? (
             <DocumentsTable
               documents={docs}
-              onPreview={handlePreview}
+              onView={handleView}
               onDelete={handleDelete}
               onRetry={handleRetry}
             />
@@ -458,7 +437,7 @@ export default function DocumentsPage() {
                 <DocumentCard
                   key={doc.id}
                   doc={doc}
-                  onPreview={handlePreview}
+                  onView={handleView}
                   onDelete={handleDelete}
                   onRetry={handleRetry}
                 />
@@ -468,7 +447,6 @@ export default function DocumentsPage() {
         </CardContent>
       </Card>
 
-      <PreviewDialog document={previewDoc} open={!!previewDoc} onOpenChange={(open) => !open && setPreviewDoc(null)} />
       <DeleteConfirmDialog
         document={deleteDoc}
         open={!!deleteDoc}

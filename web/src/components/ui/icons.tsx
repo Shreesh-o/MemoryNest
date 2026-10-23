@@ -173,7 +173,56 @@ export function SvgAlertTriangle(props: SVGProps<SVGSVGElement>) {
 export function SvgVolume2(props: SVGProps<SVGSVGElement>) {
   return (
     <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.5 5h11.41c.61 0 1.113.464 1.113 1.034v0c0 .569-.503 1.034-1.113 1.034H5.5c-.61 0-1.113-.464-1.113-1.034v0c0-.569.503-1.034 1.113-1.034zM15.206 14.72c.612 0 1.113-.464 1.113-1.034v0c0-.569-.503-1.034-1.113-1.034h-1.078l-2.632 2.632c.124.231.291.402.485.537zM5.5 7c1.113 0 2.013.857 2.013 1.914v0c0 1.056-.901 1.914-2.013 1.914H5.5c-1.113 0-2.013-.857-2.013-1.914v0c0-1.057.901-1.914 2.013-1.914zM11.206 13.72c.612 0 1.113-.464 1.113-1.034v0c0-.569-.503-1.034-1.113-1.034H8.575l-2.632 2.632c.124.231.291.402.485.537zM16.5 7c2.61 0 4.732 2.043 4.732 4.544v0c0 2.502-2.121 4.544-4.732 4.544H16.5c-2.611 0-4.732-2.043-4.732-4.544v0c0-2.501 2.121-4.544 4.732-4.544z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.5 5h11.41c.61 0 1.113.464 1.113 1.034v0c0 .569-.503 1.034-1.113 1.034H5.5c-.61 0-1.113-.464-1.113-1.034v0c0-.569.503-1.034 1.113-1.034zM15.206 14.72c.612 0 1.113-.464 1.113-1.034v0c0-.569-.503 1.034-1.113-1.034h-1.078l-2.632 2.632c.124.231.291.402.485.537zM5.5 7c1.113 0 2.013.857 2.013 1.914v0c0 1.056-.901 1.914-2.013 1.914H5.5c-1.113 0-2.013-.857-2.013-1.914v0c0-1.057.901-1.914 2.013-1.914zM11.206 13.72c.612 0 1.113-.464 1.113-1.034v0c0-.569-.503-1.034-1.113-1.034H8.575l-2.632 2.632c.124.231.291.402.485.537zM16.5 7c2.61 0 4.732 2.043 4.732 4.544v0c0 2.502-2.121 4.544-4.732 4.544H16.5c-2.611 0-4.732-2.043-4.732-4.544v0c0-2.501 2.121-4.544 4.732-4.544z" />
+    </svg>
+  );
+}
+
+export function SvgExternalLink(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+    </svg>
+  );
+}
+
+export function SvgArrowLeft(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+    </svg>
+  );
+}
+
+export function SvgChevronUp(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 15l-6-6-6 6" />
+    </svg>
+  );
+}
+
+export function SvgChevronDown(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 9l6 6 6-6" />
+    </svg>
+  );
+}
+
+export function SvgCopy(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+    </svg>
+  );
+}
+
+export function SvgFileType(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 2v6h6" />
     </svg>
   );
 }

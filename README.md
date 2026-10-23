@@ -23,6 +23,7 @@ MemoryNest is a local, privacy-first web app for storing, searching, and summari
 - Event extraction: regex + dateparser, LLM fallback; .ics export for confirmed events; month calendar view on the Reminders page
 - Email reminders: Gmail SMTP with app password, confirmation emails sent to user's address upon event confirmation (with email_status), due reminders delivered to user address, on-demand "check" button, user email management with format validation and Reminders page editor
 - Google Calendar Integration: Per-user Google account connect and disconnect via OAuth 2.0 with offline access, CSRF state protection, encrypted refresh token storage (Fernet), automatic event creation upon confirmation, event deletion upon cancellation, manual retry sync, and status indicators in web calendar and reminders
+- **Document Map**: Shows related documents by topic similarity (cosine similarity of mean chunk embeddings). Links are stored with a low floor (LINK_STORE_MIN_SIMILARITY=0.30) and filtered at read time (LINK_MIN_SIMILARITY=0.45 default), keeping top 3 neighbors per doc. Computes shared terms via TF-IDF for readable link labels. Rebuild on demand via API or auto-rebuild after upload/delete/retry.
 - Auth: username/password with bcrypt, JWT cookies (FastAPI) & Streamlit session state, user profile with email management (`PATCH /api/auth/me/email`)
 
 ## Tech Stack
@@ -149,14 +150,27 @@ TOKEN_ENCRYPTION_KEY=your-generated-fernet-key
 
 ## Future Scope
 
-- Knowledge Graph (Neo4j): entities/relations extracted from documents, graph-RAX traversals
+- Knowledge Graph (Neo4j): entities/relations extracted from documents, graph-RAG traversals
 - WhatsApp notifications: replace/supplement email with WhatsApp Business API
 - Two-way Calendar Webhooks: sync modifications made directly in Google Calendar back to MemoryNest
 - PostgreSQL: replace SQLite for multi-user concurrency
 - Docker/Compose: containerize Ollama, Chroma, and the app
 - Background scheduler: APScheduler/cron for automatic reminder checks
 - Audio/video input: not planned — text/image only
-- Multi-modal RCLIP: image embeddings alongside text for visual search
+- Multi-modal RAG (CLIP): image embeddings alongside text for visual search
+
+## Document Map Maintenance
+
+The `scripts/rebuild_links.py` script rebuilds the Document Map for all users. It is safe to run repeatedly and can be run from the project root with the virtual environment activated:
+
+```bash
+python scripts/rebuild_links.py
+```
+
+This is useful for:
+- Initial population after upgrading from a version without Document Map
+- Full rebuild after changing similarity thresholds
+- Periodic maintenance (can be cron'd)
 
 ## Frontend (Next.js)
 
@@ -193,6 +207,9 @@ npm run start
 | `GOOGLE_REDIRECT_URI` | `http://localhost:8000/api/google/callback` | OAuth redirect URI handled by backend |
 | `FRONTEND_URL` | `http://localhost:3000` | Frontend web URL for OAuth redirects |
 | `TOKEN_ENCRYPTION_KEY` | `""` | 32-byte URL-safe base64 Fernet key for encrypted OAuth refresh tokens |
+| `LINK_MIN_SIMILARITY` | `0.45` | Minimum cosine similarity for Document Map links (read-time filter) |
+| `LINK_STORE_MIN_SIMILARITY` | `0.30` | Minimum cosine similarity for storing links (low floor) |
+| `LINK_MAX_PER_DOC` | `3` | Maximum related documents per document in Document Map |
 | `E2E_BASE_URL` | `http://127.0.0.1:3000` | E2E test frontend URL |
 | `E2E_API_URL` | `http://127.0.0.1:8000` | E2E test API URL |
 
@@ -208,8 +225,15 @@ npm run start
   - `POST /api/documents/upload` — Multipart upload (PDF, DOCX, TXT, images) with deduplication and OCR.
   - `GET /api/documents` — List user documents with processing status and chunk counts.
   - `GET /api/documents/{id}` — Get document metadata, chunks, and events.
+  - `GET /api/documents/{id}/file` — Stream original file (PDF, DOCX, TXT, images). `?download=1` for attachment.
+  - `GET /api/documents/{id}/content` — Get clean extracted text (re-extracted, cached, ~500k char cap, normalized whitespace).
+  - `GET /api/documents/{id}/html` — DOCX only: sanitized HTML from mammoth + nh3.
   - `DELETE /api/documents/{id}` — Delete document and cascade delete SQLite rows and Chroma vectors.
   - `POST /api/documents/{id}/retry` — Retry failed document extraction/embedding.
+- **Document Map**:
+  - `GET /api/graph?min_score=0.45` — Get the full Document Map graph. Returns `{nodes: [...], edges: [...], unlinked: [...]}`. Nodes are documents with ≥1 edge above min_score; unlinked are documents with no edges above threshold. Edges are stored links with score ≥ min_score. min_score defaults to LINK_MIN_SIMILARITY (0.45), validated between 0.20–0.95.
+  - `GET /api/documents/{doc_id}/related?min_score=...` — Get up to 5 related documents for a specific document. Returns `[{id, filename, file_type, score, shared_terms}]` sorted by score descending. 404 if document not found or not owned by user.
+  - `POST /api/graph/refresh` — Rebuild the Document Map for the current user. Computes embedding similarity between all ready documents using LINK_STORE_MIN_SIMILARITY (0.30) as storage floor, keeping top LINK_MAX_PER_DOC neighbors per doc. Returns `{documents, edges}` counts.
 - **Chat & RAG**:
   - `POST /api/chat` — Ask natural-language questions with semantic retrieval and citations.
   - `GET /api/conversations` — List conversation threads.

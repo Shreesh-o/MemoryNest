@@ -10,6 +10,7 @@ venv/
 
 # Data (never commit user data)
 data/
+data/text_cache/
 *.db
 *.db-journal
 *.db-wal
