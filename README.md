@@ -18,14 +18,17 @@ MemoryNest is a local, privacy-first web app for storing, searching, and summari
 - Vector DB: ChromaDB local persistent mode, user-id filtered
 - RAG: top-5 retrieval, similarity threshold gate, LLM answers with citations
 - **Scoped Document Chat**: Ask questions across all documents or scope retrieval to a selected subset of ready documents (`POST /api/chat` with `document_ids`); selection status persisted in message history and visible in the chat UI
+- **Semantic Search**: Fast vector similarity search across all document chunks (`POST /api/search`) with relevance scoring and highlighted snippet previews
+- **Document Viewer**: In-browser inspection with dual tabs: Original Render (inline PDF iframe, DOCX sanitized HTML via mammoth + nh3, responsive image viewer with OCR notice) and Extracted Text (whitespace-normalized, disk-cached, search & copy). Document action bar: Download, Delete, Summarize, Extract Events, Ask
 - Local LLM: Ollama with qwen2.5:3b-instruct (3B, CPU-compatible)
 - Conversation history: per-user, searchable, per-session
 - Summaries: map-reduce for long documents; TTS renders audio; download button
-- Event extraction: regex + dateparser, LLM fallback; .ics export for confirmed events; month calendar view on the Reminders page
+- Event extraction: regex + dateparser, LLM fallback; .ics export for confirmed events; month calendar view on the Reminders page; on-demand extraction (`POST /api/documents/{id}/extract-events`)
 - Email reminders: Gmail SMTP with app password, confirmation emails sent to user's address upon event confirmation (with email_status), due reminders delivered to user address, on-demand "check" button, user email management with format validation and Reminders page editor
 - Google Calendar Integration: Per-user Google account connect and disconnect via OAuth 2.0 with offline access, CSRF state protection, encrypted refresh token storage (Fernet), automatic event creation upon confirmation, event deletion upon cancellation, manual retry sync, and status indicators in web calendar and reminders
-- **Document Map**: Shows related documents by topic similarity (cosine similarity of mean chunk embeddings). Links are stored with a low floor (LINK_STORE_MIN_SIMILARITY=0.30) and filtered at read time (LINK_MIN_SIMILARITY=0.45 default), keeping top 3 neighbors per doc. Computes shared terms via TF-IDF for readable link labels. Rebuild on demand via API or auto-rebuild after upload/delete/retry.
+- **Document Map**: Shows related documents by topic similarity (cosine similarity of mean chunk embeddings). Links are stored with a low floor (LINK_STORE_MIN_SIMILARITY=0.30) and filtered at read time (LINK_MIN_SIMILARITY=0.45 default), keeping top 3 neighbors per doc. Computes shared terms via TF-IDF for readable link labels. Rebuild on demand via API or auto-rebuild after upload/delete/retry. Rendered in web UI via interactive 2D canvas force graph.
 - Auth: username/password with bcrypt, JWT cookies (FastAPI) & Streamlit session state, user profile with email management (`PATCH /api/auth/me/email`)
+- **Marketing Landing Page**: Archival "Evidence Chamber" aesthetic with local-first proof, interactive Evidence Bench, capabilities dossier, architecture overview, and reduced-motion compliant Lenis scroll.
 
 ## Tech Stack
 
@@ -222,7 +225,7 @@ npm run start
   - `GET /api/auth/me` — Return current authenticated user profile (`id`, `username`, `email`).
   - `POST /api/auth/logout` — Clear session cookie.
   - `PATCH /api/auth/me/email` — Update or clear user email address with validation.
-- **Documents**:
+- **Documents & Viewer**:
   - `POST /api/documents/upload` — Multipart upload (PDF, DOCX, TXT, images) with deduplication and OCR.
   - `GET /api/documents` — List user documents with processing status and chunk counts.
   - `GET /api/documents/{id}` — Get document metadata, chunks, and events.
@@ -231,29 +234,35 @@ npm run start
   - `GET /api/documents/{id}/html` — DOCX only: sanitized HTML from mammoth + nh3.
   - `DELETE /api/documents/{id}` — Delete document and cascade delete SQLite rows and Chroma vectors.
   - `POST /api/documents/{id}/retry` — Retry failed document extraction/embedding.
+  - `POST /api/documents/{id}/extract-events` — On-demand extraction of calendar events from document text.
 - **Document Map**:
   - `GET /api/graph?min_score=0.45` — Get the full Document Map graph. Returns `{nodes: [...], edges: [...], unlinked: [...]}`. Nodes are documents with ≥1 edge above min_score; unlinked are documents with no edges above threshold. Edges are stored links with score ≥ min_score. min_score defaults to LINK_MIN_SIMILARITY (0.45), validated between 0.20–0.95.
   - `GET /api/documents/{doc_id}/related?min_score=...` — Get up to 5 related documents for a specific document. Returns `[{id, filename, file_type, score, shared_terms}]` sorted by score descending. 404 if document not found or not owned by user.
   - `POST /api/graph/refresh` — Rebuild the Document Map for the current user. Computes embedding similarity between all ready documents using LINK_STORE_MIN_SIMILARITY (0.30) as storage floor, keeping top LINK_MAX_PER_DOC neighbors per doc. Returns `{documents, edges}` counts.
 - **Chat & RAG**:
-  - `POST /api/chat` — Ask natural-language questions with semantic retrieval and citations.
+  - `GET /api/chat/documents` — List user's ready documents for scoping chat Q&A.
+  - `POST /api/chat` — Ask natural-language questions with semantic retrieval and citations (optional `document_ids` for scoped search).
   - `GET /api/conversations` — List conversation threads.
-  - `GET /api/conversations/{id}` — Get conversation message history.
+  - `GET /api/conversations/{id}` — Get conversation details.
+  - `GET /api/conversations/{id}/messages` — Get conversation message history with source citations and scope.
   - `DELETE /api/conversations/{id}` — Delete conversation thread.
+- **Semantic Search**:
+  - `POST /api/search` — Query vector index across all user chunks with similarity scores and snippet matches (`{query, top_k}`).
 - **Summaries**:
-  - `POST /api/documents/{id}/summary` — Generate map-reduce or direct summary.
-  - `GET /api/documents/{id}/summary` — Retrieve existing summary.
-  - `POST /api/documents/{id}/audio` — Synthesize TTS summary audio (`auto`, `edge`, `piper`, `espeak`).
-  - `GET /api/documents/{id}/audio` — Download generated summary WAV.
+  - `GET /api/summaries` — List user's document summaries.
+  - `POST /api/documents/{id}/summary` — Generate map-reduce or direct document summary.
+  - `POST /api/summaries/{id}/audio` — Synthesize TTS summary audio (`auto`, `edge`, `piper`, `espeak`).
+  - `GET /api/summaries/{id}/audio` — Check TTS audio synthesis status and engine badge.
+  - `GET /api/summaries/{id}/audio/file` — Stream or download generated summary WAV audio.
 - **Events & Reminders**:
-  - `GET /api/events` — List extracted dates and events.
+  - `GET /api/events` — List extracted dates and events (`status=pending`).
   - `POST /api/events/{id}/confirm` — Schedule reminder, trigger confirmation email, and push to Google Calendar.
-  - `DELETE /api/events/{id}` — Discard pending event.
+  - `POST /api/events/{id}/discard` — Discard pending event.
   - `GET /api/reminders` — List reminders (`all`, `scheduled`, or `sent`).
   - `DELETE /api/reminders/{id}` — Cancel reminder, delete Google Calendar event, revert event to pending.
   - `POST /api/reminders/check` — On-demand due reminder email dispatch.
-  - `GET /api/reminders/calendar-items` — Month calendar view items with Google sync status.
-  - `GET /api/reminders/calendar.ics` — Export confirmed events as standard iCalendar `.ics`.
+  - `GET /api/calendar/items` — Month calendar view items with Google sync status.
+  - `GET /api/calendar.ics` — Export confirmed events as standard iCalendar `.ics`.
   - `POST /api/reminders/{id}/sync` — Manually retry syncing reminder to Google Calendar.
 - **Google Calendar**:
   - `GET /api/google/status` — Return Google configuration status and connected user email.
@@ -266,10 +275,12 @@ npm run start
 
 ### Frontend Tech Stack
 
-- **Frontend**: Next.js 16 (App Router, Turbopack)
-- **UI**: shadcn/ui (Base UI), Tailwind CSS, lucide-react
-- **State**: TanStack React Query, Sonner (toasts)
-- **Testing**: Playwright (E2E)
+- **Frontend Framework**: Next.js 16 (App Router, Turbopack, Tailwind CSS v4)
+- **UI Components**: Base UI (`@base-ui/react`), Lucide React icons, Sonner (toasts)
+- **Data Visualization**: `react-force-graph-2d` for interactive Document Map force graph
+- **Typography & Motion**: Local `Geist Sans`, `Geist Mono`, and `Newsreader` font tokens; Lenis smooth scroll and GSAP choreography with strict reduced-motion support
+- **State & Data Fetching**: TanStack React Query
+- **Testing**: 304 passing backend unit/API tests (pytest) + Playwright (E2E)
 
 ## Screenshots
 

@@ -4,6 +4,87 @@ Log of the autonomous build. Newest entries first.
 
 ## 2026-10-23
 
+### Awwwards Redesign ("The Evidence Chamber") & Design System Integration
+
+- **Concept & Art Direction (Phase 1)**:
+  - Specified "The Evidence Chamber" concept in `web/DESIGN.md`, emphasizing forensic reading rooms, uncompromised citation veracity, and local custody.
+  - Selected editorial serif `Newsreader` for document citations and human quotes paired with contemporary neo-grotesk `Geist Sans` and `Geist Mono` for coordinates and data.
+- **Design Foundations & Tokens (Phase 2)**:
+  - Local font integration: Self-hosted `.woff2` files for `Geist Sans`, `Geist Mono`, and `Newsreader` in `web/public/fonts/` loaded via `web/src/app/fonts.ts` (zero remote requests).
+  - Tailwind CSS v4 variables in `globals.css` with semantic tokens for warm archival parchment (`#F9F8F5` light ground) and obsidian archive (`#090A0C` dark ground), with evidence cobalt accents.
+- **Marketing Landing Page & Evidence Bench (Phase 3)**:
+  - Semantic, accessible landing page at `web/src/app/(marketing)/page.tsx` featuring the Evidence Bench, capabilities dossier, local execution mechanics, and local vs. cloud ledger.
+- **Marketing-Scoped Motion Choreography (Phase 4)**:
+  - Scoped Lenis smooth scroll and GSAP ticker integration in `web/src/app/(marketing)/layout.tsx` and `marketing-motion.tsx`.
+  - Full `@media (prefers-reduced-motion: reduce)` compliance, instantly neutralizing animations when reduced motion is requested.
+- **Archival Auth Flows (Phase 5)**:
+  - Restyled `/login` and `/register` pages with archival folio borders, coordinate stamps, and semantic typography while strictly preserving all authentication handlers and redirect logic.
+- **App Shell & Reminders Styling Polish (Phase 6)**:
+  - Unified navigation tokens and card styling across the authenticated app shell (`/dashboard`, `/documents`, `/chat`, `/search`, `/map`, `/summaries`, `/reminders`).
+  - Restored baseline reminder confirmation behavior without unbacked lead-time dropdowns, maintaining strict functional veracity.
+- **Accessibility & Contrast Verification**:
+  - Resolved badge contrast ratios to exceed WCAG AA requirements.
+  - Added semantic `<main>` landmarks and `<h1>` headings to auth and marketing flows.
+
+### Document Map (Relationship Graph)
+
+- **Backend Embedding Similarity Engine (`app/services/link_service.py`)**:
+  - Computes pairwise cosine similarity of mean document chunk embeddings across user documents.
+  - Storage floor threshold (`LINK_STORE_MIN_SIMILARITY = 0.30`) stores candidate edges while read-time filter (`LINK_MIN_SIMILARITY = 0.45` default) returns prominent relationships.
+  - Caps edges to top 3 neighbors per document to prevent visual clutter.
+  - Computes shared terms using TF-IDF for readable relationship labels.
+- **Database Schema & Migrations**:
+  - Added `document_links` table (`id`, `user_id`, `doc_a`, `doc_b`, `score`, `shared_terms`, `created_at`) with foreign keys and compound indexes.
+  - Implemented idempotent migration `_migrate_add_document_links(conn)` in `app/database/database.py`.
+- **API Endpoints**:
+  - `GET /api/graph?min_score=0.45`: Returns `{nodes, edges, unlinked}` for full user graph.
+  - `GET /api/documents/{doc_id}/related?min_score=...`: Returns top related documents for a specific document.
+  - `POST /api/graph/refresh`: On-demand graph recalculation.
+  - `scripts/rebuild_links.py`: CLI maintenance script for rebuilding links across all users.
+  - Event-driven auto-rebuild: Triggers background rebuild on document upload, deletion, and retry extraction.
+- **Interactive Force Graph UI (`web/src/app/(app)/map/page.tsx`)**:
+  - Hardware-accelerated 2D canvas force graph using `react-force-graph-2d` with dynamic sizing.
+  - Base UI slider for real-time similarity threshold filtering (0.20–0.95).
+  - Responsive document inspector side sheet showing connected neighbors, shared terms, and quick actions.
+
+### Scoped Document Chat
+
+- **Focused RAG Ingestion & Query Routing**:
+  - Extended `POST /api/chat` with optional `document_ids: list[int] | null` parameter.
+  - Validates document ownership, returns generic 404 for unknown/foreign document IDs, and rejects non-ready documents.
+  - ChromaDB retrieval filters on `{"$and": [{"user_id": uid}, {"document_id": {"$in": doc_ids}}]}`.
+  - Scope state (`all` vs. `selected` with document IDs) persisted in `messages` table and returned in conversation history.
+  - Custom refusal response when scoped retrieval finds no evidence: `"I couldn't find this information in the selected documents."`
+- **Frontend Scope Selector (`web/src/app/(app)/chat/page.tsx`)**:
+  - Scope picker popover loaded from `GET /api/chat/documents`.
+  - Visual badges indicating whether an answer was derived from all documents or specific selected files.
+
+### Document Viewer & Enhanced Content Pipeline
+
+- **Content & File Endpoints (`app/api/routers/documents.py`)**:
+  - `GET /api/documents/{doc_id}/file`: Streams original file with security headers (`nosniff`, `CSP: sandbox`).
+  - `GET /api/documents/{doc_id}/content`: Clean extracted text with disk cache (`data/text_cache/<doc_id>.txt`), whitespace normalization, hyphenation fixes, 500k character cap.
+  - `GET /api/documents/{doc_id}/html`: DOCX HTML rendering via `mammoth` sanitized via `nh3`.
+  - `POST /api/documents/{doc_id}/extract-events`: On-demand date/event extraction trigger.
+- **Full In-Browser Viewer (`web/src/app/(app)/documents/[id]/page.tsx`)**:
+  - Dual tabs: Rendered view (inline PDF iframe, DOCX HTML, responsive image with OCR notice) and Extracted Text (search, highlight, copy).
+  - Document metadata sidebar with chunk and event inspection.
+  - Fast action toolbar: Download, Delete, Summarize, Extract Events, Ask About Document.
+
+### Semantic Search
+
+- **Vector Search Endpoint (`app/api/routers/search.py`)**:
+  - `POST /api/search`: Vector similarity search across document chunks with relevance scores and snippet highlights.
+- **Search UI (`web/src/app/(app)/search/page.tsx`)**:
+  - Fast query input, relevance score meters, document badges, and matched chunk snippets.
+
+### Verification & Health Status
+
+- **Pytest Suite**: **304 unit and API tests passing** across 35 test files with 0 failures (`tests/`).
+- **Web Frontend**: Next.js 16 (App Router + Turbopack) production build compiles in ~1.4s with 0 errors across 13 routes (`web/`).
+- **Backend API**: All registered FastAPI endpoints operational with JWT cookie authentication and strict multi-user isolation.
+- **Service Stack**: Local Ollama LLM (`qwen2.5:3b-instruct`), sentence-transformers embeddings (`all-MiniLM-L6-v2`), ChromaDB persistent storage, and SQLite migrations verified.
+
 ### Google Calendar Integration & Reminders UI Polish (Phase 6)
 
 - **Database Migration & Schema**:

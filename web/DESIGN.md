@@ -1,6 +1,6 @@
 # MemoryNest — Design System & Art Direction Specification
 
-> **Status:** Phase 1 Complete (Concept & Art Direction Approved)  
+> **Status:** Phases 1–6 Complete & Verified (Concept, Foundations, Landing Page, Scoped Motion, Archival Auth, App Shell & Reminders Polish, A11y Contrast & Landmark Fixes)  
 > **Target:** Award-Caliber Experience (Awwwards Site of the Day Benchmark)  
 > **Repository:** `~/MemoryNest`  
 > **Branch:** `awwww`
@@ -179,10 +179,10 @@ All text pairings exceed WCAG AA 4.5:1 contrast requirements (and exceed AAA 7.0
 
 ## 5. Execution Phases Plan
 
-- **Phase 1:** Concept & Art Direction (`web/DESIGN.md` created & documented) — **CURRENT**
-- **Phase 2:** Design Foundations (Tailwind v4 tokens, typography, dark/light CSS variables in `globals.css`)
-- **Phase 3:** Landing Page (Semantic, responsive, fully accessible static structure with real product details)
-- **Phase 4:** Marketing Motion (GSAP & Lenis smooth choreography strictly scoped to `(marketing)` layout, with full reduced-motion support)
-- **Phase 5:** Login & Register Pages (Cohesive archival aesthetic, preserving 100% of auth handlers and redirect logic)
-- **Phase 6:** Light App-Wide Redesign (Refined tokens and polish across dashboard, viewer, chat, reminders, map, summaries, preserving all baseline data behavior)
-- **Phase 7:** Production QA & Jury Review (Playwright tests, axe accessibility audit, mobile 390px responsive validation, jury scorecard)
+- **Phase 1:** Concept & Art Direction (`web/DESIGN.md` created & documented) — **COMPLETE** (`e43b00a`)
+- **Phase 2:** Design Foundations (Tailwind v4 tokens, local `Geist Sans`, `Geist Mono`, and `Newsreader` fonts, dark/light CSS variables in `globals.css`) — **COMPLETE** (`8148c31`)
+- **Phase 3:** Landing Page (Semantic, responsive, fully accessible static structure with Evidence Bench and capabilities dossier) — **COMPLETE** (`09aa06a`)
+- **Phase 4:** Marketing Motion (GSAP & Lenis smooth choreography strictly scoped to `(marketing)` layout, with full reduced-motion support) — **COMPLETE** (`3e2bf43`)
+- **Phase 5:** Login & Register Pages (Cohesive archival aesthetic, preserving 100% of auth handlers and redirect logic) — **COMPLETE** (`7c74f01`)
+- **Phase 6:** Light App-Wide Redesign (Refined tokens and polish across dashboard, viewer, chat, reminders, map, summaries, preserving all baseline data behavior) — **COMPLETE** (`7f5d2fb`)
+- **Phase 7:** Production QA, Accessibility & Review (WCAG AA contrast resolution on badges, semantic `<main>` landmarks, and semantic `<h1>` headings across auth and marketing flows) — **COMPLETE** (`c84a563`)

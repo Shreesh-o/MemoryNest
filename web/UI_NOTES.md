@@ -12,7 +12,7 @@
     - Warning: Amber (`oklch(0.769 0.188 70.08)`)
     - Destructive: Rose/Red (`oklch(0.577 0.245 27.325)`)
     - Info: Sky/Blue (`oklch(0.6 0.18 240)`)
-- **Typography**: System font stack (`-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif`) with tabular figures on numbers and metadata. Zero external remote font dependencies (`fonts.googleapis.com` free) for offline resilience and fast loading.
+- **Typography**: Local self-hosted font tokens (`Geist Sans` for interface and headlines, `Geist Mono` for timestamps/coordinates/metadata, and `Newsreader` editorial serif for citations and document excerpts). Zero external remote font dependencies (`fonts.googleapis.com` free) for offline resilience and instant rendering.
 - **Micro-Interactions & Motion**:
   - `cursor: pointer` explicitly on all interactive buttons, cards, links, tabs, and toggles.
   - Subtle transitions (`150ms-200ms ease-out`).
@@ -28,10 +28,11 @@
   - TanStack React Query for data state management.
 
 ## 3. Key Pages & Layout Improvements
-1. **App Shell**: Responsive sidebar with brand vault identity, 8 navigation items with dedicated Lucide icons, mobile slide-out drawer, theme segmented control (Light / Dark).
-2. **Dashboard**: 4-column responsive metrics overview, recent documents, upcoming deadlines, system health indicators.
-3. **Documents & Viewer**: Grid/list view toggles, ingestion pipeline status badges, full-screen document viewer with document metadata sidebar, chunk inspection, and raw/processed tabs.
-4. **Chat & History**: Pinned viewport layout without window scrolling, conversation history drawer, source citation details, searchable document selector.
-5. **Reminders & Calendar**: Full monthly interactive grid with status badges, custom lead-time reminder scheduling (15m, 1h, 1d, 2d, 1w), Google Calendar sync indicator, and inline email manager.
-6. **Document Map**: Hardware-accelerated force-directed graph (`react-force-graph-2d`, `ssr: false`), Base UI similarity threshold slider, responsive side panel, crisp canvas rendering in both light and dark modes.
-7. **Summaries & Search**: Map-reduce executive summaries, natural text-to-speech audio player modal with download, semantic vector search with relevance meter and matched snippet highlighting.
+1. **Marketing Landing Page ("The Evidence Chamber")**: Awwwards-caliber local-first narrative featuring the Evidence Bench, capabilities dossier, architecture mechanics, and reduced-motion compliant Lenis & GSAP choreography.
+2. **App Shell**: Responsive sidebar with brand vault identity, 9 navigation items with dedicated Lucide icons, mobile slide-out drawer, theme segmented control (Light / Dark).
+3. **Dashboard**: 4-column responsive metrics overview, recent documents, upcoming deadlines, system health indicators.
+4. **Documents & Viewer**: Grid/list view toggles, ingestion pipeline status badges, full-screen document viewer with document metadata sidebar, chunk inspection, and raw/processed tabs (PDF iframe, DOCX sanitized HTML, TXT, OCR).
+5. **Chat & History**: Pinned viewport layout without window scrolling, scoped document selector, conversation history drawer, source citation details with exact chunk verification.
+6. **Reminders & Calendar**: Full monthly interactive grid with status badges, Google Calendar OAuth sync indicator, baseline confirmation modal with instant email dispatch toast, and inline email manager.
+7. **Document Map**: Hardware-accelerated force-directed graph (`react-force-graph-2d`, `ssr: false`), Base UI similarity threshold slider, responsive side panel, crisp canvas rendering in both light and dark modes.
+8. **Summaries & Search**: Map-reduce executive summaries, natural text-to-speech audio player modal with download, semantic vector search with relevance meter and matched snippet highlighting.

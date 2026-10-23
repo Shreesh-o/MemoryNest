@@ -13,7 +13,7 @@ User → Next.js Web UI (:3000)   [or Streamlit UI :8501]
              ↓
         Auth (bcrypt + JWT cookie)
              ↓
-        Services (24 modules)
+        Services (25 modules)
              ↓
     ┌─────────────────────────────────────┐
     │  SQLite (metadata, users, chunks)   │
@@ -46,7 +46,7 @@ memorynest/
 │   │       ├── summaries.py # /api/documents/{id}/summary, /audio
 │   │       └── links.py     # /api/graph, /api/documents/{id}/related, /api/graph/refresh
 │   ├── pages/               # 7 Streamlit UI pages
-│   ├── services/            # Business logic (24 modules)
+│   ├── services/            # Business logic (25 modules)
 │   │   ├── auth_service.py         # User registration, login, email updates
 │   │   ├── calendar_service.py     # Calendar items aggregation & range validation
 │   │   ├── chat_service.py         # Conversation sessions & query routing
@@ -70,26 +70,28 @@ memorynest/
 │   │   ├── summary_flow_service.py # Summarization & audio synthesis flow
 │   │   ├── summary_service.py      # Map-reduce summarization
 │   │   ├── text_cache_service.py   # Extracted text/HTML cache (disk, invalidated on retry/delete)
-│   │   └── tts_service.py          # piper/edge/espeak/pyttsx3 TTS
+│   │   ├── tts_service.py          # piper/edge/espeak/pyttsx3 TTS
+│   │   └── vector_service.py       # ChromaDB PersistentClient wrapper with user_id filtering
 │   ├── database/            # SQLite layer
 │   │   ├── database.py      # Schema + init + migrations
 │   │   ├── models.py        # Dataclasses
 │   │   └── repositories.py  # CRUD per table
 │   └── utils/               # Config, security, validators, auth helpers
-├── web/                     # Next.js 16 frontend (Base UI, Tailwind CSS)
-│   ├── src/app/             # App Router pages ((auth), (app) routes)
-│   ├── src/components/ui/   # shadcn / Base UI components
+├── web/                     # Next.js 16 frontend (Base UI, Tailwind CSS v4)
+│   ├── src/app/             # App Router pages ((marketing), (auth), (app) routes)
+│   ├── src/components/ui/   # Base UI styled components
 │   └── src/lib/api.ts       # Typed client API requests
 ├── scripts/
 │   ├── dev.sh               # Single-command runner (preflight, Ollama, API, web)
 │   ├── api_check.sh         # Endpoint verification script
+│   ├── rebuild_links.py     # Global Document Map rebuild script
 │   └── repair.py            # SQLite/Chroma consistency checker
 ├── data/                    # Runtime (gitignored)
 │   ├── uploads/
 │   ├── audio/
 │   ├── chroma/
 │   └── text_cache/          # Cached extracted text & DOCX HTML
-├── tests/                   # 271 passing unit and API tests
+├── tests/                   # 304 passing unit and API tests
 ├── requirements.txt
 ├── .env.example
 └── README.md
@@ -97,7 +99,7 @@ memorynest/
 
 ---
 
-## 3. Database Tables (10)
+## 3. Database Tables (11)
 
 | Table | Purpose | Key Fields |
 |-------|---------|------------|
@@ -144,6 +146,7 @@ memorynest/
 | `summary_service` | full_text → summary | llm + chunking (map-reduce) |
 | `tts_service` | text, engine → .wav path, engine_name | piper (neural offline) / edge-tts (online neural, ffmpeg) / espeak-ng / pyttsx3 |
 | `link_service` | user_id → document links | embedding_service, vector_service, repositories |
+| `vector_service` | chunks, query, user_id → Chroma IDs, vector query results | chromadb (PersistentClient) |
 
 ---
 
@@ -151,14 +154,18 @@ memorynest/
 
 | Page | Key Features |
 |------|--------------|
-| Dashboard | Counts, upcoming deadlines, pending events, due reminders, recent chats |
-| Upload | Multi-file, validation, duplicate check (SHA-256), sync processing, status updates |
-| Documents | List with preview, chunk & event counts, delete (cascades to Chroma + chunks) |
-| Chat (Ask) | Streaming chat UI, RAG answers with citations, source snippets, conversation history |
-| History | Conversation list, keyword search, load conversation, delete thread |
-| Summaries | Pick doc → generate (map-reduce/direct) → view + TTS audio synthesis with engine badge (edge/piper/espeak) + audio download |
-| Reminders | Month calendar view + Google Calendar card (connect/disconnect/status) + sync status badges with retry + 3 tabs (Pending/Scheduled/All) + email management card + combined toast confirmation + secondary .ics export |
-| Document Viewer | Full document view: Original tab (PDF iframe, image zoom, DOCX rendered HTML, TXT) + Extracted text tab (search, highlight, copy, OCR notice). Header with actions: Download, Delete, Summarize, Extract events, Ask about document. |
+| Marketing Landing (`/`) | Evidence Chamber presentation, interactive Evidence Bench, capabilities dossier, architecture overview, Lenis smooth scroll & GSAP choreography |
+| Auth (`/login`, `/register`) | Archival-styled auth forms, JWT HTTP-only session cookie management, email profile option |
+| Dashboard (`/dashboard`) | Counts, upcoming deadlines, pending events, due reminders, recent chats, health summary |
+| Upload (`/upload`) | Multi-file drag-and-drop, validation, duplicate check (SHA-256), sync processing, progress reporting |
+| Documents (`/documents`) | List with preview, chunk & event counts, delete (cascades to Chroma + chunks), viewer navigation |
+| Document Viewer (`/documents/{id}`) | Full document view: Original tab (PDF iframe, image zoom, DOCX rendered HTML, TXT) + Extracted text tab (search, highlight, copy, OCR notice). Header actions: Download, Delete, Summarize, Extract events, Ask |
+| Chat / Ask (`/chat`) | Scoped document selector, RAG answers with clickable citations, source snippets, thread switcher |
+| History (`/history`) | Conversation list, keyword search, load conversation, delete thread |
+| Document Map (`/map`) | Hardware-accelerated 2D canvas force graph (`react-force-graph-2d`), similarity threshold slider, side sheet details |
+| Search (`/search`) | Semantic vector search across all document chunks with relevance score meters and snippet highlighting |
+| Summaries (`/summaries`) | Pick doc → generate (map-reduce/direct) → view + TTS audio synthesis with engine badge (edge/piper/espeak) + audio download |
+| Reminders (`/reminders`) | Month calendar view + Google Calendar card (connect/disconnect/status) + sync status badges with retry + 3 tabs (Pending/Scheduled/All) + email management card + combined toast confirmation + secondary .ics export |
 
 ---
 
@@ -195,7 +202,15 @@ MemoryNest allows users to focus chat Q&A on a specific subset of their uploaded
 
 ---
 
-## 9. Config (via `.env`)
+## 9. Semantic Search
+
+| Endpoint | Description |
+|----------|-------------|
+| `POST /api/search` | Fast vector similarity search across all document chunks for the authenticated user (`{query: str, top_k: int = 10}`). Returns ranked results with relevance scores, matched snippet text, and document metadata. |
+
+---
+
+## 10. Config (via `.env`)
 ```
 OLLAMA_HOST, OLLAMA_MODEL, EMBEDDING_MODEL, DB_PATH, CHROMA_DIR, UPLOAD_DIR, AUDIO_DIR
 RAG_TOP_K, RAG_MIN_SIMILARITY, CHUNK_SIZE, CHUNK_OVERLAP
@@ -207,7 +222,7 @@ LINK_MIN_SIMILARITY=0.45, LINK_STORE_MIN_SIMILARITY=0.30, LINK_MAX_PER_DOC=3
 
 ---
 
-## 10. Document Map Auto-Rebuild Behavior
+## 11. Document Map Auto-Rebuild Behavior
 
 The Document Map is kept fresh automatically:
 
@@ -219,7 +234,7 @@ All rebuilds run in try/except blocks — if the rebuild fails, the error is log
 
 For manual rebuilds, use `POST /api/graph/refresh` or run `scripts/rebuild_links.py` (rebuilds for all users).
 
-## 11. What's Explicitly OUT of Scope
+## 12. What's Explicitly OUT of Scope
 
 - Knowledge Graph (Neo4j)
 - WhatsApp notifications
@@ -230,7 +245,7 @@ For manual rebuilds, use `POST /api/graph/refresh` or run `scripts/rebuild_links
 
 ---
 
-## 12. Decision Points for You
+## 13. Decision Points for You
 
 | Component | Can Remove? | Impact |
 |-----------|-------------|--------|
@@ -249,7 +264,7 @@ For manual rebuilds, use `POST /api/graph/refresh` or run `scripts/rebuild_links
 
 ---
 
-## 13. Minimal Viable Subset (If Cutting Hard)
+## 14. Minimal Viable Subset (If Cutting Hard)
 
 Keep only:
 - `main.py` (auth + nav)
@@ -265,7 +280,7 @@ Removes: summaries, TTS, events, reminders, email, google calendar, history, doc
 
 ---
 
-## 14. Future Scope
+## 15. Future Scope
 
 - Knowledge Graph (Neo4j): entities/relations extracted from documents, graph-RAG traversals
 - WhatsApp notifications: replace/supplement email with WhatsApp Business API
