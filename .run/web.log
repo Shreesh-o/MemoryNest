@@ -2,9 +2,10 @@ npm notice run web@0.1.0 dev
 npm notice run next dev -p 3000
 ▲ Next.js 16.4.2 (Turbopack)
 - Local:         http://localhost:3000
+- Network:       http://10.1.107.143:3000
 - Environments: .env.local
-✓ Ready in 248ms
-✓ Running next.config.ts took 26ms
+✓ Ready in 324ms
+✓ Running next.config.ts took 39ms
 ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead.
 
   To migrate automatically, run:
@@ -14,83 +15,26 @@ npm notice run next dev -p 3000
 - Experiments (use with caution):
   · proxyTimeout: 300000
 
- GET /login 200 in 1305ms (next.js: 1080ms, proxy.ts: 49ms, application-code: 176ms)
- GET /register; 404 in 93ms (next.js: 55ms, proxy.ts: 5ms, application-code: 33ms)
- GET /dashboard 200 in 858ms (next.js: 757ms, proxy.ts: 6ms, application-code: 95ms)
- GET /documents 200 in 259ms (next.js: 203ms, proxy.ts: 12ms, application-code: 44ms)
- GET /upload 200 in 228ms (next.js: 179ms, proxy.ts: 8ms, application-code: 41ms)
- GET /summaries 200 in 217ms (next.js: 182ms, proxy.ts: 5ms, application-code: 30ms)
- GET /reminders 200 in 236ms (next.js: 186ms, proxy.ts: 10ms, application-code: 41ms)
- GET /search 200 in 216ms (next.js: 171ms, proxy.ts: 9ms, application-code: 36ms)
- GET /reminders 200 in 57ms (next.js: 16ms, proxy.ts: 9ms, application-code: 33ms)
- GET /chat 200 in 238ms (next.js: 201ms, proxy.ts: 5ms, application-code: 32ms)
- GET /reminders 200 in 53ms (next.js: 13ms, proxy.ts: 6ms, application-code: 34ms)
- GET /chat 200 in 137ms (next.js: 108ms, proxy.ts: 6ms, application-code: 23ms)
- GET /search 200 in 98ms (next.js: 53ms, proxy.ts: 9ms, application-code: 36ms)
- GET /dashboard 200 in 115ms (next.js: 83ms, proxy.ts: 6ms, application-code: 27ms)
- GET /dashboard 200 in 108ms (next.js: 10ms, proxy.ts: 6ms, application-code: 91ms)
- GET /dashboard 200 in 76ms (next.js: 10ms, proxy.ts: 7ms, application-code: 59ms)
- GET /login 200 in 128ms (next.js: 77ms, proxy.ts: 5ms, application-code: 47ms)
- GET /dashboard 200 in 66ms (next.js: 12ms, proxy.ts: 6ms, application-code: 47ms)
- GET /dashboard 200 in 48ms (next.js: 10ms, proxy.ts: 5ms, application-code: 33ms)
- GET /search 200 in 48ms (next.js: 10ms, proxy.ts: 5ms, application-code: 33ms)
- GET /chat 200 in 45ms (next.js: 9ms, proxy.ts: 5ms, application-code: 30ms)
- GET /login 200 in 45ms (next.js: 8ms, proxy.ts: 6ms, application-code: 31ms)
- GET /dashboard 200 in 65ms (next.js: 12ms, proxy.ts: 8ms, application-code: 45ms)
- GET /dashboard 200 in 49ms (next.js: 11ms, proxy.ts: 5ms, application-code: 32ms)
- GET /login 200 in 51ms (next.js: 9ms, proxy.ts: 7ms, application-code: 35ms)
- GET /register 200 in 298ms (next.js: 262ms, proxy.ts: 5ms, application-code: 30ms)
- GET /dashboard 200 in 69ms (next.js: 15ms, proxy.ts: 6ms, application-code: 49ms)
- GET /dashboard 200 in 52ms (next.js: 11ms, proxy.ts: 4ms, application-code: 37ms)
- GET /reminders 200 in 77ms (next.js: 42ms, proxy.ts: 5ms, application-code: 30ms)
- GET /dashboard 200 in 46ms (next.js: 9ms, proxy.ts: 4ms, application-code: 32ms)
-✓ Compiled in 51ms
- GET /dashboard 200 in 164ms (next.js: 54ms, proxy.ts: 68ms, application-code: 42ms)
-✓ Compiled in 87ms
- GET /dashboard 200 in 93ms (next.js: 20ms, proxy.ts: 6ms, application-code: 67ms)
- GET /documents 200 in 66ms (next.js: 30ms, proxy.ts: 8ms, application-code: 28ms)
- GET /login 200 in 57ms (next.js: 18ms, proxy.ts: 6ms, application-code: 33ms)
-✓ Compiled in 80ms
- GET /dashboard 200 in 76ms (next.js: 23ms, proxy.ts: 8ms, application-code: 46ms)
- GET /dashboard 200 in 49ms (next.js: 10ms, proxy.ts: 5ms, application-code: 34ms)
- GET /map 200 in 1446ms (next.js: 1408ms, proxy.ts: 5ms, application-code: 33ms)
-✓ Compiled in 79ms
- GET /documents 200 in 68ms (next.js: 29ms, proxy.ts: 7ms, application-code: 32ms)
- GET /documents/3 200 in 654ms (next.js: 607ms, proxy.ts: 6ms, application-code: 40ms)
- GET /documents 200 in 52ms (next.js: 20ms, proxy.ts: 7ms, application-code: 25ms)
- GET /documents/2 200 in 118ms (next.js: 60ms, proxy.ts: 8ms, application-code: 50ms)
- GET /map 200 in 112ms (next.js: 58ms, proxy.ts: 7ms, application-code: 47ms)
- GET /upload 200 in 69ms (next.js: 36ms, proxy.ts: 5ms, application-code: 29ms)
- GET /map 200 in 40ms (next.js: 7ms, proxy.ts: 4ms, application-code: 28ms)
- GET /upload 200 in 42ms (next.js: 9ms, proxy.ts: 6ms, application-code: 27ms)
- GET /summaries 200 in 65ms (next.js: 33ms, proxy.ts: 4ms, application-code: 27ms)
-✓ Compiled in 100ms
- GET /reminders 200 in 59ms (next.js: 22ms, proxy.ts: 7ms, application-code: 30ms)
- GET /chat 200 in 51ms (next.js: 19ms, proxy.ts: 5ms, application-code: 27ms)
-✓ Compiled in 96ms
- GET /search 200 in 52ms (next.js: 21ms, proxy.ts: 5ms, application-code: 27ms)
- GET /map 200 in 53ms (next.js: 18ms, proxy.ts: 7ms, application-code: 28ms)
-✓ Compiled in 77ms
-✓ Compiled in 75ms
-✓ Compiled in 71ms
-✓ Compiled in 66ms
-✓ Compiled in 93ms
-✓ Compiled in 75ms
- GET /map 200 in 1365ms (next.js: 1269ms, proxy.ts: 8ms, application-code: 88ms)
- GET /map 200 in 53ms (next.js: 8ms, proxy.ts: 4ms, application-code: 41ms)
- GET /reminders 200 in 105ms (next.js: 61ms, proxy.ts: 6ms, application-code: 38ms)
- HEAD / 200 in 1204ms (next.js: 826ms, proxy.ts: 5ms, application-code: 374ms)
- GET / 200 in 232ms (next.js: 35ms, proxy.ts: 7ms, application-code: 190ms)
- HEAD /login 200 in 123ms (next.js: 25ms, proxy.ts: 7ms, application-code: 92ms)
- GET /reminders 200 in 105ms (next.js: 19ms, proxy.ts: 5ms, application-code: 81ms)
- HEAD /register 200 in 89ms (next.js: 23ms, proxy.ts: 8ms, application-code: 58ms)
- GET /login 200 in 50ms (next.js: 9ms, proxy.ts: 6ms, application-code: 35ms)
- GET /dashboard 200 in 114ms (next.js: 24ms, proxy.ts: 9ms, application-code: 82ms)
- GET /dashboard 200 in 53ms (next.js: 13ms, proxy.ts: 4ms, application-code: 35ms)
- GET /reminders 200 in 42ms (next.js: 9ms, proxy.ts: 5ms, application-code: 29ms)
- GET /summaries 200 in 56ms (next.js: 22ms, proxy.ts: 5ms, application-code: 29ms)
- GET /chat 200 in 70ms (next.js: 27ms, proxy.ts: 7ms, application-code: 36ms)
- GET /chat?c=1 200 in 43ms (next.js: 9ms, proxy.ts: 5ms, application-code: 29ms)
- GET /chat 200 in 103ms (next.js: 32ms, proxy.ts: 8ms, application-code: 63ms)
- GET /chat?c=1 200 in 45ms (next.js: 11ms, proxy.ts: 6ms, application-code: 29ms)
- GET /chat 200 in 66ms (next.js: 13ms, proxy.ts: 5ms, application-code: 47ms)
+ GET /login 200 in 1576ms (next.js: 1314ms, proxy.ts: 50ms, application-code: 212ms)
+ GET /register; 404 in 83ms (next.js: 35ms, proxy.ts: 7ms, application-code: 41ms)
+ GET / 200 in 270ms (next.js: 96ms, proxy.ts: 2ms, application-code: 171ms)
+ GET /login 200 in 147ms (next.js: 128ms, proxy.ts: 3ms, application-code: 16ms)
+ GET /dashboard 200 in 363ms (next.js: 340ms, proxy.ts: 5ms, application-code: 19ms)
+ GET /dashboard 200 in 24ms (next.js: 5ms, proxy.ts: 3ms, application-code: 16ms)
+ GET /documents 200 in 291ms (next.js: 273ms, proxy.ts: 4ms, application-code: 14ms)
+ GET /documents/4 200 in 493ms (next.js: 475ms, proxy.ts: 3ms, application-code: 15ms)
+ GET /documents/3 200 in 35ms (next.js: 19ms, proxy.ts: 3ms, application-code: 13ms)
+ GET /documents 200 in 20ms (next.js: 7ms, proxy.ts: 3ms, application-code: 10ms)
+ GET /map 200 in 235ms (next.js: 219ms, proxy.ts: 2ms, application-code: 13ms)
+ GET /upload 200 in 177ms (next.js: 160ms, proxy.ts: 3ms, application-code: 14ms)
+ GET /summaries 200 in 177ms (next.js: 164ms, proxy.ts: 1.7ms, application-code: 11ms)
+ GET /chat 200 in 260ms (next.js: 247ms, proxy.ts: 3ms, application-code: 11ms)
+ GET /reminders 200 in 139ms (next.js: 125ms, proxy.ts: 3ms, application-code: 11ms)
+ GET /chat 200 in 28ms (next.js: 8ms, proxy.ts: 2ms, application-code: 18ms)
+ GET /search 200 in 194ms (next.js: 178ms, proxy.ts: 2ms, application-code: 14ms)
+ GET /documents 200 in 19ms (next.js: 7ms, proxy.ts: 2ms, application-code: 10ms)
+ GET /dashboard 200 in 17ms (next.js: 7ms, proxy.ts: 1.7ms, application-code: 9ms)
+ GET /documents 200 in 63ms (next.js: 46ms, proxy.ts: 4ms, application-code: 12ms)
+ GET /map 200 in 88ms (next.js: 76ms, proxy.ts: 1.8ms, application-code: 10ms)
+ GET /upload 200 in 30ms (next.js: 16ms, proxy.ts: 2ms, application-code: 12ms)
+ GET /map 200 in 19ms (next.js: 6ms, proxy.ts: 1.7ms, application-code: 11ms)
