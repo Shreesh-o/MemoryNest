@@ -11,22 +11,21 @@ import {
   CardContent,
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import {
-  SvgCalendar,
-  SvgClock,
-  SvgUpload,
-  SvgMessageSquare,
-  SvgAlertCircle,
-  SvgPlus,
-  SvgRefreshCw,
-  SvgCheck,
-  SvgDownload,
-  SvgFile,
-} from "@/components/ui/icons"
 import { Badge } from "@/components/ui/badge"
-import { toast } from "sonner"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
+import { EmptyState } from "@/components/ui/empty-state"
+import {
+  CalendarIcon,
+  ClockIcon,
+  UploadCloudIcon,
+  MessageSquareIcon,
+  AlertCircleIcon,
+  RefreshCwIcon,
+  LayersIcon,
+  FileTextIcon,
+  ArrowRightIcon,
+  CheckCircle2Icon,
+  CpuIcon,
+} from "lucide-react"
 
 type DashboardData = {
   total_documents: number
@@ -111,14 +110,14 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="p-6 max-w-4xl mx-auto">
-        <Card>
+      <div className="max-w-6xl mx-auto py-8">
+        <Card className="border border-border/80">
           <CardHeader>
             <CardTitle>Dashboard</CardTitle>
-            <CardDescription>Loading your data...</CardDescription>
+            <CardDescription>Loading your knowledge vault stats...</CardDescription>
           </CardHeader>
           <CardContent className="flex items-center justify-center h-64">
-            <SvgRefreshCw className="h-8 w-8 animate-spin text-primary" />
+            <RefreshCwIcon className="size-8 animate-spin text-primary" />
           </CardContent>
         </Card>
       </div>
@@ -127,18 +126,18 @@ export default function DashboardPage() {
 
   if (error) {
     return (
-      <div className="p-6 max-w-4xl mx-auto">
-        <Card>
+      <div className="max-w-6xl mx-auto py-8">
+        <Card className="border border-destructive/30">
           <CardHeader>
             <CardTitle>Dashboard</CardTitle>
             <CardDescription>Something went wrong</CardDescription>
           </CardHeader>
           <CardContent className="text-center py-12">
-            <SvgAlertCircle className="mx-auto h-12 w-12 text-destructive mb-4" />
+            <AlertCircleIcon className="mx-auto size-12 text-destructive mb-4" />
             <h3 className="text-lg font-medium mb-2">Failed to load dashboard</h3>
-            <p className="text-muted-foreground mb-4">{error}</p>
+            <p className="text-muted-foreground mb-4 text-sm">{error}</p>
             <Button variant="outline" onClick={() => window.location.reload()}>
-              <SvgRefreshCw className="mr-2 h-4 w-4" />
+              <RefreshCwIcon className="mr-2 size-4" />
               Retry
             </Button>
           </CardContent>
@@ -152,233 +151,337 @@ export default function DashboardPage() {
   }
 
   const badgeVariant = () => {
-    if (!health) return "secondary"
-    if (health.ollama === "down") return "destructive"
-    if (health.mock_llm) return "secondary"
-    return "secondary"
+    if (!health) return "secondary" as const
+    if (health.ollama === "down") return "destructive" as const
+    if (health.mock_llm) return "warning" as const
+    return "success" as const
   }
 
   const badgeText = () => {
-    if (!health) return "Unknown"
+    if (!health) return "Status: Unknown"
     if (health.ollama === "down") return "LLM Down"
-    if (health.mock_llm) return "Mock LLM"
-    return "LLM Up"
+    if (health.mock_llm) return "Mock LLM Mode"
+    return "Ollama Active"
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+    <div className="max-w-6xl mx-auto space-y-8">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-border/60">
         <div>
-          <h1 className="text-2xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">Your knowledge base at a glance</p>
+          <h1 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+            Dashboard
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Overview of your local documents, indexed knowledge, and upcoming dates
+          </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           {health && (
-            <Badge variant={badgeVariant()} className="text-xs">
-              {badgeText()}
+            <Badge variant={badgeVariant()} className="gap-1.5 py-1 px-2.5 text-xs font-medium">
+              <CpuIcon className="size-3.5" />
+              <span>{badgeText()}</span>
             </Badge>
           )}
-          <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
-            <SvgRefreshCw className="mr-2 h-4 w-4" /> Refresh
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.location.reload()}
+            className="text-xs h-8 gap-1.5 cursor-pointer"
+          >
+            <RefreshCwIcon className="size-3.5" />
+            <span>Refresh</span>
           </Button>
         </div>
       </div>
 
-      {/* Stat cards */}
-      <div className="grid gap-4 mb-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between py-4">
-            <div>
-              <CardTitle className="text-sm font-medium">Documents</CardTitle>
-              <CardDescription className="text-xs">
-                {data.ready_documents} ready of {data.total_documents} total
-              </CardDescription>
+      {/* 4 Stat Cards in Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Total Documents */}
+        <Card className="hover:border-border transition-all">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Documents
+            </CardTitle>
+            <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <FileTextIcon className="size-4" />
             </div>
-            <SvgFile className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{data.ready_documents}</div>
-            <p className="text-xs text-muted-foreground mt-2">
-              {data.failed_documents} failed • {data.pending_documents} processing
+          <CardContent className="space-y-1.5">
+            <div className="font-heading text-3xl font-bold tracking-tight text-foreground">
+              {data.ready_documents}
+              <span className="text-sm font-normal text-muted-foreground ml-1.5">
+                / {data.total_documents} total
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1">
+              <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
+                <CheckCircle2Icon className="size-3" />
+                {data.ready_documents} ready
+              </span>
+              {data.failed_documents > 0 && (
+                <span className="text-destructive font-medium">
+                  • {data.failed_documents} failed
+                </span>
+              )}
+              {data.pending_documents > 0 && (
+                <span className="text-amber-600 font-medium">
+                  • {data.pending_documents} pending
+                </span>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Total Chunks */}
+        <Card className="hover:border-border transition-all">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Vector Chunks
+            </CardTitle>
+            <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <LayersIcon className="size-4" />
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-1.5">
+            <div className="font-heading text-3xl font-bold tracking-tight text-foreground">
+              {data.total_chunks.toLocaleString()}
+            </div>
+            <p className="text-xs text-muted-foreground pt-1">
+              Embedded in local ChromaDB
             </p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between py-4">
-            <div>
-              <CardTitle className="text-sm font-medium">Total Chunks</CardTitle>
-              <CardDescription className="text-xs">Indexed text chunks</CardDescription>
+        {/* Pending Events */}
+        <Card className="hover:border-border transition-all">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Extracted Events
+            </CardTitle>
+            <div className="flex size-8 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
+              <ClockIcon className="size-4" />
             </div>
-            <SvgCheck className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{data.total_chunks}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between py-4">
-            <div>
-              <CardTitle className="text-sm font-medium">Pending Events</CardTitle>
-              <CardDescription className="text-xs">Awaiting confirmation</CardDescription>
+          <CardContent className="space-y-1.5">
+            <div className="font-heading text-3xl font-bold tracking-tight text-foreground">
+              {data.pending_events.length}
             </div>
-            <SvgClock className="h-5 w-5 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{data.pending_events.length}</div>
-            <Button
-              variant="link"
-              size="sm"
-              className="mt-2 p-0 text-primary-foreground hover:bg-accent"
+            <button
               onClick={goToReminders}
+              className="inline-flex items-center gap-1 text-xs text-primary hover:underline font-medium pt-1 cursor-pointer"
             >
-              View Reminders
-            </Button>
+              <span>Review in Reminders</span>
+              <ArrowRightIcon className="size-3" />
+            </button>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between py-4">
-            <div>
-              <CardTitle className="text-sm font-medium">Recent Chats</CardTitle>
-              <CardDescription className="text-xs">{data.recent_conversations.length} conversations</CardDescription>
+        {/* Recent Chats */}
+        <Card className="hover:border-border transition-all">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Conversations
+            </CardTitle>
+            <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <MessageSquareIcon className="size-4" />
             </div>
-            <SvgMessageSquare className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{data.recent_conversations.length}</div>
-            <Button
-              variant="link"
-              size="sm"
-              className="mt-2 p-0 text-primary-foreground hover:bg-accent"
+          <CardContent className="space-y-1.5">
+            <div className="font-heading text-3xl font-bold tracking-tight text-foreground">
+              {data.recent_conversations.length}
+            </div>
+            <button
               onClick={goToChat}
+              className="inline-flex items-center gap-1 text-xs text-primary hover:underline font-medium pt-1 cursor-pointer"
             >
-              View Chats
+              <span>Open Chat Assistant</span>
+              <ArrowRightIcon className="size-3" />
+            </button>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Two Column Section: Upcoming Deadlines & Recent Chats */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Upcoming Deadlines */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CalendarIcon className="size-4.5 text-primary" />
+              <h2 className="font-heading text-base font-semibold tracking-tight text-foreground">
+                Upcoming Deadlines
+              </h2>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={goToReminders}
+              className="text-xs h-7 text-muted-foreground hover:text-foreground"
+            >
+              View Calendar
             </Button>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
 
-      {/* Upcoming deadlines */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Upcoming Deadlines</h2>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={goToReminders}
-          >
-            View All Reminders
-          </Button>
-        </div>
-        <Card>
-          <CardContent className="p-4">
-            {data.upcoming_deadlines.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-                <SvgCalendar className="h-8 w-8 mb-2 opacity-50" />
-                <p>No upcoming deadlines</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {data.upcoming_deadlines.map((event) => (
-                  <div
-                    key={event.id}
-                    className="flex items-center gap-3 p-3 rounded-lg border border-muted/50 hover:bg-muted/50 transition-colors cursor-pointer"
-                    onClick={() => goToReminders()}
-                  >
-                    <SvgClock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{event.event_text}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {event.event_date || "TBD"}
-                      </p>
+          <Card className="border border-border/80 min-h-[260px] flex flex-col justify-center">
+            <CardContent className="p-4">
+              {data.upcoming_deadlines.length === 0 ? (
+                <EmptyState
+                  icon={<CalendarIcon />}
+                  title="No upcoming deadlines"
+                  description="Documents with detected dates and milestones will appear here."
+                  className="border-none bg-transparent min-h-[200px]"
+                />
+              ) : (
+                <div className="space-y-2.5">
+                  {data.upcoming_deadlines.map((event) => (
+                    <div
+                      key={event.id}
+                      className="group flex items-start gap-3 p-3 rounded-lg border border-border/60 hover:border-border hover:bg-muted/40 transition-all cursor-pointer"
+                      onClick={() => goToReminders()}
+                    >
+                      <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 mt-0.5">
+                        <ClockIcon className="size-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors">
+                          {event.event_text}
+                        </p>
+                        <p className="text-xs text-muted-foreground font-mono mt-0.5">
+                          {event.event_date || event.raw_date || "Date Pending"}
+                        </p>
+                      </div>
+                      <ArrowRightIcon className="size-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity mt-1 shrink-0" />
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Recent chats */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Recent Chats</h2>
-          <Button variant="outline" size="sm" onClick={goToChat}>
-            View All Chats
-          </Button>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
-        <Card>
-          <CardContent className="p-4">
-            {data.recent_conversations.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-                <SvgMessageSquare className="h-8 w-8 mb-2 opacity-50" />
-                <p>No chats yet</p>
-                <p className="text-xs">Start asking questions about your documents</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {data.recent_conversations.map((convo) => (
-                  <div
-                    key={convo.id}
-                    className="flex items-center gap-3 p-3 rounded-lg border border-muted/50 hover:bg-muted/50 transition-colors cursor-pointer"
-                    onClick={() => router.push(`/chat?c=${convo.id}`)}
-                  >
-                    <SvgMessageSquare className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">
-                        {convo.title || "Untitled"}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatDate(convo.updated_at || convo.created_at)}
-                      </p>
+
+        {/* Recent Chats */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <MessageSquareIcon className="size-4.5 text-primary" />
+              <h2 className="font-heading text-base font-semibold tracking-tight text-foreground">
+                Recent Conversations
+              </h2>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={goToChat}
+              className="text-xs h-7 text-muted-foreground hover:text-foreground"
+            >
+              Open Chat
+            </Button>
+          </div>
+
+          <Card className="border border-border/80 min-h-[260px] flex flex-col justify-center">
+            <CardContent className="p-4">
+              {data.recent_conversations.length === 0 ? (
+                <EmptyState
+                  icon={<MessageSquareIcon />}
+                  title="No conversations yet"
+                  description="Ask questions across your documents with citations in real time."
+                  action={
+                    <Button size="sm" onClick={goToChat} className="text-xs h-8">
+                      Start First Chat
+                    </Button>
+                  }
+                  className="border-none bg-transparent min-h-[200px]"
+                />
+              ) : (
+                <div className="space-y-2.5">
+                  {data.recent_conversations.map((convo) => (
+                    <div
+                      key={convo.id}
+                      className="group flex items-start gap-3 p-3 rounded-lg border border-border/60 hover:border-border hover:bg-muted/40 transition-all cursor-pointer"
+                      onClick={() => router.push(`/chat?c=${convo.id}`)}
+                    >
+                      <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary mt-0.5">
+                        <MessageSquareIcon className="size-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors">
+                          {convo.title || "Untitled Conversation"}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {formatDate(convo.updated_at || convo.created_at)}
+                        </p>
+                      </div>
+                      <ArrowRightIcon className="size-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity mt-1 shrink-0" />
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
-      {/* Quick actions */}
-      <div className="mb-6">
-        <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
-        <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
+      {/* Quick Action Tiles */}
+      <div className="space-y-3 pt-2">
+        <h2 className="font-heading text-base font-semibold tracking-tight text-foreground">
+          Quick Actions
+        </h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Button
             onClick={goToUpload}
-            className="w-full flex flex-col items-center gap-2 py-6"
             variant="outline"
+            className="h-auto flex flex-col items-center justify-center gap-2.5 p-5 border-border/80 hover:border-primary/50 hover:bg-muted/30 transition-all group cursor-pointer"
           >
-            <SvgUpload className="h-6 w-6 text-primary" />
-            <span className="text-sm font-medium">Upload File</span>
+            <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary group-hover:scale-105 transition-transform">
+              <UploadCloudIcon className="size-5" />
+            </div>
+            <div className="text-center">
+              <span className="block text-sm font-semibold text-foreground">Upload Files</span>
+              <span className="text-[11px] text-muted-foreground">PDF, DOCX, TXT, OCR</span>
+            </div>
           </Button>
+
           <Button
             onClick={goToChat}
-            className="w-full flex flex-col items-center gap-2 py-6"
             variant="outline"
+            className="h-auto flex flex-col items-center justify-center gap-2.5 p-5 border-border/80 hover:border-primary/50 hover:bg-muted/30 transition-all group cursor-pointer"
           >
-            <SvgMessageSquare className="h-6 w-6 text-primary" />
-            <span className="text-sm font-medium">Ask a Question</span>
+            <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary group-hover:scale-105 transition-transform">
+              <MessageSquareIcon className="size-5" />
+            </div>
+            <div className="text-center">
+              <span className="block text-sm font-semibold text-foreground">Ask Assistant</span>
+              <span className="text-[11px] text-muted-foreground">RAG with citations</span>
+            </div>
           </Button>
+
           <Button
             onClick={goToDocuments}
-            className="w-full flex flex-col items-center gap-2 py-6"
             variant="outline"
+            className="h-auto flex flex-col items-center justify-center gap-2.5 p-5 border-border/80 hover:border-primary/50 hover:bg-muted/30 transition-all group cursor-pointer"
           >
-            <SvgFile className="h-6 w-6 text-primary" />
-            <span className="text-sm font-medium">View Documents</span>
+            <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary group-hover:scale-105 transition-transform">
+              <FileTextIcon className="size-5" />
+            </div>
+            <div className="text-center">
+              <span className="block text-sm font-semibold text-foreground">View Documents</span>
+              <span className="text-[11px] text-muted-foreground">Vault inventory</span>
+            </div>
           </Button>
+
           <Button
             onClick={goToReminders}
-            className="w-full flex flex-col items-center gap-2 py-6"
             variant="outline"
+            className="h-auto flex flex-col items-center justify-center gap-2.5 p-5 border-border/80 hover:border-primary/50 hover:bg-muted/30 transition-all group cursor-pointer"
           >
-            <SvgCalendar className="h-6 w-6 text-primary" />
-            <span className="text-sm font-medium">View Reminders</span>
+            <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary group-hover:scale-105 transition-transform">
+              <CalendarIcon className="size-5" />
+            </div>
+            <div className="text-center">
+              <span className="block text-sm font-semibold text-foreground">Reminders</span>
+              <span className="text-[11px] text-muted-foreground">Calendar & Sync</span>
+            </div>
           </Button>
         </div>
       </div>
