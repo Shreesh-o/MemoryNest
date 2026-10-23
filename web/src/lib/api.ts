@@ -107,17 +107,27 @@ export interface ChatMessage {
   role: string;
   content: string;
   sources?: { document: string; chunk_index: number; similarity: number; document_id?: number }[];
+  scope?: { scope: "all" | "selected"; document_ids?: number[] | null } | null;
+  created_at?: string | null;
+}
+
+export interface ChatDocumentItem {
+  id: number;
+  filename: string;
+  file_type: string;
 }
 
 export interface ChatRequest {
   question: string;
   conversation_id?: number | null;
+  document_ids?: number[] | null;
 }
 
 export interface ChatResponse {
   conversation_id: number;
   answer: string;
   sources: { document: string; chunk_index: number; similarity: number; document_id?: number }[];
+  scope?: { scope: "all" | "selected"; document_ids?: number[] | null } | null;
 }
 
 export interface ConversationPublic {
@@ -126,6 +136,7 @@ export interface ConversationPublic {
   title?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
+  messages?: ChatMessage[] | null;
 }
 
 export interface SummaryPublic {
@@ -384,6 +395,10 @@ export async function chatAsk(req: ChatRequest) {
     method: "POST",
     body: JSON.stringify(req),
   });
+}
+
+export async function chatDocuments() {
+  return fetchApi<ChatDocumentItem[]>("chat/documents");
 }
 
 export async function conversationsList() {

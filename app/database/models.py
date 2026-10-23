@@ -60,6 +60,7 @@ class Message:
     content: str
     sources: Optional[str] = None
     created_at: Optional[str] = None
+    scope: Optional[str] = None
 
 
 @dataclass

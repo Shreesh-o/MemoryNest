@@ -47,8 +47,8 @@ class VectorService:
             embeddings=[c["embedding"] for c in chunks],
             metadatas=[
                 {
-                    "user_id": user_id,
-                    "document_id": document_id,
+                    "user_id": int(user_id),
+                    "document_id": int(document_id),
                     "filename": filename,
                     "chunk_index": c["index"],
                     "token_count": c["token_count"],
@@ -62,17 +62,29 @@ class VectorService:
         user_id: int,
         query_embedding: list[float],
         top_k: int = 5,
+        document_ids: list[int] | None = None,
     ) -> list[dict]:
-        """Query similar chunks, filtered by user_id.
+        """Query similar chunks, filtered by user_id and optionally document_ids.
 
         Returns list of dicts with keys: chroma_id, text, metadata, similarity (1 - distance).
         """
         if top_k <= 0:
             return []
+
+        if document_ids is not None:
+            where = {
+                "$and": [
+                    {"user_id": int(user_id)},
+                    {"document_id": {"$in": [int(d) for d in document_ids]}},
+                ]
+            }
+        else:
+            where = {"user_id": int(user_id)}
+
         res = self.collection.query(
             query_embeddings=[query_embedding],
             n_results=top_k,
-            where={"user_id": user_id},
+            where=where,
             include=["documents", "metadatas", "distances"],
         )
         out = []

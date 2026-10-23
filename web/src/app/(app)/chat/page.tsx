@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import {
   chatAsk,
+  chatDocuments,
   conversationsList,
   conversationsGet,
   conversationsDelete,
@@ -20,6 +21,14 @@ import {
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu"
+import { Check } from "lucide-react"
 import {
   Sheet,
   SheetContent,
@@ -52,6 +61,7 @@ type Message = {
   role: "user" | "assistant"
   content: string
   sources?: { document: string; chunk_index: number; similarity: number; document_id?: number }[]
+  scope?: { scope: "all" | "selected"; document_ids?: number[] | null } | null
 }
 
 const SUGGESTED_QUESTIONS = [
@@ -185,6 +195,16 @@ function ChatContent() {
   const [isLoadingChat, setIsLoadingChat] = useState(false)
   const [sheetOpen, setSheetOpen] = useState(false)
   const [conversationToDelete, setConversationToDelete] = useState<ConversationPublic | null>(null)
+  const [selectedDocIds, setSelectedDocIds] = useState<number[]>([])
+
+  const { data: readyDocuments = [] } = useQuery({
+    queryKey: ["chat-documents"],
+    queryFn: async () => {
+      const res = await chatDocuments()
+      if (!res.ok) return []
+      return res.data
+    },
+  })
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -305,15 +325,17 @@ function ChatContent() {
       const result = await chatAsk({
         question,
         conversation_id: conversationId,
+        document_ids: selectedDocIds.length > 0 ? selectedDocIds : null,
       })
 
       if (result.ok) {
-        const { conversation_id: newConvoId, answer, sources } = result.data
+        const { conversation_id: newConvoId, answer, sources, scope } = result.data
         const assistantMessage: Message = {
           id: getNextMessageId(),
           role: "assistant",
           content: answer,
           sources,
+          scope,
         }
         setMessages((prev) => [...prev, assistantMessage])
 
@@ -520,6 +542,15 @@ function ChatContent() {
                       >
                         <Markdown>{msg.content}</Markdown>
                       </div>
+                      {msg.scope && (
+                        <div className="mt-2 text-xs text-muted-foreground">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-background border border-border/60 text-[11px] font-medium">
+                            {msg.scope.scope === "selected"
+                              ? `Scoped to ${msg.scope.document_ids?.length || 0} document${(msg.scope.document_ids?.length || 0) === 1 ? "" : "s"}`
+                              : "All documents"}
+                          </span>
+                        </div>
+                      )}
                       {msg.sources && msg.sources.length > 0 && (
                         <details className="mt-2.5 group text-xs border-t border-border/50 pt-2">
                           <summary className="flex items-center gap-1.5 text-muted-foreground cursor-pointer font-medium hover:text-foreground">
@@ -616,6 +647,69 @@ function ChatContent() {
                 }
               }}
             >
+              {readyDocuments.length > 0 && (
+                <div className="flex items-center gap-2 mb-2 text-xs">
+                  <span className="text-muted-foreground font-medium">Search scope:</span>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      render={
+                        <Button
+                          variant="outline"
+                          size="xs"
+                          type="button"
+                          className="h-6 gap-1.5 text-xs font-normal"
+                        >
+                          <span>
+                            {selectedDocIds.length === 0
+                              ? "All documents (default)"
+                              : `${selectedDocIds.length} document${selectedDocIds.length > 1 ? "s" : ""} selected`}
+                          </span>
+                        </Button>
+                      }
+                    />
+                    <DropdownMenuContent align="start" className="w-64 max-h-60 overflow-y-auto p-1">
+                      <DropdownMenuItem
+                        onClick={() => setSelectedDocIds([])}
+                        className="flex items-center justify-between text-xs cursor-pointer"
+                      >
+                        <span>All documents (default)</span>
+                        {selectedDocIds.length === 0 && <Check className="h-3.5 w-3.5 text-primary" />}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      {readyDocuments.map((doc) => {
+                        const isSelected = selectedDocIds.includes(doc.id)
+                        return (
+                          <DropdownMenuItem
+                            key={doc.id}
+                            onClick={() => {
+                              setSelectedDocIds((prev) =>
+                                prev.includes(doc.id)
+                                  ? prev.filter((id) => id !== doc.id)
+                                  : [...prev, doc.id]
+                              )
+                            }}
+                            className="flex items-center justify-between text-xs cursor-pointer"
+                          >
+                            <span className="truncate max-w-[190px]">{doc.filename}</span>
+                            {isSelected && <Check className="h-3.5 w-3.5 text-primary shrink-0" />}
+                          </DropdownMenuItem>
+                        )
+                      })}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  {selectedDocIds.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="xs"
+                      type="button"
+                      className="h-6 px-1.5 text-xs text-muted-foreground hover:text-foreground"
+                      onClick={() => setSelectedDocIds([])}
+                    >
+                      Reset
+                    </Button>
+                  )}
+                </div>
+              )}
               <div className="flex items-end gap-2">
                 <div className="flex-1 relative">
                   <Textarea

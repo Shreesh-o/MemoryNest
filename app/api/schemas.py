@@ -115,17 +115,27 @@ class ChatMessage(BaseModel):
     role: str
     content: str
     sources: Optional[List[dict]] = None
+    scope: Optional[dict] = None
+    created_at: Optional[str] = None
 
 
 class ChatRequest(BaseModel):
     question: str = Field(..., max_length=2000)
     conversation_id: Optional[int] = None
+    document_ids: Optional[List[int]] = None
 
 
 class ChatResponse(BaseModel):
     conversation_id: int
     answer: str
     sources: List[dict] = []
+    scope: Optional[dict] = None
+
+
+class ChatDocumentItem(BaseModel):
+    id: int
+    filename: str
+    file_type: str
 
 
 class ConversationPublic(BaseModel):
@@ -134,6 +144,7 @@ class ConversationPublic(BaseModel):
     title: Optional[str] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
+    messages: Optional[List[ChatMessage]] = None
 
 
 class SummaryPublic(BaseModel):

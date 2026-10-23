@@ -154,6 +154,33 @@ class DocumentRepository(BaseRepository):
         finally:
             conn.close()
 
+    def get_by_ids(self, doc_ids: List[int], user_id: int) -> List[Document]:
+        """Fetch documents by IDs strictly scoped to the given user_id."""
+        if not doc_ids:
+            return []
+        conn = self._connect()
+        try:
+            placeholders = ",".join("?" for _ in doc_ids)
+            rows = conn.execute(
+                f"SELECT * FROM documents WHERE user_id = ? AND id IN ({placeholders})",
+                (user_id, *doc_ids),
+            ).fetchall()
+            return [self._row_to_dataclass(r, Document) for r in rows]
+        finally:
+            conn.close()
+
+    def list_ready_for_user(self, user_id: int) -> List[Document]:
+        """List ready documents for a user, ordered by filename."""
+        conn = self._connect()
+        try:
+            rows = conn.execute(
+                "SELECT * FROM documents WHERE user_id = ? AND status = 'ready' ORDER BY filename ASC, id ASC",
+                (user_id,),
+            ).fetchall()
+            return [self._row_to_dataclass(r, Document) for r in rows]
+        finally:
+            conn.close()
+
     def update_status(
         self, doc_id: int, user_id: int, status: str, error_message: Optional[str] = None
     ) -> None:
@@ -378,19 +405,22 @@ class MessageRepository(BaseRepository):
     def create(
         self, conversation_id: int, user_id: int, role: str,
         content: str, sources: Optional[list] = None,
+        scope: Optional[dict | str] = None,
     ) -> Message:
         conn = self._connect()
         try:
+            scope_str = json.dumps(scope) if isinstance(scope, dict) else scope
             cur = conn.execute(
                 """INSERT INTO messages
-                   (conversation_id, user_id, role, content, sources)
-                   VALUES (?, ?, ?, ?, ?)""",
+                   (conversation_id, user_id, role, content, sources, scope)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
                 (
                     conversation_id,
                     user_id,
                     role,
                     content,
                     json.dumps(sources) if sources is not None else None,
+                    scope_str,
                 ),
             )
             conn.commit()

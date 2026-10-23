@@ -36,7 +36,7 @@ memorynest/
 │   │   ├── schemas.py       # Pydantic request & response schemas
 │   │   └── routers/         # API endpoints
 │   │       ├── auth.py      # /api/auth/register, /login, /me, /logout, PATCH /me/email
-│   │       ├── chat.py      # /api/chat, /api/conversations
+│   │       ├── chat.py      # /api/chat, /api/chat/documents, /api/conversations, /api/conversations/{id}/messages
 │   │       ├── dashboard.py # /api/dashboard
 │   │       ├── documents.py # /api/documents/upload, /retry, /file, /content, /html
 │   │       ├── google.py    # /api/google/status, /connect, /callback, /disconnect
@@ -105,7 +105,7 @@ memorynest/
 | `documents` | Uploaded files | id, user_id, filename, stored_path, file_type, status, chunk_count, file_hash |
 | `document_chunks` | Text pieces | id, document_id, user_id, chunk_index, content, chroma_id |
 | `conversations` | Chat sessions | id, user_id, title |
-| `messages` | Chat history | id, conversation_id, user_id, role, content, sources |
+| `messages` | Chat history | id, conversation_id, user_id, role, content, sources, scope |
 | `summaries` | Doc summaries | id, document_id, user_id, summary_text |
 | `events` | Extracted dates | id, user_id, document_id, event_text, event_date, raw_date, status |
 | `reminders` | Scheduled reminders & sync | id, user_id, event_id, remind_at, channel, subject, body, status, sent_at, google_event_id, sync_status, sync_error |
@@ -123,7 +123,7 @@ memorynest/
 |---------|---------------|--------------|
 | `auth_service` | username, password, email → User, token | bcrypt, JWT, repositories |
 | `calendar_service` | user_id, start, end → List[CalendarItem] | sqlite queries (events & reminders) |
-| `chat_service` | question, conversation_id → answer, sources | rag_service, repositories |
+| `chat_service` | question, conversation_id, document_ids → answer, sources, scope | rag_service, repositories |
 | `chunking_service` | text → List[Chunk] | regex, char-based token estimate |
 | `dashboard_service` | user_id → stats, deadlines, activity | repositories |
 | `document_service` | user_id, doc_id → docs, cascade delete | repositories, vector_service, filesystem |
@@ -137,7 +137,7 @@ memorynest/
 | `ingest_service` | file, user_id → Document, chunks, events | extraction, chunking, embedding, vector, event |
 | `llm_service` | prompt → response | Ollama HTTP API (qwen2.5:3b-instruct) |
 | `ocr_service` | image_path → text | Tesseract (system) |
-| `rag_service` | question → RAGResult(answer, sources) | embedding + vector + llm |
+| `rag_service` | question, document_ids → RAGResult(answer, sources, scope) | embedding + vector + llm |
 | `reminder_flow_service` | confirm/cancel/due check/sync → status, reminders | email_service, google_calendar_service, repositories |
 | `search_service` | query, user_id → search results | vector_service, repositories |
 | `summary_flow_service` | doc_id, user_id, engine → summary, audio_url | summary_service, tts_service, repositories |
@@ -184,7 +184,18 @@ memorynest/
 
 ---
 
-## 8. Config (via `.env`)
+## 8. Scoped Document Chat
+
+MemoryNest allows users to focus chat Q&A on a specific subset of their uploaded documents, or ask questions across all documents (default).
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/chat/documents` | Returns a lightweight list of ready documents `[{id, filename, file_type}]` for the chat scope selector. Only returns documents belonging to the authenticated user with `status = 'ready'`. |
+| `POST /api/chat` | Supports optional `document_ids: list[int] \| null` in the request body.<br>• `null` or missing: RAG searches across all user documents (default).<br>• `[]` (empty list): returns `422 Unprocessable Entity` ("Select at least one document").<br>• Max 200 IDs allowed per request.<br>• Foreign or unknown document IDs return generic `404 Not Found` without disclosing document existence.<br>• Non-ready document IDs return `400 Bad Request`.<br>• ChromaDB query filters on `{"$and": [{"user_id": uid}, {"document_id": {"$in": doc_ids}}]}`.<br>• Response scope (`{scope: "all" \| "selected", document_ids: [...]}`) is saved to the `messages` table and returned in conversation history.<br>• Scoped queries below similarity threshold return: `"I couldn't find this information in the selected documents."` |
+
+---
+
+## 9. Config (via `.env`)
 ```
 OLLAMA_HOST, OLLAMA_MODEL, EMBEDDING_MODEL, DB_PATH, CHROMA_DIR, UPLOAD_DIR, AUDIO_DIR
 RAG_TOP_K, RAG_MIN_SIMILARITY, CHUNK_SIZE, CHUNK_OVERLAP
@@ -196,7 +207,7 @@ LINK_MIN_SIMILARITY=0.45, LINK_STORE_MIN_SIMILARITY=0.30, LINK_MAX_PER_DOC=3
 
 ---
 
-## 9. Document Map Auto-Rebuild Behavior
+## 10. Document Map Auto-Rebuild Behavior
 
 The Document Map is kept fresh automatically:
 
@@ -208,7 +219,7 @@ All rebuilds run in try/except blocks — if the rebuild fails, the error is log
 
 For manual rebuilds, use `POST /api/graph/refresh` or run `scripts/rebuild_links.py` (rebuilds for all users).
 
-## 9. What's Explicitly OUT of Scope
+## 11. What's Explicitly OUT of Scope
 
 - Knowledge Graph (Neo4j)
 - WhatsApp notifications
@@ -219,7 +230,7 @@ For manual rebuilds, use `POST /api/graph/refresh` or run `scripts/rebuild_links
 
 ---
 
-## 10. Decision Points for You
+## 12. Decision Points for You
 
 | Component | Can Remove? | Impact |
 |-----------|-------------|--------|
@@ -238,7 +249,7 @@ For manual rebuilds, use `POST /api/graph/refresh` or run `scripts/rebuild_links
 
 ---
 
-## 11. Minimal Viable Subset (If Cutting Hard)
+## 13. Minimal Viable Subset (If Cutting Hard)
 
 Keep only:
 - `main.py` (auth + nav)
@@ -254,7 +265,7 @@ Removes: summaries, TTS, events, reminders, email, google calendar, history, doc
 
 ---
 
-## 12. Future Scope
+## 14. Future Scope
 
 - Knowledge Graph (Neo4j): entities/relations extracted from documents, graph-RAG traversals
 - WhatsApp notifications: replace/supplement email with WhatsApp Business API

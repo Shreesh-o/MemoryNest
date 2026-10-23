@@ -15,12 +15,21 @@ class RAGResult:
     answer: str
     sources: List[dict]
     below_threshold: bool
+    scope: Optional[dict] = None
 
 
 _SYSTEM_PROMPT = (
     "You are a helpful assistant that answers questions ONLY using the provided context. "
     "If the answer is not in the context, say: "
     "\"I couldn't find this information in your stored documents.\" "
+    "Do not make up information. Answer in your own words. Do not cite sources inline "
+    "or include source headers; citations are shown separately."
+)
+
+_SCOPED_SYSTEM_PROMPT = (
+    "You are a helpful assistant that answers questions ONLY using the provided context. "
+    "If the answer is not in the context, say: "
+    "\"I couldn't find this information in the selected documents.\" "
     "Do not make up information. Answer in your own words. Do not cite sources inline "
     "or include source headers; citations are shown separately."
 )
@@ -67,30 +76,48 @@ def rag_answer(
     question: str,
     top_k: int = RAG_TOP_K,
     min_similarity: float = RAG_MIN_SIMILARITY,
+    document_ids: Optional[List[int]] = None,
 ) -> RAGResult:
-    """Run the full RAG pipeline for a user's question."""
+    """Run the full RAG pipeline for a user's question, optionally filtered by document_ids."""
+    scope = (
+        {"scope": "selected", "document_ids": list(document_ids)}
+        if document_ids is not None
+        else {"scope": "all", "document_ids": None}
+    )
+
     # 1. Embed query
     query_vec = embedding_service.embed_query(question)
 
     # 2. Retrieve
     vs = vector_service.get_vector_service()
-    results = vs.query(user_id, query_vec, top_k=top_k)
+    results = vs.query(user_id, query_vec, top_k=top_k, document_ids=document_ids)
 
     # 3. Check threshold
     if not results or results[0]["similarity"] < min_similarity:
+        refusal_msg = (
+            "I couldn't find this information in the selected documents."
+            if document_ids is not None
+            else "I couldn't find this information in your stored documents."
+        )
         return RAGResult(
-            answer="I couldn't find this information in your stored documents.",
+            answer=refusal_msg,
             sources=[],
             below_threshold=True,
+            scope=scope,
         )
 
     # 4. Build prompt and call LLM
     context = _format_context(results)
     prompt = _build_prompt(question, context)
-    answer = llm_service.generate(prompt, system=_SYSTEM_PROMPT)
+    system_prompt = _SCOPED_SYSTEM_PROMPT if document_ids is not None else _SYSTEM_PROMPT
+    answer = llm_service.generate(prompt, system=system_prompt)
     # Strip any "[Source n] Document: ..., Chunk: ..., Similarity: ..." header
     # lines that the model may have echoed from the context into the answer.
     answer = _strip_source_headers(answer)
+
+    # If the model echoed the un-scoped refusal while scoped, adjust it
+    if document_ids is not None and "stored documents" in answer:
+        answer = answer.replace("stored documents", "selected documents")
 
     # 5. Format sources for UI
     sources = [
@@ -103,4 +130,4 @@ def rag_answer(
         for r in results
     ]
 
-    return RAGResult(answer=answer, sources=sources, below_threshold=False)
+    return RAGResult(answer=answer, sources=sources, below_threshold=False, scope=scope)

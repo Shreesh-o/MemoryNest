@@ -80,6 +80,7 @@ CREATE TABLE IF NOT EXISTS messages (
     role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
     content TEXT NOT NULL,
     sources TEXT,
+    scope TEXT,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -185,8 +186,18 @@ def init_db(db_path: Path | None = None) -> None:
         _migrate_add_google_connections(conn)
         _migrate_add_reminder_google_sync(conn)
         _migrate_add_document_links(conn)
+        _migrate_add_message_scope(conn)
     finally:
         conn.close()
+
+
+def _migrate_add_message_scope(conn: sqlite3.Connection) -> None:
+    """Add scope column to messages table if it doesn't exist (migration for existing DBs)."""
+    cursor = conn.execute("PRAGMA table_info(messages)")
+    columns = [row[1] for row in cursor.fetchall()]
+    if "scope" not in columns:
+        conn.execute("ALTER TABLE messages ADD COLUMN scope TEXT")
+        conn.commit()
 
 
 def _migrate_add_google_connections(conn: sqlite3.Connection) -> None:

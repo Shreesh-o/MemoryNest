@@ -17,6 +17,7 @@ MemoryNest is a local, privacy-first web app for storing, searching, and summari
 - Embeddings: all-MiniLM-L6-v2 via sentence-transformers (CPU-only)
 - Vector DB: ChromaDB local persistent mode, user-id filtered
 - RAG: top-5 retrieval, similarity threshold gate, LLM answers with citations
+- **Scoped Document Chat**: Ask questions across all documents or scope retrieval to a selected subset of ready documents (`POST /api/chat` with `document_ids`); selection status persisted in message history and visible in the chat UI
 - Local LLM: Ollama with qwen2.5:3b-instruct (3B, CPU-compatible)
 - Conversation history: per-user, searchable, per-session
 - Summaries: map-reduce for long documents; TTS renders audio; download button
