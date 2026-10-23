@@ -7,6 +7,8 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Sidebar } from "@/components/app-shell/sidebar"
 import { TopBar } from "@/components/app-shell/top-bar"
 import { MobileNav } from "@/components/app-shell/mobile-nav"
+import { AlertTriangleIcon, RefreshCwIcon, LogInIcon } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 function fetchMe() {
   return fetch("/api/auth/me", { credentials: "include" }).then(async (response) => {
@@ -66,33 +68,29 @@ function GuardedContent({ children }: { children: React.ReactNode }) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="w-full max-w-md">
-          <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
+          <div className="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-6">
             <div className="text-center space-y-4">
-              <svg className="h-12 w-12 text-destructive mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
+              <div className="mx-auto flex size-12 items-center justify-center rounded-xl bg-destructive/10 text-destructive">
+                <AlertTriangleIcon className="size-6" />
+              </div>
               <h2 className="text-xl font-semibold">Can&apos;t reach the server</h2>
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground text-sm">
                 An unexpected error occurred. This might be a temporary network issue.
               </p>
               <div className="flex gap-2 justify-center">
                 <button
                   onClick={() => refetch()}
                   disabled={isFetching}
-                  className="inline-flex items-center justify-center gap-2 rounded-md border bg-transparent px-4 py-2 text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-transparent px-4 py-2 text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 cursor-pointer"
                 >
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
+                  <RefreshCwIcon className={cn("size-4", isFetching && "animate-spin")} />
                   Retry
                 </button>
                 <a
                   href="/login"
-                  className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-xs hover:bg-primary/90 cursor-pointer"
                 >
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-                  </svg>
+                  <LogInIcon className="size-4" />
                   Login
                 </a>
               </div>
@@ -115,6 +113,11 @@ function GuardedContent({ children }: { children: React.ReactNode }) {
     "/dashboard": "Dashboard",
     "/documents": "Documents",
     "/upload": "Upload",
+    "/map": "Document Map",
+    "/summaries": "Summaries",
+    "/reminders": "Reminders",
+    "/chat": "Chat",
+    "/search": "Search",
   }
   const pageTitle = titles[pathname] || "MemoryNest"
 
