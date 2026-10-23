@@ -64,6 +64,7 @@ export interface EventExtractResponse {
 
 export interface ConfirmEventRequest {
   remind_at?: string | null;
+  lead_minutes?: number | null;
 }
 
 export interface ReminderPublic {
@@ -71,6 +72,7 @@ export interface ReminderPublic {
   user_id: number;
   event_id: number;
   remind_at: string;
+  lead_minutes?: number | null;
   channel: string;
   subject?: string | null;
   body?: string | null;
@@ -343,16 +345,55 @@ export async function eventsExtract(docId: number) {
   });
 }
 
-export async function eventsConfirm(eventId: number, remindAt?: string) {
+export async function eventsConfirm(eventId: number, remindAt?: string, leadMinutes?: number) {
   return fetchApi<ConfirmEventResponse>(`events/${eventId}/confirm`, {
     method: "POST",
-    body: JSON.stringify({ remind_at: remindAt }),
+    body: JSON.stringify({
+      remind_at: remindAt,
+      ...(leadMinutes !== undefined ? { lead_minutes: leadMinutes } : {}),
+    }),
   });
 }
 
 export async function eventsDiscard(eventId: number) {
   return fetchApi<{ detail: string }>(`events/${eventId}/discard`, {
     method: "POST",
+  });
+}
+
+export interface LeadTimeOption {
+  minutes: number;
+  label: string;
+}
+
+export async function remindersLeadTimes(): Promise<LeadTimeOption[]> {
+  try {
+    const res = await fetch("/api/reminders/lead-times", { credentials: "include" });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        return data;
+      }
+    }
+  } catch {
+    // fallback if endpoint is not implemented
+  }
+  return [
+    { minutes: 10, label: "10 minutes before" },
+    { minutes: 30, label: "30 minutes before" },
+    { minutes: 60, label: "1 hour before" },
+    { minutes: 120, label: "2 hours before" },
+    { minutes: 1440, label: "1 day before" },
+    { minutes: 2880, label: "2 days before" },
+    { minutes: 10080, label: "1 week before" },
+  ];
+}
+
+export async function reminderUpdate(id: number, data: { lead_minutes?: number; remind_at?: string }) {
+  return fetchApi<ReminderPublic>(`reminders/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
   });
 }
 
