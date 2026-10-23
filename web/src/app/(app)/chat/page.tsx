@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback, Suspense } from "react"
+import { useState, useEffect, useRef, useCallback, useMemo, Suspense } from "react"
+import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import {
@@ -20,15 +21,15 @@ import {
   CardContent,
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu"
-import { Check } from "lucide-react"
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/ui/popover"
+import { Check, Search, X, ChevronDown, Layers } from "lucide-react"
 import {
   Sheet,
   SheetContent,
@@ -191,13 +192,61 @@ function ChatContent() {
     }
   }
 
+  const STORAGE_KEY = "memorynest_chat_selected_doc_ids"
+
+  const docParam = searchParams.get("doc")
+  const [prevDocParam, setPrevDocParam] = useState<string | null>(docParam)
   const [input, setInput] = useState("")
   const [isLoadingChat, setIsLoadingChat] = useState(false)
   const [sheetOpen, setSheetOpen] = useState(false)
   const [conversationToDelete, setConversationToDelete] = useState<ConversationPublic | null>(null)
-  const [selectedDocIds, setSelectedDocIds] = useState<number[]>([])
+  const [popoverOpen, setPopoverOpen] = useState(false)
+  const [docSearchQuery, setDocSearchQuery] = useState("")
 
-  const { data: readyDocuments = [] } = useQuery({
+  const [selectedDocIds, setSelectedDocIds] = useState<number[]>(() => {
+    if (typeof window === "undefined") return []
+    if (docParam) {
+      const p = parseInt(docParam, 10)
+      if (!isNaN(p) && p > 0) return [p]
+    }
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY)
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed)) {
+          return parsed.filter((id): id is number => typeof id === "number" && id > 0)
+        }
+      }
+    } catch {}
+    return []
+  })
+
+  // Adjust state during render when docParam changes
+  if (prevDocParam !== docParam) {
+    setPrevDocParam(docParam)
+    if (docParam) {
+      const p = parseInt(docParam, 10)
+      if (!isNaN(p) && p > 0) {
+        setSelectedDocIds([p])
+      }
+    }
+  }
+
+  const updateSelectedDocIds = useCallback((nextIds: number[]) => {
+    setSelectedDocIds(nextIds)
+    try {
+      if (nextIds.length > 0) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(nextIds))
+      } else {
+        localStorage.removeItem(STORAGE_KEY)
+      }
+    } catch {}
+  }, [])
+
+  const {
+    data: readyDocuments = [],
+    isLoading: isLoadingDocs,
+  } = useQuery({
     queryKey: ["chat-documents"],
     queryFn: async () => {
       const res = await chatDocuments()
@@ -242,6 +291,42 @@ function ChatContent() {
 
   const activeConversation = isValidId && fetchedConversation ? fetchedConversation : null
   const notFound = Boolean(cParam && (!isValidId || isConversationError))
+
+  // Populate messages from active conversation (including sources and scope)
+  const conversationMessages: Message[] = useMemo(() => {
+    if (messages.length > 0) return messages
+    if (activeConversation?.messages && activeConversation.id === conversationId) {
+      return activeConversation.messages.map((m, idx) => ({
+        id: idx + 1,
+        role: m.role as "user" | "assistant",
+        content: m.content,
+        sources: m.sources || undefined,
+        scope: m.scope || undefined,
+      }))
+    }
+    return []
+  }, [messages, activeConversation, conversationId])
+
+  const validSelectedDocIds = useMemo(() => {
+    if (readyDocuments.length === 0) return selectedDocIds
+    const validSet = new Set(readyDocuments.map((d) => d.id))
+    return selectedDocIds.filter((id) => validSet.has(id))
+  }, [selectedDocIds, readyDocuments])
+
+  const triggerLabel = useMemo(() => {
+    if (validSelectedDocIds.length === 0) return "All documents"
+    if (validSelectedDocIds.length === 1) {
+      const doc = readyDocuments.find((d) => d.id === validSelectedDocIds[0])
+      return doc ? doc.filename : "1 document"
+    }
+    return `${validSelectedDocIds.length} documents`
+  }, [validSelectedDocIds, readyDocuments])
+
+  const filteredDocs = useMemo(() => {
+    const q = docSearchQuery.trim().toLowerCase()
+    if (!q) return readyDocuments
+    return readyDocuments.filter((d) => d.filename.toLowerCase().includes(q))
+  }, [readyDocuments, docSearchQuery])
 
   // Sort newest first
   const sortedConversations = [...conversations].sort((a, b) => {
@@ -291,7 +376,7 @@ function ChatContent() {
   // Scroll to bottom when messages or loading state changes
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages, isLoadingChat])
+  }, [conversationMessages, isLoadingChat])
 
   const handleNewChat = () => {
     setMessages([])
@@ -319,13 +404,14 @@ function ChatContent() {
       role: "user",
       content: question,
     }
-    setMessages((prev) => [...prev, userMessage])
+    const currentList = conversationMessages
+    setMessages([...currentList, userMessage])
 
     try {
       const result = await chatAsk({
         question,
         conversation_id: conversationId,
-        document_ids: selectedDocIds.length > 0 ? selectedDocIds : null,
+        document_ids: validSelectedDocIds.length > 0 ? validSelectedDocIds : undefined,
       })
 
       if (result.ok) {
@@ -337,7 +423,7 @@ function ChatContent() {
           sources,
           scope,
         }
-        setMessages((prev) => [...prev, assistantMessage])
+        setMessages([...currentList, userMessage, assistantMessage])
 
         // Refresh conversation list immediately
         await queryClient.invalidateQueries({ queryKey: ["conversations"] })
@@ -348,20 +434,32 @@ function ChatContent() {
           await queryClient.invalidateQueries({ queryKey: ["conversation", newConvoId] })
           router.replace(`/chat?c=${newConvoId}`)
         }
-      } else if (result.error?.status === 503) {
-        setError(result.error.detail || "The language model is not running. Start Ollama and retry.")
-        setMessages((prev) => prev.slice(0, -1))
       } else {
-        throw new Error(result.error?.detail || "Failed to get answer")
+        const statusCode = result.error?.status
+        if (statusCode === 404 || statusCode === 400) {
+          toast.error("Selected documents are no longer available. Resetting search to all documents.")
+          updateSelectedDocIds([])
+          await queryClient.invalidateQueries({ queryKey: ["chat-documents"] })
+          setMessages(currentList)
+        } else if (statusCode === 503) {
+          setError(result.error?.detail || "The language model is not running. Start Ollama and retry.")
+          setMessages(currentList)
+        } else {
+          throw new Error(result.error?.detail || "Failed to get answer")
+        }
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to get answer"
-      if (message.includes("503") || message.includes("Ollama") || message.includes("LLM")) {
+      if (message.includes("404") || message.includes("400")) {
+        toast.error("Selected documents are no longer available. Resetting search to all documents.")
+        updateSelectedDocIds([])
+        queryClient.invalidateQueries({ queryKey: ["chat-documents"] })
+      } else if (message.includes("503") || message.includes("Ollama") || message.includes("LLM")) {
         setError("The language model is not running. Start Ollama and retry.")
       } else {
         setError(message)
       }
-      setMessages((prev) => prev.slice(0, -1))
+      setMessages(currentList)
     } finally {
       setIsLoadingChat(false)
     }
@@ -481,7 +579,7 @@ function ChatContent() {
                   </CardContent>
                 </Card>
               </div>
-            ) : messages.length === 0 && !isLoadingChat && !error ? (
+            ) : conversationMessages.length === 0 && !isLoadingChat && !error ? (
               <div className="flex flex-col items-center justify-center min-h-[320px] text-center max-w-md mx-auto py-8">
                 <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
                   <SvgMessageSquare className="h-6 w-6 text-muted-foreground" />
@@ -506,7 +604,7 @@ function ChatContent() {
               </div>
             ) : (
               <>
-                {messages.map((msg) => (
+                {conversationMessages.map((msg) => (
                   <div
                     key={msg.id}
                     className={cn(
@@ -542,14 +640,26 @@ function ChatContent() {
                       >
                         <Markdown>{msg.content}</Markdown>
                       </div>
-                      {msg.scope && (
-                        <div className="mt-2 text-xs text-muted-foreground">
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-background border border-border/60 text-[11px] font-medium">
-                            {msg.scope.scope === "selected"
-                              ? `Scoped to ${msg.scope.document_ids?.length || 0} document${(msg.scope.document_ids?.length || 0) === 1 ? "" : "s"}`
-                              : "All documents"}
-                          </span>
-                        </div>
+                      {msg.role === "assistant" && msg.scope && (
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          {(() => {
+                            if (
+                              msg.scope.scope === "all" ||
+                              !msg.scope.document_ids ||
+                              msg.scope.document_ids.length === 0
+                            ) {
+                              return "Searched: all documents"
+                            }
+                            const names = msg.scope.document_ids.map((id) => {
+                              const found = readyDocuments.find((d) => d.id === id)
+                              if (found) return found.filename
+                              const srcFound = msg.sources?.find((s) => s.document_id === id)
+                              if (srcFound) return srcFound.document
+                              return `Document #${id}`
+                            })
+                            return `Searched: ${names.join(", ")}`
+                          })()}
+                        </p>
                       )}
                       {msg.sources && msg.sources.length > 0 && (
                         <details className="mt-2.5 group text-xs border-t border-border/50 pt-2">
@@ -647,65 +757,200 @@ function ChatContent() {
                 }
               }}
             >
-              {readyDocuments.length > 0 && (
+              {/* Document scope selector */}
+              {isLoadingDocs ? (
+                <div className="flex items-center gap-2 mb-2">
+                  <Skeleton className="h-7 w-32 rounded-md" />
+                </div>
+              ) : readyDocuments.length === 0 ? (
+                <div className="flex items-center gap-2 mb-2 text-xs text-muted-foreground">
+                  <Button
+                    variant="outline"
+                    size="xs"
+                    type="button"
+                    disabled
+                    className="h-7 gap-1.5 text-xs font-normal opacity-60 cursor-not-allowed"
+                  >
+                    <Layers className="h-3.5 w-3.5" />
+                    <span>All documents</span>
+                  </Button>
+                  <span>
+                    No documents uploaded.{" "}
+                    <Link
+                      href="/upload"
+                      className="text-primary hover:underline font-medium"
+                    >
+                      Upload documents
+                    </Link>
+                  </span>
+                </div>
+              ) : (
                 <div className="flex items-center gap-2 mb-2 text-xs">
-                  <span className="text-muted-foreground font-medium">Search scope:</span>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger
+                  <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+                    <PopoverTrigger
                       render={
                         <Button
                           variant="outline"
                           size="xs"
                           type="button"
-                          className="h-6 gap-1.5 text-xs font-normal"
+                          className={cn(
+                            "h-7 gap-1.5 text-xs font-normal max-w-[260px] border-border/80 transition-colors",
+                            validSelectedDocIds.length > 0 &&
+                              "border-primary/60 bg-primary/5 text-foreground font-medium"
+                          )}
+                          title={triggerLabel}
                         >
-                          <span>
-                            {selectedDocIds.length === 0
-                              ? "All documents (default)"
-                              : `${selectedDocIds.length} document${selectedDocIds.length > 1 ? "s" : ""} selected`}
-                          </span>
+                          <Layers className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          <span className="truncate">{triggerLabel}</span>
+                          <ChevronDown className="h-3 w-3 opacity-60 shrink-0 ml-0.5" />
                         </Button>
                       }
                     />
-                    <DropdownMenuContent align="start" className="w-64 max-h-60 overflow-y-auto p-1">
-                      <DropdownMenuItem
-                        onClick={() => setSelectedDocIds([])}
-                        className="flex items-center justify-between text-xs cursor-pointer"
-                      >
-                        <span>All documents (default)</span>
-                        {selectedDocIds.length === 0 && <Check className="h-3.5 w-3.5 text-primary" />}
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      {readyDocuments.map((doc) => {
-                        const isSelected = selectedDocIds.includes(doc.id)
-                        return (
-                          <DropdownMenuItem
-                            key={doc.id}
-                            onClick={() => {
-                              setSelectedDocIds((prev) =>
-                                prev.includes(doc.id)
-                                  ? prev.filter((id) => id !== doc.id)
-                                  : [...prev, doc.id]
-                              )
-                            }}
-                            className="flex items-center justify-between text-xs cursor-pointer"
+                    <PopoverContent
+                      align="start"
+                      side="top"
+                      sideOffset={6}
+                      className="w-80 p-0 shadow-lg border border-border bg-popover text-popover-foreground rounded-lg overflow-hidden"
+                    >
+                      {/* Search box */}
+                      <div className="p-2 border-b border-border/60 flex items-center gap-1.5 bg-muted/20">
+                        <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0 ml-1" />
+                        <Input
+                          value={docSearchQuery}
+                          onChange={(e) => setDocSearchQuery(e.target.value)}
+                          placeholder="Search documents..."
+                          className="h-7 text-xs border-none shadow-none focus-visible:ring-0 px-1 bg-transparent"
+                        />
+                        {docSearchQuery && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-5 w-5 text-muted-foreground hover:text-foreground shrink-0"
+                            onClick={() => setDocSearchQuery("")}
+                            type="button"
+                            aria-label="Clear search"
                           >
-                            <span className="truncate max-w-[190px]">{doc.filename}</span>
-                            {isSelected && <Check className="h-3.5 w-3.5 text-primary shrink-0" />}
-                          </DropdownMenuItem>
-                        )
-                      })}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  {selectedDocIds.length > 0 && (
+                            <X className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
+
+                      {/* "All documents" row */}
+                      <div
+                        role="checkbox"
+                        aria-checked={validSelectedDocIds.length === 0}
+                        tabIndex={0}
+                        onClick={() => updateSelectedDocIds([])}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault()
+                            updateSelectedDocIds([])
+                          }
+                        }}
+                        className="flex items-center gap-2.5 px-3 py-2 text-xs hover:bg-muted/70 cursor-pointer border-b border-border/40 select-none transition-colors"
+                      >
+                        <div
+                          className={cn(
+                            "w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors",
+                            validSelectedDocIds.length === 0
+                              ? "bg-primary border-primary text-primary-foreground"
+                              : "border-muted-foreground/40 bg-background"
+                          )}
+                        >
+                          {validSelectedDocIds.length === 0 && <Check className="h-3 w-3 stroke-[3]" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <span className="font-medium text-foreground">All documents</span>
+                        </div>
+                        <span className="text-[11px] text-muted-foreground shrink-0">Entire library</span>
+                      </div>
+
+                      {/* Document list */}
+                      <div className="max-h-56 overflow-y-auto p-1 space-y-0.5">
+                        {filteredDocs.length === 0 ? (
+                          <div className="py-6 text-center text-xs text-muted-foreground">
+                            No matching documents
+                          </div>
+                        ) : (
+                          filteredDocs.map((doc) => {
+                            const isSelected = validSelectedDocIds.includes(doc.id)
+                            return (
+                              <div
+                                key={doc.id}
+                                role="checkbox"
+                                aria-checked={isSelected}
+                                tabIndex={0}
+                                onClick={() => {
+                                  const next = isSelected
+                                    ? validSelectedDocIds.filter((id) => id !== doc.id)
+                                    : [...validSelectedDocIds, doc.id]
+                                  updateSelectedDocIds(next)
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    e.preventDefault()
+                                    const next = isSelected
+                                      ? validSelectedDocIds.filter((id) => id !== doc.id)
+                                      : [...validSelectedDocIds, doc.id]
+                                    updateSelectedDocIds(next)
+                                  }
+                                }}
+                                className={cn(
+                                  "flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-xs hover:bg-muted/70 cursor-pointer select-none transition-colors",
+                                  isSelected && "bg-muted/40 font-medium"
+                                )}
+                              >
+                                <div
+                                  className={cn(
+                                    "w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors",
+                                    isSelected
+                                      ? "bg-primary border-primary text-primary-foreground"
+                                      : "border-muted-foreground/40 bg-background"
+                                  )}
+                                >
+                                  {isSelected && <Check className="h-3 w-3 stroke-[3]" />}
+                                </div>
+                                <span className="truncate flex-1 text-foreground" title={doc.filename}>
+                                  {doc.filename}
+                                </span>
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-mono uppercase bg-muted text-muted-foreground border border-border/40 shrink-0">
+                                  {doc.file_type}
+                                </span>
+                              </div>
+                            )
+                          })
+                        )}
+                      </div>
+
+                      {/* Footer */}
+                      <div className="p-2 border-t border-border/60 bg-muted/20 flex items-center justify-between text-[11px] text-muted-foreground">
+                        <span>
+                          {validSelectedDocIds.length > 0
+                            ? `${validSelectedDocIds.length} of ${readyDocuments.length} selected`
+                            : `All ${readyDocuments.length} documents`}
+                        </span>
+                        {validSelectedDocIds.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => updateSelectedDocIds([])}
+                            className="text-primary hover:underline font-medium"
+                          >
+                            Reset to all
+                          </button>
+                        )}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+
+                  {validSelectedDocIds.length > 0 && (
                     <Button
                       variant="ghost"
                       size="xs"
                       type="button"
-                      className="h-6 px-1.5 text-xs text-muted-foreground hover:text-foreground"
-                      onClick={() => setSelectedDocIds([])}
+                      className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                      onClick={() => updateSelectedDocIds([])}
                     >
-                      Reset
+                      Clear
                     </Button>
                   )}
                 </div>
