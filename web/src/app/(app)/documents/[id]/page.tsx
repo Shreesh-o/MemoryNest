@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { formatDate, documentsGet, documentsFile, documentsContent, documentsHtml, documentsDelete, documentsRetry } from "@/lib/api";
 import {
   Card,
@@ -28,23 +28,24 @@ import {
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  SvgTrash2,
-  SvgRotateCcw,
-  SvgDownload,
-  SvgFileText,
-  SvgFile,
-  SvgImage,
-  SvgAlertCircle,
-  SvgRefreshCw,
-  SvgArrowLeft,
-  SvgExternalLink,
-  SvgChevronUp,
-  SvgChevronDown,
-  SvgCopy,
-  SvgFileType,
-  SvgCalendar,
-  SvgMessageSquare,
-} from "@/components/ui/icons";
+  Trash2Icon,
+  RotateCcwIcon,
+  DownloadIcon,
+  FileTextIcon,
+  FileIcon,
+  ImageIcon,
+  AlertCircleIcon,
+  RefreshCwIcon,
+  ArrowLeftIcon,
+  ExternalLinkIcon,
+  ChevronUpIcon,
+  ChevronDownIcon,
+  CopyIcon,
+  FileTypeIcon,
+  CalendarIcon,
+  MessageSquareIcon,
+  Loader2Icon,
+} from "lucide-react";
 import { toast } from "sonner";
 
 type Document = {
@@ -69,8 +70,8 @@ type ContentData = {
 };
 
 function StatusBadge({ status }: { status: string }) {
-  const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-    ready: "default",
+  const variants: Record<string, "success" | "secondary" | "destructive" | "outline"> = {
+    ready: "success",
     processing: "secondary",
     pending: "secondary",
     failed: "destructive",
@@ -78,25 +79,22 @@ function StatusBadge({ status }: { status: string }) {
     duplicate: "outline",
   };
   return (
-    <Badge variant={variants[status] || "default"} className="capitalize">
+    <Badge variant={variants[status] || "outline"} className="capitalize font-medium text-xs">
       {status}
     </Badge>
   );
 }
 
 function FileTypeBadge({ fileType }: { fileType: string }) {
-  const icons: Record<string, React.ReactNode> = {
-    pdf: <SvgFileType className="h-3 w-3" />,
-    docx: <SvgFileText className="h-3 w-3" />,
-    txt: <SvgFileText className="h-3 w-3" />,
-    png: <SvgImage className="h-3 w-3" />,
-    jpg: <SvgImage className="h-3 w-3" />,
-    jpeg: <SvgImage className="h-3 w-3" />,
-  };
-  const Icon = icons[fileType.toLowerCase()] || <SvgFile className="h-3 w-3" />;
+  const type = fileType.toLowerCase();
+  let icon = <FileIcon className="size-3" />;
+  if (type === "pdf") icon = <FileTypeIcon className="size-3" />;
+  else if (["png", "jpg", "jpeg"].includes(type)) icon = <ImageIcon className="size-3" />;
+  else if (["docx", "txt"].includes(type)) icon = <FileTextIcon className="size-3" />;
+
   return (
-    <Badge variant="outline" className="gap-1">
-      {Icon}
+    <Badge variant="outline" className="gap-1 font-mono text-[11px] uppercase">
+      {icon}
       {fileType.toUpperCase()}
     </Badge>
   );
@@ -131,11 +129,11 @@ function DeleteConfirmDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={isPending} className="cursor-pointer">
             Cancel
           </Button>
-          <Button variant="destructive" onClick={onConfirm} disabled={isPending}>
-            {isPending ? "Deleting..." : "Delete"}
+          <Button variant="destructive" size="sm" onClick={onConfirm} disabled={isPending} className="cursor-pointer">
+            {isPending ? "Deleting..." : "Delete Permanently"}
           </Button>
         </div>
       </DialogContent>
@@ -154,21 +152,14 @@ function ErrorState({
 }) {
   return (
     <div className="flex flex-col items-center justify-center py-12 text-center">
-      <SvgAlertCircle className="h-12 w-12 text-red-600 mb-4" />
-      <h3 className="text-lg font-medium mb-2">Unable to load document</h3>
-      <p className="text-muted-foreground mb-4 max-w-md">{message}</p>
-      <Button onClick={onRetry} disabled={retrying}>
-        {retrying ? (
-          <>
-            <SvgRefreshCw className="mr-2 h-4 w-4 animate-spin" />
-            Retrying...
-          </>
-        ) : (
-          <>
-            <SvgRefreshCw className="mr-2 h-4 w-4" />
-            Retry
-          </>
-        )}
+      <div className="size-12 rounded-xl bg-destructive/10 text-destructive flex items-center justify-center mb-4">
+        <AlertCircleIcon className="size-6" />
+      </div>
+      <h3 className="text-lg font-semibold mb-1">Unable to load document</h3>
+      <p className="text-muted-foreground mb-4 max-w-md text-sm">{message}</p>
+      <Button onClick={onRetry} disabled={retrying} size="sm" className="cursor-pointer">
+        <RefreshCwIcon className={`mr-2 size-4 ${retrying ? "animate-spin" : ""}`} />
+        {retrying ? "Retrying..." : "Retry"}
       </Button>
     </div>
   );
@@ -177,19 +168,10 @@ function ErrorState({
 function ProcessingState({ message = "Processing document..." }: { message?: string }) {
   return (
     <div className="flex flex-col items-center justify-center py-12 text-center">
-      <SvgLoader2 className="h-12 w-12 text-muted-foreground animate-spin mb-4" />
-      <h3 className="text-lg font-medium mb-2">Document is processing</h3>
-      <p className="text-muted-foreground">{message}</p>
+      <Loader2Icon className="size-10 text-primary animate-spin mb-4" />
+      <h3 className="text-lg font-semibold mb-1">Document is processing</h3>
+      <p className="text-muted-foreground text-sm">{message}</p>
     </div>
-  );
-}
-
-// Add SvgLoader2 to icons if needed
-function SvgLoader2(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-    </svg>
   );
 }
 
@@ -206,17 +188,17 @@ function OriginalTab({
   // PDF
   if (fileType === "pdf") {
     return (
-      <div className="h-full flex flex-col">
-        <div className="flex items-center justify-between p-4 border-b">
-          <p className="text-sm text-muted-foreground">PDF Document</p>
-          <Button variant="outline" size="sm" onClick={() => window.open(`/api/documents/${document.id}/file`, "_blank")}>
-            <SvgExternalLink className="mr-2 h-4 w-4" />
+      <div className="h-full flex flex-col rounded-xl border border-border/80 overflow-hidden bg-card">
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/80 bg-muted/30">
+          <span className="text-xs font-medium text-muted-foreground">PDF Preview</span>
+          <Button variant="outline" size="xs" onClick={() => window.open(`/api/documents/${document.id}/file`, "_blank")} className="gap-1.5 cursor-pointer">
+            <ExternalLinkIcon className="size-3" />
             Open in new tab
           </Button>
         </div>
         <iframe
           src={`/api/documents/${document.id}/file`}
-          className="flex-1 border-none"
+          className="flex-1 w-full border-none bg-muted/20"
           style={{ minHeight: "calc(100vh - 280px)" }}
           title={document.filename}
         />
@@ -227,25 +209,25 @@ function OriginalTab({
   // Images
   if (["png", "jpg", "jpeg"].includes(fileType)) {
     return (
-      <div className="h-full flex flex-col items-center justify-center p-4">
+      <div className="h-full flex flex-col items-center justify-center p-6 rounded-xl border border-border/80 bg-card">
         <div
-          className={`transition-transform duration-200 cursor-zoom-in ${zoomed ? "zoom-150" : "max-w-full"}`}
+          className={`transition-transform duration-200 cursor-zoom-in ${zoomed ? "scale-125" : "max-w-full"}`}
           onClick={() => setZoomed(!zoomed)}
           role="button"
           tabIndex={0}
           onKeyDown={(e) => e.key === "Enter" && setZoomed(!zoomed)}
         >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={`/api/documents/${document.id}/file`}
             alt={document.filename}
-            className="max-w-full max-h-[calc(100vh-300px)] object-contain"
-            style={{ boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)" }}
+            className="max-w-full max-h-[calc(100vh-320px)] object-contain rounded-lg shadow-md border border-border"
           />
         </div>
-        <div className="mt-4 flex items-center gap-4 text-sm text-muted-foreground">
-          <span>Click to toggle zoom</span>
-          <Button variant="outline" size="sm" onClick={() => window.open(`/api/documents/${document.id}/file`, "_blank")}>
-            <SvgExternalLink className="mr-2 h-4 w-4" />
+        <div className="mt-4 flex items-center gap-4 text-xs text-muted-foreground">
+          <span>Click image to toggle zoom</span>
+          <Button variant="outline" size="xs" onClick={() => window.open(`/api/documents/${document.id}/file`, "_blank")} className="gap-1 cursor-pointer">
+            <ExternalLinkIcon className="size-3" />
             Open full size
           </Button>
         </div>
@@ -256,9 +238,13 @@ function OriginalTab({
   // DOCX - rendered HTML
   if (fileType === "docx") {
     return (
-      <div className="h-full flex flex-col">
-        <div className="p-4 border-b">
-          <div className="prose prose-sm dark:prose-invert max-w-3xl mx-auto bg-white dark:bg-gray-100 p-8 rounded-lg shadow-sm"
+      <div className="h-full flex flex-col rounded-xl border border-border/80 overflow-hidden bg-card">
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/80 bg-muted/30">
+          <span className="text-xs font-medium text-muted-foreground">HTML Converted Document</span>
+        </div>
+        <div className="flex-1 overflow-y-auto p-6 bg-muted/10">
+          <div
+            className="prose prose-sm dark:prose-invert max-w-3xl mx-auto bg-card text-card-foreground p-8 rounded-xl border border-border/70 shadow-xs"
             dangerouslySetInnerHTML={{ __html: contentData?.text || "" }}
           />
         </div>
@@ -289,7 +275,7 @@ function ExtractedTextTab({
   const text = contentData?.text || "";
   const isCodeLike = isTxt && /^\s*(\/\/|#|\* |```|import |const |function |def |class |<\?php)/m.test(text);
 
-  // Compute matches during render (avoids setState in effect)
+  // Compute matches
   const computeMatches = useCallback((query: string, content: string) => {
     if (!query.trim()) return [];
     const regex = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi");
@@ -302,9 +288,7 @@ function ExtractedTextTab({
   }, []);
 
   const matches = computeMatches(searchQuery, text);
-  // currentMatch is initialized above, updated via effect when matches change
 
-  // Update currentMatch when matches change (reset to first match)
   useEffect(() => {
     const timer = setTimeout(() => {
       setCurrentMatch(matches.length > 0 ? 0 : -1);
@@ -312,23 +296,23 @@ function ExtractedTextTab({
     return () => clearTimeout(timer);
   }, [matches.length]);
 
-  // Highlight matches when they change
   useEffect(() => {
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       const highlights = textRef.current?.querySelectorAll(".search-highlight");
       if (highlights && highlights.length > 0) {
         highlightsRef.current = Array.from(highlights) as HTMLSpanElement[];
-        if (currentMatch >= 0) {
-          highlightsRef.current[currentMatch].classList.add("current-match");
+        if (currentMatch >= 0 && highlightsRef.current[currentMatch]) {
+          highlightsRef.current[currentMatch].classList.add("ring-2", "ring-primary");
           highlightsRef.current[currentMatch].scrollIntoView({ behavior: "smooth", block: "center" });
         }
       }
     }, 0);
+    return () => clearTimeout(timer);
   }, [searchQuery, text, currentMatch]);
 
   const goToMatch = (direction: "next" | "prev") => {
     if (matches.length === 0) return;
-    highlightsRef.current[currentMatch]?.classList.remove("current-match");
+    highlightsRef.current[currentMatch]?.classList.remove("ring-2", "ring-primary");
     let newIndex = currentMatch;
     if (direction === "next") {
       newIndex = (currentMatch + 1) % matches.length;
@@ -336,7 +320,7 @@ function ExtractedTextTab({
       newIndex = (currentMatch - 1 + matches.length) % matches.length;
     }
     setCurrentMatch(newIndex);
-    highlightsRef.current[newIndex]?.classList.add("current-match");
+    highlightsRef.current[newIndex]?.classList.add("ring-2", "ring-primary");
     highlightsRef.current[newIndex]?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
 
@@ -345,71 +329,81 @@ function ExtractedTextTab({
     toast.success("Copied to clipboard");
   };
 
-  const highlightText = (text: string, query: string): React.ReactNode => {
-    if (!query.trim()) return text;
+  const highlightText = (content: string, query: string): React.ReactNode => {
+    if (!query.trim()) return content;
     const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi");
-    const parts = text.split(regex);
+    const parts = content.split(regex);
     return parts.map((part, index) => {
       if (!part) return null;
       if (regex.test(part)) {
-        return <mark key={index} className="search-highlight rounded bg-yellow-200/80 px-0.5 text-foreground dark:bg-yellow-500/30">{part}</mark>;
+        return (
+          <mark
+            key={index}
+            className="search-highlight rounded bg-amber-400/35 text-foreground dark:bg-amber-400/25 px-0.5 border-b border-amber-500/50"
+          >
+            {part}
+          </mark>
+        );
       }
       return <span key={index}>{part}</span>;
     });
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col rounded-xl border border-border/80 overflow-hidden bg-card">
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-2 p-3 border-b bg-muted/30 sticky top-0 z-10">
-        <div className="flex-1 min-w-[200px]">
+      <div className="flex flex-wrap items-center justify-between gap-2 p-3 border-b border-border/80 bg-muted/30 sticky top-0 z-10">
+        <div className="flex items-center gap-2 flex-1 min-w-[200px]">
           <Input
-            placeholder="Search in text..."
+            placeholder="Search within extracted text..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="max-w-xs"
+            className="max-w-xs h-8 text-xs"
           />
+          {matches.length > 0 && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+              <span>{currentMatch + 1} of {matches.length}</span>
+              <Button variant="ghost" size="icon-xs" onClick={() => goToMatch("prev")} title="Previous match">
+                <ChevronUpIcon className="size-3.5" />
+              </Button>
+              <Button variant="ghost" size="icon-xs" onClick={() => goToMatch("next")} title="Next match">
+                <ChevronDownIcon className="size-3.5" />
+              </Button>
+            </div>
+          )}
         </div>
-        {matches.length > 0 && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span>{currentMatch + 1} of {matches.length}</span>
-            <Button variant="ghost" size="icon" onClick={() => goToMatch("prev")} disabled={matches.length === 0} title="Previous match">
-              <SvgChevronUp className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={() => goToMatch("next")} disabled={matches.length === 0} title="Next match">
-              <SvgChevronDown className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
-        <Button variant="outline" size="sm" onClick={copyAll} disabled={!text}>
-          <SvgCopy className="mr-2 h-4 w-4" />
-          Copy all
-        </Button>
-        {contentData?.truncated && (
-          <Badge variant="secondary" className="ml-2">
-            <SvgAlertCircle className="mr-1 h-3 w-3" />
-            Text truncated ({contentData.char_count.toLocaleString()} chars)
-          </Badge>
-        )}
-        {isTxt && contentData?.file_type === "image" && (
-          <Badge variant="outline" className="ml-2 text-xs">
-            Text from OCR — may contain errors
-          </Badge>
-        )}
+
+        <div className="flex items-center gap-2">
+          {contentData?.truncated && (
+            <Badge variant="warning" className="text-[11px] gap-1">
+              <AlertCircleIcon className="size-3" />
+              Truncated ({contentData.char_count.toLocaleString()} chars)
+            </Badge>
+          )}
+          {isTxt && contentData?.file_type === "image" && (
+            <Badge variant="outline" className="text-[11px]">
+              OCR Text
+            </Badge>
+          )}
+          <Button variant="outline" size="sm" onClick={copyAll} disabled={!text} className="text-xs h-8 gap-1.5 cursor-pointer">
+            <CopyIcon className="size-3.5" />
+            Copy All
+          </Button>
+        </div>
       </div>
 
       {/* Text content */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-6 bg-muted/5">
         <div
           ref={textRef}
-          className={`max-w-3xl mx-auto whitespace-pre-wrap break-words leading-relaxed ${isCodeLike ? "font-mono text-sm" : "text-base"}`}
+          className={`max-w-3xl mx-auto whitespace-pre-wrap break-words leading-relaxed text-foreground ${isCodeLike ? "font-mono text-xs" : "text-sm"}`}
         >
           {highlightText(text, searchQuery)}
         </div>
         {!text && (
-          <div className="text-center text-muted-foreground py-12">
-            <SvgFileText className="mx-auto h-12 w-12 mb-4 opacity-50" />
-            <p>No extracted text available</p>
+          <div className="text-center text-muted-foreground py-16">
+            <FileTextIcon className="mx-auto size-12 mb-3 opacity-40" />
+            <p className="text-sm">No extracted text available for this file</p>
           </div>
         )}
       </div>
@@ -420,7 +414,6 @@ function ExtractedTextTab({
 export default function DocumentViewerPage() {
   const params = useParams();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const docId = parseInt(params.id as string, 10);
 
   const [doc, setDoc] = useState<Document | null>(null);
@@ -451,7 +444,6 @@ export default function DocumentViewerPage() {
         }
         if (mounted.current) {
           setDoc(result.data);
-          // Determine default tab
           const ft = result.data.file_type.toLowerCase();
           if (ft === "txt") {
             setActiveTab("extracted");
@@ -545,7 +537,7 @@ export default function DocumentViewerPage() {
       a.download = doc.filename;
       a.click();
       URL.revokeObjectURL(url);
-    } catch (err) {
+    } catch {
       toast.error("Failed to download file");
     }
   };
@@ -553,7 +545,7 @@ export default function DocumentViewerPage() {
   // Keyboard navigation: Esc or Backspace to go back
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape" || e.key === "Backspace") {
+      if (e.key === "Escape") {
         router.back();
       }
     }
@@ -570,29 +562,20 @@ export default function DocumentViewerPage() {
 
   if (loading) {
     return (
-      <div className="p-6 max-w-4xl mx-auto">
-        <Card>
-          <CardHeader>
-            <CardTitle>Loading...</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <Skeleton className="h-8 w-64" />
-              <Skeleton className="h-4 w-48" />
-              <Skeleton className="h-96 w-full" />
-            </div>
-          </CardContent>
-        </Card>
+      <div className="max-w-6xl mx-auto space-y-4 py-8">
+        <Skeleton className="h-10 w-64" />
+        <Skeleton className="h-6 w-96" />
+        <Skeleton className="h-[600px] w-full rounded-xl" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-6 max-w-4xl mx-auto">
-        <Card>
+      <div className="max-w-6xl mx-auto py-8">
+        <Card className="border border-destructive/30">
           <CardHeader>
-            <CardTitle>Document</CardTitle>
+            <CardTitle>Document Viewer</CardTitle>
           </CardHeader>
           <CardContent>
             <ErrorState message={error} onRetry={() => router.refresh()} retrying={retrying} />
@@ -609,18 +592,18 @@ export default function DocumentViewerPage() {
   // Show processing/failed state
   if (doc.status !== "ready") {
     return (
-      <div className="p-6 max-w-4xl mx-auto">
-        <Card>
+      <div className="max-w-6xl mx-auto py-8">
+        <Card className="border border-border/80">
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <CardTitle>{doc.filename}</CardTitle>
-                <CardDescription>
-                  {FileTypeBadge({ fileType: doc.file_type })}
-                  <span className="ml-2">•</span>
-                  <span className="ml-2">{formatSize(doc.size_bytes)}</span>
-                  <span className="ml-2">•</span>
-                  <span className="ml-2">{formatDate(doc.created_at)}</span>
+                <CardTitle className="text-xl font-bold">{doc.filename}</CardTitle>
+                <CardDescription className="flex items-center gap-2 mt-1">
+                  <FileTypeBadge fileType={doc.file_type} />
+                  <span>•</span>
+                  <span>{formatSize(doc.size_bytes)}</span>
+                  <span>•</span>
+                  <span>{formatDate(doc.created_at)}</span>
                 </CardDescription>
               </div>
               <StatusBadge status={doc.status} />
@@ -629,30 +612,21 @@ export default function DocumentViewerPage() {
           <CardContent>
             {doc.status === "failed" ? (
               <div className="text-center py-8">
-                <SvgAlertCircle className="mx-auto h-12 w-12 text-red-600 mb-4" />
-                <h3 className="text-lg font-medium mb-2">Extraction failed</h3>
-                <p className="text-muted-foreground mb-4">{doc.error_message || "Unknown error"}</p>
-                <Button onClick={handleRetry} disabled={retrying}>
-                  {retrying ? (
-                    <>
-                      <SvgRefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                      Retrying...
-                    </>
-                  ) : (
-                    <>
-                      <SvgRotateCcw className="mr-2 h-4 w-4" />
-                      Retry Extraction
-                    </>
-                  )}
+                <AlertCircleIcon className="mx-auto size-12 text-destructive mb-4" />
+                <h3 className="text-lg font-semibold mb-1">Extraction failed</h3>
+                <p className="text-muted-foreground mb-4 text-sm max-w-md mx-auto">{doc.error_message || "Unknown error during text processing"}</p>
+                <Button onClick={handleRetry} disabled={retrying} className="gap-2 cursor-pointer">
+                  <RotateCcwIcon className={`size-4 ${retrying ? "animate-spin" : ""}`} />
+                  {retrying ? "Retrying..." : "Retry Extraction"}
                 </Button>
               </div>
             ) : (
-              <ProcessingState message={`Document is ${doc.status}...`} />
+              <ProcessingState message={`Document is currently ${doc.status}...`} />
             )}
             {doc.status === "failed" && (
-              <div className="mt-6 pt-6 border-t">
-                <Button variant="outline" onClick={handleDownload}>
-                  <SvgDownload className="mr-2 h-4 w-4" />
+              <div className="mt-6 pt-6 border-t border-border flex justify-center">
+                <Button variant="outline" size="sm" onClick={handleDownload} className="gap-1.5 cursor-pointer">
+                  <DownloadIcon className="size-4" />
                   Download Original File
                 </Button>
               </div>
@@ -664,100 +638,106 @@ export default function DocumentViewerPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Sticky Header */}
-      <header className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-        <div className="p-4 max-w-4xl mx-auto">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            {/* Back + Filename */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 min-w-0">
-              <Button variant="ghost" size="icon" onClick={() => router.back()} className="sm:hidden">
-                <SvgArrowLeft className="h-5 w-5" />
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => router.push("/documents")} className="hidden sm:flex items-center gap-2">
-                <SvgArrowLeft className="h-4 w-4" />
-                Back to Documents
-              </Button>
-              <div className="min-w-0 flex-1">
-                <h1 className="text-lg font-semibold truncate">{doc.filename}</h1>
-                <div className="flex flex-wrap items-center gap-2 mt-1 text-sm text-muted-foreground">
-                  <FileTypeBadge fileType={doc.file_type} />
-                  <span>•</span>
-                  <span>{formatSize(doc.size_bytes)}</span>
-                  <span>•</span>
-                  <span>{formatDate(doc.created_at)}</span>
-                  <span>•</span>
-                  <StatusBadge status={doc.status} />
-                  <span>•</span>
-                  <span>{doc.chunk_count} chunks</span>
-                </div>
+    <div className="max-w-6xl mx-auto space-y-6">
+      {/* Top Header Card */}
+      <div className="flex flex-col gap-4 pb-4 border-b border-border/60">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          {/* Back button + Title */}
+          <div className="flex items-start gap-3 min-w-0">
+            <Button
+              variant="outline"
+              size="icon-sm"
+              onClick={() => router.push("/documents")}
+              className="mt-0.5 shrink-0 cursor-pointer"
+              title="Back to Documents"
+            >
+              <ArrowLeftIcon className="size-4" />
+            </Button>
+            <div className="min-w-0 flex-1">
+              <h1 className="font-heading text-xl sm:text-2xl font-bold tracking-tight text-foreground truncate">
+                {doc.filename}
+              </h1>
+              <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs text-muted-foreground">
+                <FileTypeBadge fileType={doc.file_type} />
+                <span>•</span>
+                <span className="font-mono">{formatSize(doc.size_bytes)}</span>
+                <span>•</span>
+                <span>{formatDate(doc.created_at)}</span>
+                <span>•</span>
+                <StatusBadge status={doc.status} />
+                <span>•</span>
+                <span className="font-medium">{doc.chunk_count} chunks indexed</span>
               </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex flex-wrap items-center gap-2">
-              <Button variant="outline" size="sm" onClick={handleDownload}>
-                <SvgDownload className="mr-2 h-4 w-4" />
-                Download
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => router.push(`/summaries?doc=${docId}`)}>
-                <SvgFileText className="mr-2 h-4 w-4" />
-                Summarize
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => router.push(`/reminders?doc=${docId}`)}>
-                <SvgCalendar className="mr-2 h-4 w-4" />
-                Extract events
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => router.push(`/chat?doc=${docId}`)}>
-                <SvgMessageSquare className="mr-2 h-4 w-4" />
-                Ask about this document
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => setDeleteDialogOpen(true)} className="text-red-600 hover:bg-red-50">
-                <SvgTrash2 className="h-4 w-4" />
-              </Button>
             </div>
           </div>
+
+          {/* Quick Action Buttons */}
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleDownload} className="text-xs h-8 gap-1.5 cursor-pointer">
+              <DownloadIcon className="size-3.5" />
+              Download
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => router.push(`/summaries?doc=${docId}`)} className="text-xs h-8 gap-1.5 cursor-pointer">
+              <FileTextIcon className="size-3.5" />
+              Summarize
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => router.push(`/reminders?doc=${docId}`)} className="text-xs h-8 gap-1.5 cursor-pointer">
+              <CalendarIcon className="size-3.5" />
+              Events
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => router.push(`/chat?doc=${docId}`)} className="text-xs h-8 gap-1.5 cursor-pointer">
+              <MessageSquareIcon className="size-3.5" />
+              Ask
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => setDeleteDialogOpen(true)}
+              className="size-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer"
+              title="Delete Document"
+            >
+              <Trash2Icon className="size-4" />
+            </Button>
+          </div>
         </div>
-      </header>
+      </div>
 
-      {/* Tabs - single Tabs root wrapping both header and content */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        {/* Sticky Tab Bar */}
-        <div className="sticky top-16 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b px-4">
-          <TabsList className="w-full">
-            <TabsTrigger value="original" className="flex-1">
-              Original
-            </TabsTrigger>
-            <TabsTrigger value="extracted" className="flex-1">
-              Extracted text
-            </TabsTrigger>
-          </TabsList>
-        </div>
+      {/* Tabs View */}
+      <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as Tab)} className="w-full space-y-4">
+        <TabsList className="grid w-full grid-cols-2 max-w-xs">
+          <TabsTrigger value="original" className="cursor-pointer">
+            Original File
+          </TabsTrigger>
+          <TabsTrigger value="extracted" className="cursor-pointer">
+            Extracted Text
+          </TabsTrigger>
+        </TabsList>
 
-        {/* Tab Content */}
-        <main className="p-4 max-w-4xl mx-auto pb-16">
-          <TabsContent value="original" className="h-[calc(100vh-280px)] min-h-[500px]">
-            {htmlLoading && activeTab === "original" && doc.file_type.toLowerCase() === "docx" ? (
-              <div className="h-full flex items-center justify-center">
-                <SvgLoader2 className="h-8 w-8 animate-spin" />
-              </div>
-            ) : (
-              <OriginalTab document={doc} contentData={doc.file_type.toLowerCase() === "docx" ? { text: htmlContent || "", char_count: 0, truncated: false, file_type: "docx" } : contentData} />
-            )}
-          </TabsContent>
+        <TabsContent value="original" className="min-h-[550px] outline-none">
+          {htmlLoading && activeTab === "original" && doc.file_type.toLowerCase() === "docx" ? (
+            <div className="min-h-[400px] flex items-center justify-center">
+              <Loader2Icon className="size-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <OriginalTab
+              document={doc}
+              contentData={doc.file_type.toLowerCase() === "docx" ? { text: htmlContent || "", char_count: 0, truncated: false, file_type: "docx" } : contentData}
+            />
+          )}
+        </TabsContent>
 
-          <TabsContent value="extracted" className="h-[calc(100vh-280px)] min-h-[500px]">
-            {contentLoading ? (
-              <div className="h-full flex items-center justify-center">
-                <SvgLoader2 className="h-8 w-8 animate-spin" />
-              </div>
-            ) : (
-              <ExtractedTextTab contentData={contentData} isTxt={doc.file_type.toLowerCase() === "txt"} />
-            )}
-          </TabsContent>
-        </main>
+        <TabsContent value="extracted" className="min-h-[550px] outline-none">
+          {contentLoading ? (
+            <div className="min-h-[400px] flex items-center justify-center">
+              <Loader2Icon className="size-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <ExtractedTextTab contentData={contentData} isTxt={doc.file_type.toLowerCase() === "txt"} />
+          )}
+        </TabsContent>
       </Tabs>
 
+      {/* Delete Confirmation Modal */}
       <DeleteConfirmDialog
         document={doc}
         open={deleteDialogOpen}

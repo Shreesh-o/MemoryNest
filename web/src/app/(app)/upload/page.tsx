@@ -15,8 +15,18 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
-import { SvgUpload, SvgX, SvgFileText, SvgCheckCircle, SvgLoader2, SvgImage, SvgFile } from "@/components/ui/icons";
+import {
+  UploadCloudIcon,
+  XIcon,
+  FileTextIcon,
+  CheckCircle2Icon,
+  Loader2Icon,
+  ImageIcon,
+  FileIcon,
+  FileTypeIcon,
+  ArrowRightIcon,
+  AlertCircleIcon,
+} from "lucide-react";
 
 const MAX_FILE_MB = Number(process.env.NEXT_PUBLIC_MAX_FILE_MB || "20");
 const MAX_FILE_BYTES = MAX_FILE_MB * 1024 * 1024;
@@ -56,56 +66,42 @@ async function uploadFiles(files: File[]): Promise<IngestResult[]> {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-    ready: "default",
+  const variants: Record<string, "success" | "secondary" | "destructive" | "outline"> = {
+    ready: "success",
     duplicate: "secondary",
     rejected: "outline",
     error: "destructive",
   };
   return (
-    <Badge variant={variants[status] || "default"} className="capitalize">
+    <Badge variant={variants[status] || "outline"} className="capitalize font-medium text-xs">
       {status}
     </Badge>
   );
 }
 
-function FileIcon({ type }: { type: string }) {
-  const ext = type.toLowerCase();
+function FileTypeIconComponent({ filename }: { filename: string }) {
+  const ext = (filename.split(".").pop() || "").toLowerCase();
   if (ext === "pdf") {
-    return (
-      <svg className="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-        <path fill="#fff" d="M14 2v6h6" />
-      </svg>
-    );
+    return <FileTypeIcon className="size-5 text-primary" />;
   }
-  if (ext === "docx") {
-    return (
-      <svg className="h-5 w-5 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-        <path fill="#fff" d="M14 2v6h6" />
-        <text x="12" y="17" fontSize="8" textAnchor="middle" fill="#2563eb">DOCX</text>
-      </svg>
-    );
+  if (["png", "jpg", "jpeg"].includes(ext)) {
+    return <ImageIcon className="size-5 text-primary" />;
   }
-  if (ext === "png" || ext === "jpg" || ext === "jpeg") {
-    return <SvgImage className="h-5 w-5 text-green-600" />;
+  if (["docx", "txt"].includes(ext)) {
+    return <FileTextIcon className="size-5 text-primary" />;
   }
-  if (ext === "txt") {
-    return <SvgFileText className="h-5 w-5 text-gray-400" />;
-  }
-  return <SvgFile className="h-5 w-5 text-gray-400" />;
+  return <FileIcon className="size-5 text-primary" />;
 }
 
 function FileRow({ file, onRemove }: { file: UploadFile; onRemove: () => void }) {
   return (
-    <div className="flex items-center gap-3 p-3 border rounded-lg bg-card">
-      <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-muted rounded">
-        <FileIcon type={file.file.name.split(".").pop() || ""} />
+    <div className="flex items-center gap-3 p-3.5 border border-border/80 rounded-xl bg-card hover:border-border transition-colors">
+      <div className="flex-shrink-0 size-10 flex items-center justify-center bg-muted/60 rounded-lg">
+        <FileTypeIconComponent filename={file.file.name} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="font-medium truncate">{file.file.name}</p>
-        <p className="text-xs text-muted-foreground">
+        <p className="font-medium text-sm text-foreground truncate">{file.file.name}</p>
+        <p className="text-xs text-muted-foreground font-mono mt-0.5">
           {(file.file.size / 1024).toFixed(1)} KB
         </p>
         {file.status === "uploading" && (
@@ -114,25 +110,29 @@ function FileRow({ file, onRemove }: { file: UploadFile; onRemove: () => void })
       </div>
       <div className="flex items-center gap-2">
         {file.status === "uploading" && (
-          <SvgLoader2 className="h-5 w-5 animate-spin text-blue-600" />
+          <Loader2Icon className="size-4 animate-spin text-primary" />
         )}
         {file.status === "success" && file.result && (
           <>
             <StatusBadge status={file.result.status} />
-            <span className="text-xs text-muted-foreground">{file.result.chunk_count} chunks</span>
+            <span className="text-xs text-muted-foreground font-mono">{file.result.chunk_count} chunks</span>
           </>
         )}
         {file.status === "error" && (
-          <Badge variant="destructive">Error</Badge>
+          <Badge variant="destructive" className="gap-1">
+            <AlertCircleIcon className="size-3" />
+            Error
+          </Badge>
         )}
         <Button
           variant="ghost"
-          size="icon"
+          size="icon-xs"
           onClick={onRemove}
           disabled={file.status === "uploading"}
-          className="text-red-600 hover:bg-red-50"
+          className="size-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer"
+          title="Remove file"
         >
-          <SvgX className="h-4 w-4" />
+          <XIcon className="size-3.5" />
         </Button>
       </div>
     </div>
@@ -141,18 +141,18 @@ function FileRow({ file, onRemove }: { file: UploadFile; onRemove: () => void })
 
 function ResultRow({ result }: { result: IngestResult }) {
   return (
-    <div className="flex items-center gap-3 p-3 border rounded-lg bg-card">
-      <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-muted rounded">
-        <FileIcon type={result.filename.split(".").pop() || ""} />
+    <div className="flex items-center gap-3 p-3.5 border border-border/80 rounded-xl bg-card">
+      <div className="flex-shrink-0 size-10 flex items-center justify-center bg-muted/60 rounded-lg">
+        <FileTypeIconComponent filename={result.filename} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="font-medium truncate">{result.filename}</p>
-        <p className="text-xs text-muted-foreground">{result.message}</p>
+        <p className="font-medium text-sm text-foreground truncate">{result.filename}</p>
+        <p className="text-xs text-muted-foreground mt-0.5">{result.message}</p>
       </div>
       <div className="flex items-center gap-2">
         <StatusBadge status={result.status} />
         {result.chunk_count > 0 && (
-          <span className="text-xs text-muted-foreground">{result.chunk_count} chunks</span>
+          <span className="text-xs text-muted-foreground font-mono">{result.chunk_count} chunks</span>
         )}
       </div>
     </div>
@@ -202,143 +202,159 @@ export default function UploadPage() {
       "image/jpeg": [".jpg", ".jpeg"],
     },
     maxSize: MAX_FILE_BYTES,
-    noClick: false,
-    noKeyboard: false,
+    onDropRejected: (rejectedFiles) => {
+      rejectedFiles.forEach(({ file, errors }) => {
+        const errorMsg = errors.map((e) => e.message).join(", ");
+        toast.error(`${file.name}: ${errorMsg}`);
+      });
+    },
   });
-
-  const handleUpload = () => {
-    const pendingFiles = files.filter((f) => f.status === "pending");
-    if (pendingFiles.length === 0) return;
-
-    setFiles((prev) =>
-      prev.map((f) => (f.status === "pending" ? { ...f, status: "uploading" } : f))
-    );
-
-    const interval = setInterval(() => {
-      setFiles((prev) =>
-        prev.map((f) => {
-          if (f.status === "uploading" && f.progress < 90) {
-            return { ...f, progress: f.progress + 10 };
-          }
-          return f;
-        })
-      );
-    }, 100);
-
-    uploadMutation.mutate(pendingFiles.map((f) => f.file), {
-      onSettled: () => clearInterval(interval),
-    });
-  };
 
   const removeFile = (index: number) => {
     setFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const retryFailed = () => {
-    const failedFiles = files.filter((f) => f.status === "error");
-    if (failedFiles.length === 0) return;
-
-    setFiles((prev) =>
-      prev.map((f) => (f.status === "error" ? { ...f, status: "pending", error: undefined } : f))
-    );
+  const clearAll = () => {
+    setFiles([]);
   };
 
-  const goToDocuments = () => {
-    router.push("/documents");
-    router.refresh();
+  const handleUpload = () => {
+    if (files.length === 0) return;
+    setFiles((prev) => prev.map((f) => ({ ...f, status: "uploading", progress: 50 })));
+    uploadMutation.mutate(files.map((f) => f.file));
   };
 
-  const hasPending = files.some((f) => f.status === "pending");
-  const hasUploading = files.some((f) => f.status === "uploading");
-  const hasResults = results.length > 0;
+  const isUploading = uploadMutation.isPending;
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
-      <Card>
-        <CardHeader>
-          <CardTitle>Upload Documents</CardTitle>
-          <CardDescription>
-            PDF, DOCX, TXT, PNG, JPG up to {MAX_FILE_MB} MB. Scanned files are read with OCR and can take a while.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Drop Zone */}
+    <div className="max-w-4xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-border/60">
+        <div>
+          <h1 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+            Upload Documents
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Drag and drop files to extract text, generate embeddings, and schedule reminders
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => router.push("/documents")}
+          className="text-xs h-8 gap-1.5 cursor-pointer self-start sm:self-auto"
+        >
+          <span>View All Documents</span>
+          <ArrowRightIcon className="size-3.5" />
+        </Button>
+      </div>
+
+      {/* Dropzone Card */}
+      <Card className="border border-border/80">
+        <CardContent className="p-6">
           <div
             {...getRootProps()}
-            className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+            className={`border-2 border-dashed rounded-xl p-8 sm:p-12 text-center transition-all cursor-pointer ${
               isDragActive
                 ? "border-primary bg-primary/5"
-                : "border-muted-foreground/25 hover:border-primary/50"
+                : "border-border/80 hover:border-border hover:bg-muted/20"
             }`}
-            role="button"
-            tabIndex={0}
           >
             <input {...getInputProps()} />
-            <SvgUpload className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-lg font-medium">{isDragActive ? "Drop files here..." : "Drag & drop files here, or click to select"}</p>
-            <p className="text-sm text-muted-foreground mt-1">PDF, DOCX, TXT, PNG, JPG • Max {MAX_FILE_MB} MB each</p>
+            <div className="flex flex-col items-center justify-center space-y-3">
+              <div className="size-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+                <UploadCloudIcon className="size-7" />
+              </div>
+              <div className="space-y-1">
+                <p className="font-heading text-base font-semibold text-foreground">
+                  {isDragActive ? "Drop the files here" : "Drag & drop documents here, or click to browse"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Supported formats: PDF, DOCX, TXT, PNG, JPG (OCR enabled)
+                </p>
+                <p className="text-xs text-muted-foreground font-mono">
+                  Maximum file size: {MAX_FILE_MB} MB
+                </p>
+              </div>
+            </div>
           </div>
-
-          {/* File Queue */}
-          {files.length > 0 && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="font-medium">Files to Upload ({files.filter(f => f.status === "pending").length} pending)</h3>
-                {files.some(f => f.status === "error") && (
-                  <Button variant="ghost" size="sm" onClick={retryFailed}>
-                    Retry Failed
-                  </Button>
-                )}
-              </div>
-              <div className="space-y-2 max-h-60 overflow-y-auto">
-                {files.map((file, index) => (
-                  <FileRow key={index} file={file} onRemove={() => removeFile(index)} />
-                ))}
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setFiles([])} disabled={hasUploading}>
-                  Clear All
-                </Button>
-                <Button onClick={handleUpload} disabled={!hasPending || hasUploading}>
-                  {hasUploading ? (
-                    <>
-                      <SvgLoader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Uploading...
-                    </>
-                  ) : (
-                    <>
-                      <SvgUpload className="mr-2 h-4 w-4" />
-                      Upload {files.filter(f => f.status === "pending").length} File(s)
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* Results */}
-          {hasResults && (
-            <div className="space-y-3 pt-4 border-t">
-              <Separator />
-              <h3 className="font-medium">Upload Results</h3>
-              <div className="space-y-2 max-h-60 overflow-y-auto">
-                {results.map((result, index) => (
-                  <ResultRow key={index} result={result} />
-                ))}
-              </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <Button variant="outline" onClick={() => { setResults([]); setFiles([]); }}>
-                  Upload More
-                </Button>
-                <Button onClick={goToDocuments}>
-                  <SvgCheckCircle className="mr-2 h-4 w-4" />
-                  View Documents
-                </Button>
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
+
+      {/* Selected Files Queue */}
+      {files.length > 0 && (
+        <Card className="border border-border/80">
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <div>
+              <CardTitle className="text-base font-semibold">Queue ({files.length} file{files.length === 1 ? "" : "s"})</CardTitle>
+              <CardDescription className="text-xs">Ready for processing into the knowledge vault</CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearAll}
+                disabled={isUploading}
+                className="text-xs h-8 cursor-pointer text-muted-foreground hover:text-destructive"
+              >
+                Clear Queue
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleUpload}
+                disabled={isUploading}
+                className="text-xs h-8 gap-1.5 cursor-pointer font-medium"
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2Icon className="size-3.5 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <UploadCloudIcon className="size-3.5" />
+                    Upload & Process
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-2 pt-0">
+            {files.map((file, i) => (
+              <FileRow key={i} file={file} onRemove={() => removeFile(i)} />
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Ingestion Results */}
+      {results.length > 0 && (
+        <Card className="border border-border/80">
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <div>
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <CheckCircle2Icon className="size-4.5 text-emerald-600 dark:text-emerald-400" />
+                Processing Results
+              </CardTitle>
+              <CardDescription className="text-xs">Status of indexed documents</CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push("/documents")}
+              className="text-xs h-8 gap-1.5 cursor-pointer"
+            >
+              <span>Go to Documents</span>
+              <ArrowRightIcon className="size-3.5" />
+            </Button>
+          </CardHeader>
+          <CardContent className="space-y-2 pt-0">
+            {results.map((result, i) => (
+              <ResultRow key={i} result={result} />
+            ))}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
