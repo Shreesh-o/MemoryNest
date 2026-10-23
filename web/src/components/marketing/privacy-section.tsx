@@ -4,22 +4,22 @@ export function PrivacySection() {
   const localGuarantees = [
     {
       title: "Local LLM via Ollama",
-      desc: "Answers are inferred locally on your CPU/GPU using open-weight models (qwen2.5:3b-instruct). Documents and chat history never train external AI.",
+      desc: "Answers are computed locally on your CPU/GPU using open-weight models (qwen2.5:3b-instruct). Documents and chat history never leave your machine to train external models.",
       icon: Cpu,
     },
     {
       title: "Local Vector Store & SQLite",
-      desc: "ChromaDB and SQLite run directly on your filesystem. Embeddings (all-MiniLM-L6-v2) are generated locally without third-party vector cloud services.",
+      desc: "ChromaDB vector indices and SQLite relational metadata exist exclusively on your local disk. Embeddings are generated with sentence-transformers without external API calls.",
       icon: HardDrive,
     },
     {
-      title: "Strict Per-User Isolation",
-      desc: "Every database record, chunk, and vector embedding is strictly scoped by user_id with cascading foreign keys and bcrypt-hashed authentication.",
+      title: "Strict Per-User Data Isolation",
+      desc: "Every record, chunk, and vector is partitioned by user_id with cascading foreign keys and bcrypt password hashing. Multi-tenant privacy is enforced at the database layer.",
       icon: Lock,
     },
     {
-      title: "Encrypted Credentials & Cookies",
-      desc: "Session tokens are managed via secure HTTP-only cookies, and third-party tokens (like Google OAuth refresh keys) are encrypted using Fernet.",
+      title: "Fernet Encrypted Credentials",
+      desc: "Session tokens are managed with secure HTTP-only cookies, and third-party tokens (such as Google OAuth refresh tokens) are encrypted on disk via Fernet encryption.",
       icon: ShieldCheck,
     },
   ]
@@ -28,43 +28,43 @@ export function PrivacySection() {
     <section
       id="privacy"
       aria-labelledby="privacy-heading"
-      className="py-20 sm:py-28 bg-muted/20 border-t border-border/40"
+      className="py-16 sm:py-24 bg-muted/20 border-t border-border/70"
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-background px-3 py-1 text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-4 shadow-2xs">
-            Data Sovereignty
+        <div className="text-left max-w-3xl mb-12 sm:mb-16">
+          <div className="inline-flex items-center gap-1.5 rounded-md border border-border/80 bg-background px-2.5 py-1 text-xs font-mono uppercase tracking-wider text-muted-foreground mb-3 shadow-2xs">
+            <span>SOVEREIGNTY PROTOCOL // LOCAL ENCLAVE</span>
           </div>
           <h2
             id="privacy-heading"
             className="font-heading text-3xl font-extrabold tracking-tight sm:text-4xl lg:text-5xl text-foreground text-balance"
           >
-            Local-first by design
+            Physical custody of your knowledge.
           </h2>
           <p className="mt-4 text-base sm:text-lg text-muted-foreground leading-relaxed text-balance">
-            Your personal notes, financial files, contracts, and medical records stay under your
-            control. MemoryNest is built to run self-hosted on your own hardware.
+            Your personal contracts, notes, and records remain on your own silicon.
+            MemoryNest is designed from the database up for complete user autonomy.
           </p>
         </div>
 
         {/* 4 Feature Pillars */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
           {localGuarantees.map((item) => {
             const Icon = item.icon
             return (
               <div
                 key={item.title}
-                className="rounded-2xl border border-border/70 bg-card p-6 shadow-xs flex items-start gap-4"
+                className="rounded-2xl border border-border/80 bg-card p-6 shadow-sm paper-folio flex items-start gap-4"
               >
-                <div className="size-11 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
+                <div className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
                   <Icon className="size-5" aria-hidden="true" />
                 </div>
                 <div>
                   <h3 className="font-heading text-base font-bold text-foreground mb-1">
                     {item.title}
                   </h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
+                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
                     {item.desc}
                   </p>
                 </div>
@@ -74,50 +74,54 @@ export function PrivacySection() {
         </div>
 
         {/* Transparent Opt-in Notice Box */}
-        <div className="mt-10 max-w-5xl mx-auto rounded-2xl border border-border/70 bg-background p-6 sm:p-7 shadow-xs">
+        <div className="rounded-2xl border border-border/80 bg-card p-6 sm:p-7 shadow-sm paper-folio">
           <div className="flex items-start gap-4">
             <div className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
               <Radio className="size-5" aria-hidden="true" />
             </div>
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
+            <div className="space-y-3 w-full">
+              <div className="flex items-center justify-between border-b border-border/50 pb-2">
                 <h3 className="font-heading text-base font-bold text-foreground">
-                  Accurate Disclosure on External Services (Strictly Opt-In)
+                  Precise Disclosure on External Services (Strictly Opt-In)
                 </h3>
+                <span className="font-mono text-[11px] text-muted-foreground">AUDIT TRANSPARENCY</span>
               </div>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                We believe in complete transparency: MemoryNest is local-first, but we do not claim
-                it is 100% offline because certain optional features integrate with third-party
-                services when explicitly configured:
+              <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                MemoryNest is local-first. We do not claim it is 100% offline because three optional
+                capabilities connect to external services only when explicitly configured by the user:
               </p>
-              <ul className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-muted-foreground pt-1">
-                <li className="flex items-start gap-2 bg-muted/50 p-2.5 rounded-lg border border-border/40">
-                  <Check className="size-4 text-emerald-500 shrink-0 mt-0.5" aria-hidden="true" />
-                  <span>
-                    <strong className="text-foreground">Google Calendar:</strong> Only connects if
-                    you link your Google account to push event dates.
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs pt-1">
+                <div className="flex flex-col gap-1 bg-muted/40 p-3 rounded-xl border border-border/60">
+                  <span className="font-semibold text-foreground flex items-center gap-1.5">
+                    <Check className="size-3.5 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+                    <span>Google Calendar Sync</span>
                   </span>
-                </li>
-                <li className="flex items-start gap-2 bg-muted/50 p-2.5 rounded-lg border border-border/40">
-                  <Check className="size-4 text-emerald-500 shrink-0 mt-0.5" aria-hidden="true" />
-                  <span>
-                    <strong className="text-foreground">Online TTS Voice:</strong> edge-tts requests
-                    neural voice audio from Microsoft online; offline engines (piper, espeak) run locally.
+                  <span className="text-muted-foreground text-[11px] leading-relaxed">
+                    Transmits extracted event dates to Google Calendar only when OAuth is authorized.
                   </span>
-                </li>
-                <li className="flex items-start gap-2 bg-muted/50 p-2.5 rounded-lg border border-border/40">
-                  <Check className="size-4 text-emerald-500 shrink-0 mt-0.5" aria-hidden="true" />
-                  <span>
-                    <strong className="text-foreground">Email Reminders:</strong> Connects to your
-                    configured Gmail SMTP account only when sending due alerts.
+                </div>
+                <div className="flex flex-col gap-1 bg-muted/40 p-3 rounded-xl border border-border/60">
+                  <span className="font-semibold text-foreground flex items-center gap-1.5">
+                    <Check className="size-3.5 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+                    <span>Edge-TTS Audio Voice</span>
                   </span>
-                </li>
-              </ul>
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-1">
+                  <span className="text-muted-foreground text-[11px] leading-relaxed">
+                    Optional online voice uses Microsoft Edge-TTS; Piper and espeak run 100% locally.
+                  </span>
+                </div>
+                <div className="flex flex-col gap-1 bg-muted/40 p-3 rounded-xl border border-border/60">
+                  <span className="font-semibold text-foreground flex items-center gap-1.5">
+                    <Check className="size-3.5 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+                    <span>SMTP Email Alerts</span>
+                  </span>
+                  <span className="text-muted-foreground text-[11px] leading-relaxed">
+                    Sends reminder notifications through your configured Gmail SMTP credentials.
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-[11px] font-mono text-muted-foreground pt-2">
                 <Info className="size-3.5 text-primary shrink-0" aria-hidden="true" />
-                <span>
-                  No telemetry, analytics, or background tracking are ever compiled or sent home.
-                </span>
+                <span>Zero telemetry, trackers, or marketing analytics are ever embedded.</span>
               </div>
             </div>
           </div>
