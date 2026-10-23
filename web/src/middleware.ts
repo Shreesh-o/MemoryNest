@@ -5,9 +5,6 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const hasSession = request.cookies.has("mn_session")
 
-  // Paths that don't need authentication
-  const publicPaths = ["/login", "/register"]
-  const isPublicPath = publicPaths.some((path) => pathname.startsWith(path))
   const isApiPath = pathname.startsWith("/api/")
   const isStaticPath = pathname.startsWith("/_next/") || pathname.startsWith("/static/") || pathname === "/favicon.ico"
 
@@ -15,6 +12,20 @@ export function middleware(request: NextRequest) {
   if (isApiPath || isStaticPath) {
     return NextResponse.next()
   }
+
+  // Root landing page:
+  // If already logged in, redirect to /dashboard
+  // If logged out, allow access to public landing page
+  if (pathname === "/") {
+    if (hasSession) {
+      return NextResponse.redirect(new URL("/dashboard", request.url))
+    }
+    return NextResponse.next()
+  }
+
+  // Paths that don't need authentication
+  const publicPaths = ["/login", "/register"]
+  const isPublicPath = publicPaths.some((path) => pathname.startsWith(path))
 
   // If public path (/login, /register), always allow (the client will handle redirects)
   if (isPublicPath) {

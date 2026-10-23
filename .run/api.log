@@ -143,3 +143,69 @@ INFO:     127.0.0.1:57852 - "GET /health HTTP/1.1" 404 Not Found
 INFO:     127.0.0.1:39570 - "GET /health HTTP/1.1" 404 Not Found
 INFO:     127.0.0.1:49930 - "GET /health HTTP/1.1" 404 Not Found
 INFO:     127.0.0.1:42570 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:47322 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:53330 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:39916 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:38636 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49406 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:34742 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:45124 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58466 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:34908 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:34042 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:36758 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51330 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51344 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51330 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51330 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51344 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51344 - "GET /api/documents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51344 - "POST /api/auth/logout HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51344 - "GET /api/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:58210 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47142 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47158 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58210 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58210 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47158 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47158 - "GET /api/graph?min_score=0.45 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47160 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:47158 - "GET /api/documents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47158 - "GET /api/documents/3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47158 - "GET /api/documents/3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47158 - "GET /api/documents/3/file HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44406 - "GET /api/documents/3/file HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44406 - "GET /api/documents/3/content HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33918 - "GET /api/documents/2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33918 - "GET /api/documents/2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33918 - "GET /api/documents/2/content HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33922 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:40942 - "GET /api/summaries HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40942 - "POST /api/summaries/1/audio HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40942 - "GET /api/summaries/1/audio HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40952 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:43986 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43960 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43970 - "GET /api/google/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44008 - "GET /api/reminders HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44016 - "GET /api/events HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43994 - "GET /api/events?status=pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43970 - "GET /api/documents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43970 - "GET /api/calendar/items?start=2026-09-28&end=2026-11-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44026 - "GET /api/conversations HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47264 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:38050 - "GET /api/graph?min_score=0.45 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38554 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56622 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:43802 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:38306 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:53660 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53630 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53644 - "GET /api/google/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53680 - "GET /api/reminders HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53670 - "GET /api/events?status=pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53620 - "GET /api/calendar/items?start=2026-09-28&end=2026-11-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53680 - "GET /api/events HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53644 - "GET /api/documents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53684 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:34590 - "GET /health HTTP/1.1" 404 Not Found
