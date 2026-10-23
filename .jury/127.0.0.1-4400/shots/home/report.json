@@ -1,0 +1,268 @@
+{
+  "url": "http://127.0.0.1:4400/",
+  "errors": [
+    "[desktop] Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  ],
+  "failed": [
+    "[desktop] 401 http://127.0.0.1:4400/api/auth/me"
+  ],
+  "desktop": {
+    "loadMs": 423,
+    "loaderMs": null,
+    "settledMs": 2775,
+    "vitals": {
+      "lcpMs": 288,
+      "lcpElement": "h1#hero-heading.font-heading",
+      "cls": 0
+    },
+    "height": 5478,
+    "overflowX": false,
+    "offenders": [],
+    "h1": [
+      "Every claim anchored to verifiable citations on your own mac"
+    ],
+    "smallTargets": [
+      "Skip to main content 1x1",
+      "// Capabilities 280x16",
+      "// Pipeline Architecture 280x16",
+      "// Data Sovereignty 280x16",
+      "// Log in to Session 280x16",
+      "// Initialize Vault 280x16"
+    ],
+    "glHidden": [],
+    "title": "MemoryNest — Local-First Personal Knowledge Manager",
+    "glOn": false,
+    "scrollFps": {
+      "fps": 60,
+      "worstFrameMs": 17
+    },
+    "nav": {
+      "href": "/login",
+      "scrollYAfter": 0,
+      "title": "MemoryNest - Sign In"
+    },
+    "idleMotion": false,
+    "idleAt": null
+  },
+  "mobile": {
+    "throttled": true,
+    "loadMs": 3805,
+    "loaderMs": null,
+    "settledMs": 5980,
+    "vitals": {
+      "lcpMs": 1436,
+      "lcpElement": "h1#hero-heading.font-heading",
+      "cls": 0
+    },
+    "height": 9864,
+    "overflowX": false,
+    "offenders": [],
+    "h1": [
+      "Every claim anchored to verifiable citations on your own mac"
+    ],
+    "smallTargets": [
+      "Skip to main content 1x1",
+      "// Capabilities 358x16",
+      "// Pipeline Architecture 358x16",
+      "// Data Sovereignty 358x16",
+      "// Log in to Session 358x16",
+      "// Initialize Vault 358x16"
+    ],
+    "glHidden": [],
+    "title": "MemoryNest — Local-First Personal Knowledge Manager",
+    "glOn": false,
+    "scrollFps": {
+      "fps": 60,
+      "worstFrameMs": 17
+    }
+  },
+  "files": [
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/home/d-00-firstpaint.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/home/d-01-hero.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/home/d-02-scroll.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/home/d-03-scroll.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/home/d-04-scroll.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/home/d-05-scroll.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/home/d-06-scroll.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/home/d-07-scroll.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/home/d-90-transition-a.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/home/d-90-transition-b.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/home/d-90-transition-c.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/home/d-91-after-nav.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/home/d-92-back.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/home/k-01-focus.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/home/k-02-focus.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/home/k-03-focus.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/home/k-04-focus.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/home/h-01-rest.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/home/h-01-hover.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/home/h-02-rest.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/home/h-02-hover.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/home/h-03-rest.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/home/h-03-hover.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/home/h-04-rest.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/home/h-04-hover.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/home/h-05-rest.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/home/h-05-hover.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/home/h-06-rest.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/home/h-06-hover.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/home/h-07-rest.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/home/h-07-hover.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/home/h-08-rest.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/home/h-08-hover.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/home/m-01-hero.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/home/m-02-scroll.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/home/m-03-scroll.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/home/m-04-scroll.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/home/m-05-scroll.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/home/m-06-scroll.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/home/r-01-hero.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/home/r-02-mid.png"
+  ],
+  "notes": [
+    "desktop FPS runs headless on a software GPU: treat it as a floor, not a measurement of real hardware",
+    "mobile runs at 4x CPU slowdown on slow 4G: mobile.vitals and mobile.scrollFps are the numbers that count",
+    "loadMs: ms from navigation to the load event, null if it had not fired after 30 s (desktop) or 60 s (phone); a heavy page takes long, while visitors see content at vitals.lcpMs. loaderMs: ms until the #loader ended, null when the page has none",
+    "settledMs: ms from navigation by which the first screen stopped changing, never before the fixed wait. null: still changing at the cap, either a long intro or continuous motion (a live shader, video); d-01-hero / m-01-hero tell which. reduced.moving: the screen was still changing 1.5 s after load with reduced motion on"
+  ],
+  "keyboard": {
+    "stops": [
+      "a \"Skip to main content\"",
+      "a \"MemoryNest\"",
+      "a \"FEATURES\"",
+      "a \"HOW IT WORKS\"",
+      "a \"PRIVACY\"",
+      "button \"Switch to dark theme\"",
+      "a \"Log in\"",
+      "a \"Get started\"",
+      "a \"Initialize Vault\"",
+      "a \"Open Session\"",
+      "button \"Lease Notice Terms\"",
+      "button \"IP Assignment Clause\""
+    ],
+    "skipLinkFirst": true,
+    "noVisibleFocus": [],
+    "invisibleFocus": [],
+    "stuck": false
+  },
+  "hover": {
+    "targets": [
+      {
+        "shot": "h-01",
+        "label": "button \"Switch to dark theme\"",
+        "interactive": true,
+        "primary": true,
+        "react": "color",
+        "changed": [
+          "color",
+          "backgroundColor",
+          "textDecorationColor",
+          "borderColor"
+        ]
+      },
+      {
+        "shot": "h-02",
+        "label": "button \"Lease Notice Terms\"",
+        "interactive": true,
+        "primary": true,
+        "react": "none",
+        "changed": []
+      },
+      {
+        "shot": "h-03",
+        "label": "button \"IP Assignment Clause\"",
+        "interactive": true,
+        "primary": true,
+        "react": "color",
+        "changed": [
+          "color",
+          "backgroundColor",
+          "textDecorationColor",
+          "borderColor"
+        ]
+      },
+      {
+        "shot": "h-04",
+        "label": "a \"Initialize Vault\"",
+        "interactive": true,
+        "primary": true,
+        "react": "moves",
+        "changed": [
+          "backgroundColor",
+          "translate"
+        ]
+      },
+      {
+        "shot": "h-05",
+        "label": "a \"Open Session\"",
+        "interactive": true,
+        "primary": true,
+        "react": "color",
+        "changed": [
+          "backgroundColor"
+        ]
+      },
+      {
+        "shot": "h-06",
+        "label": "a \"Initialize Vault\"",
+        "interactive": true,
+        "primary": true,
+        "react": "moves",
+        "changed": [
+          "backgroundColor",
+          "translate"
+        ]
+      },
+      {
+        "shot": "h-07",
+        "label": "a \"Log in to Session\"",
+        "interactive": true,
+        "primary": true,
+        "react": "color",
+        "changed": [
+          "backgroundColor"
+        ]
+      },
+      {
+        "shot": "h-08",
+        "label": "a \"MemoryNest\"",
+        "interactive": true,
+        "primary": true,
+        "react": "moves",
+        "changed": [
+          "opacity"
+        ]
+      }
+    ],
+    "noHoverChange": [
+      "h-02 button \"Lease Notice Terms\""
+    ],
+    "colorOnly": [
+      "h-01 button \"Switch to dark theme\"",
+      "h-03 button \"IP Assignment Clause\"",
+      "h-05 a \"Open Session\"",
+      "h-07 a \"Log in to Session\""
+    ],
+    "covered": [],
+    "cursorFollower": false
+  },
+  "reduced": {
+    "hiddenText": 0,
+    "moving": false
+  },
+  "a11y": {
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "count": 1,
+        "nodes": [
+          ".bg-amber-500\\/10 (#bb4d00 on #fcf0dd, 4.46:1, needs 4.5:1)"
+        ]
+      }
+    ],
+    "serious": 1,
+    "contrastNeedsReview": 1
+  }
+}

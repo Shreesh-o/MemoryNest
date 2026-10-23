@@ -1,0 +1,244 @@
+{
+  "url": "http://127.0.0.1:4400/",
+  "errors": [],
+  "failed": [],
+  "desktop": {
+    "loadMs": 306,
+    "loaderMs": null,
+    "settledMs": 2688,
+    "vitals": {
+      "lcpMs": 236,
+      "lcpElement": "h1#hero-heading.font-heading",
+      "cls": 0
+    },
+    "height": 5478,
+    "overflowX": false,
+    "offenders": [],
+    "h1": [
+      "Every claim anchored to verifiable citations on your own mac"
+    ],
+    "smallTargets": [
+      "Skip to main content 1x1",
+      "// Capabilities 280x16",
+      "// Pipeline Architecture 280x16",
+      "// Data Sovereignty 280x16",
+      "// Log in to Session 280x16",
+      "// Initialize Vault 280x16"
+    ],
+    "glHidden": [],
+    "title": "MemoryNest — Local-First Personal Knowledge Manager",
+    "glOn": false,
+    "scrollFps": {
+      "fps": 60,
+      "worstFrameMs": 33
+    },
+    "idleMotion": true,
+    "idleAt": "top"
+  },
+  "mobile": {
+    "throttled": true,
+    "loadMs": 3811,
+    "loaderMs": null,
+    "settledMs": 5991,
+    "vitals": {
+      "lcpMs": 1496,
+      "lcpElement": "h1#hero-heading.font-heading",
+      "cls": 0
+    },
+    "height": 9864,
+    "overflowX": false,
+    "offenders": [],
+    "h1": [
+      "Every claim anchored to verifiable citations on your own mac"
+    ],
+    "smallTargets": [
+      "Skip to main content 1x1",
+      "// Capabilities 358x16",
+      "// Pipeline Architecture 358x16",
+      "// Data Sovereignty 358x16",
+      "// Log in to Session 358x16",
+      "// Initialize Vault 358x16"
+    ],
+    "glHidden": [],
+    "title": "MemoryNest — Local-First Personal Knowledge Manager",
+    "glOn": false,
+    "scrollFps": {
+      "fps": 60,
+      "worstFrameMs": 17
+    }
+  },
+  "files": [
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/d-00-firstpaint.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/d-01-hero.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/d-02-scroll.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/d-03-scroll.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/d-04-scroll.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/d-05-scroll.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/d-06-scroll.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/d-07-scroll.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/k-01-focus.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/k-02-focus.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/k-03-focus.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/k-04-focus.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/h-01-rest.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/h-01-hover.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/h-02-rest.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/h-02-hover.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/h-03-rest.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/h-03-hover.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/h-04-rest.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/h-04-hover.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/h-05-rest.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/h-05-hover.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/h-06-rest.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/h-06-hover.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/h-07-rest.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/h-07-hover.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/h-08-rest.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/h-08-hover.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/m-01-hero.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/m-02-scroll.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/m-03-scroll.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/m-04-scroll.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/m-05-scroll.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/m-06-scroll.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/r-01-hero.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/r-02-mid.png"
+  ],
+  "notes": [
+    "desktop FPS runs headless on a software GPU: treat it as a floor, not a measurement of real hardware",
+    "mobile runs at 4x CPU slowdown on slow 4G: mobile.vitals and mobile.scrollFps are the numbers that count",
+    "loadMs: ms from navigation to the load event, null if it had not fired after 30 s (desktop) or 60 s (phone); a heavy page takes long, while visitors see content at vitals.lcpMs. loaderMs: ms until the #loader ended, null when the page has none",
+    "settledMs: ms from navigation by which the first screen stopped changing, never before the fixed wait. null: still changing at the cap, either a long intro or continuous motion (a live shader, video); d-01-hero / m-01-hero tell which. reduced.moving: the screen was still changing 1.5 s after load with reduced motion on"
+  ],
+  "keyboard": {
+    "stops": [
+      "a \"Skip to main content\"",
+      "a \"MemoryNest\"",
+      "a \"FEATURES\"",
+      "a \"HOW IT WORKS\"",
+      "a \"PRIVACY\"",
+      "button \"Switch to dark theme\"",
+      "a \"Log in\"",
+      "a \"Get started\"",
+      "a \"Initialize Vault\"",
+      "a \"Open Session\"",
+      "button \"Lease Notice Terms\"",
+      "button \"IP Assignment Clause\""
+    ],
+    "skipLinkFirst": true,
+    "noVisibleFocus": [],
+    "invisibleFocus": [],
+    "stuck": false
+  },
+  "hover": {
+    "targets": [
+      {
+        "shot": "h-01",
+        "label": "button \"Switch to dark theme\"",
+        "interactive": true,
+        "primary": true,
+        "react": "color",
+        "changed": [
+          "color",
+          "backgroundColor",
+          "textDecorationColor",
+          "borderColor"
+        ]
+      },
+      {
+        "shot": "h-02",
+        "label": "button \"Lease Notice Terms\"",
+        "interactive": true,
+        "primary": true,
+        "react": "none",
+        "changed": []
+      },
+      {
+        "shot": "h-03",
+        "label": "button \"IP Assignment Clause\"",
+        "interactive": true,
+        "primary": true,
+        "react": "color",
+        "changed": [
+          "color",
+          "backgroundColor",
+          "textDecorationColor",
+          "borderColor"
+        ]
+      },
+      {
+        "shot": "h-04",
+        "label": "a \"Initialize Vault\"",
+        "interactive": true,
+        "primary": true,
+        "react": "moves",
+        "changed": [
+          "backgroundColor",
+          "translate"
+        ]
+      },
+      {
+        "shot": "h-05",
+        "label": "a \"Open Session\"",
+        "interactive": true,
+        "primary": true,
+        "react": "color",
+        "changed": [
+          "backgroundColor"
+        ]
+      },
+      {
+        "shot": "h-06",
+        "label": "a \"Initialize Vault\"",
+        "interactive": true,
+        "primary": true,
+        "react": "moves",
+        "changed": [
+          "backgroundColor",
+          "translate"
+        ]
+      },
+      {
+        "shot": "h-07",
+        "label": "a \"Log in to Session\"",
+        "interactive": true,
+        "primary": true,
+        "react": "color",
+        "changed": [
+          "backgroundColor"
+        ]
+      },
+      {
+        "shot": "h-08",
+        "label": "a \"MemoryNest\"",
+        "interactive": true,
+        "primary": true,
+        "react": "moves",
+        "changed": [
+          "opacity"
+        ]
+      }
+    ],
+    "noHoverChange": [
+      "h-02 button \"Lease Notice Terms\""
+    ],
+    "colorOnly": [
+      "h-01 button \"Switch to dark theme\"",
+      "h-03 button \"IP Assignment Clause\"",
+      "h-05 a \"Open Session\"",
+      "h-07 a \"Log in to Session\""
+    ],
+    "covered": [],
+    "cursorFollower": false
+  },
+  "reduced": {
+    "hiddenText": 0,
+    "moving": false
+  },
+  "a11y": {
+    "violations": [],
+    "serious": 0,
+    "contrastNeedsReview": 1
+  }
+}

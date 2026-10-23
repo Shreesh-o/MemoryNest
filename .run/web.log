@@ -2,10 +2,10 @@ npm notice run web@0.1.0 dev
 npm notice run next dev -p 3000
 ▲ Next.js 16.4.2 (Turbopack)
 - Local:         http://localhost:3000
-- Network:       http://10.1.107.143:3000
+- Network:       http://192.168.47.201:3000
 - Environments: .env.local
-✓ Ready in 324ms
-✓ Running next.config.ts took 39ms
+✓ Ready in 599ms
+✓ Running next.config.ts took 58ms
 ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead.
 
   To migrate automatically, run:
@@ -15,26 +15,63 @@ npm notice run next dev -p 3000
 - Experiments (use with caution):
   · proxyTimeout: 300000
 
- GET /login 200 in 1576ms (next.js: 1314ms, proxy.ts: 50ms, application-code: 212ms)
- GET /register; 404 in 83ms (next.js: 35ms, proxy.ts: 7ms, application-code: 41ms)
- GET / 200 in 270ms (next.js: 96ms, proxy.ts: 2ms, application-code: 171ms)
- GET /login 200 in 147ms (next.js: 128ms, proxy.ts: 3ms, application-code: 16ms)
- GET /dashboard 200 in 363ms (next.js: 340ms, proxy.ts: 5ms, application-code: 19ms)
- GET /dashboard 200 in 24ms (next.js: 5ms, proxy.ts: 3ms, application-code: 16ms)
- GET /documents 200 in 291ms (next.js: 273ms, proxy.ts: 4ms, application-code: 14ms)
- GET /documents/4 200 in 493ms (next.js: 475ms, proxy.ts: 3ms, application-code: 15ms)
- GET /documents/3 200 in 35ms (next.js: 19ms, proxy.ts: 3ms, application-code: 13ms)
- GET /documents 200 in 20ms (next.js: 7ms, proxy.ts: 3ms, application-code: 10ms)
- GET /map 200 in 235ms (next.js: 219ms, proxy.ts: 2ms, application-code: 13ms)
- GET /upload 200 in 177ms (next.js: 160ms, proxy.ts: 3ms, application-code: 14ms)
- GET /summaries 200 in 177ms (next.js: 164ms, proxy.ts: 1.7ms, application-code: 11ms)
- GET /chat 200 in 260ms (next.js: 247ms, proxy.ts: 3ms, application-code: 11ms)
- GET /reminders 200 in 139ms (next.js: 125ms, proxy.ts: 3ms, application-code: 11ms)
- GET /chat 200 in 28ms (next.js: 8ms, proxy.ts: 2ms, application-code: 18ms)
- GET /search 200 in 194ms (next.js: 178ms, proxy.ts: 2ms, application-code: 14ms)
- GET /documents 200 in 19ms (next.js: 7ms, proxy.ts: 2ms, application-code: 10ms)
- GET /dashboard 200 in 17ms (next.js: 7ms, proxy.ts: 1.7ms, application-code: 9ms)
- GET /documents 200 in 63ms (next.js: 46ms, proxy.ts: 4ms, application-code: 12ms)
- GET /map 200 in 88ms (next.js: 76ms, proxy.ts: 1.8ms, application-code: 10ms)
- GET /upload 200 in 30ms (next.js: 16ms, proxy.ts: 2ms, application-code: 12ms)
- GET /map 200 in 19ms (next.js: 6ms, proxy.ts: 1.7ms, application-code: 11ms)
+ GET /login 200 in 3.5s (next.js: 3.0s, proxy.ts: 103ms, application-code: 353ms)
+ GET /login 200 in 154ms (next.js: 20ms, proxy.ts: 15ms, application-code: 119ms)
+ GET /register; 404 in 112ms (next.js: 49ms, proxy.ts: 6ms, application-code: 57ms)
+ GET /map 200 in 1735ms (next.js: 1525ms, proxy.ts: 15ms, application-code: 194ms)
+[browser] Encountered a script tag while rendering React component. Scripts inside React components are never executed when rendering on the client. Consider using template tag instead (https://developer.mozilla.org/en-US/docs/Web/HTML/Element/template). 
+[browser] Uncaught Error: Module [project]/node_modules/lucide-react/dist/esm/icons/shield-check.mjs [app-client] (ecmascript) <export default as ShieldCheckIcon> was instantiated because it was required from module [project]/src/components/app-shell/sidebar.tsx [app-client] (ecmascript), but the module factory is not available.
+This is often caused by a stale browser cache, misconfigured Cache-Control headers, or a service worker serving outdated responses.
+To fix this, make sure your Cache-Control headers allow revalidation of chunks and review your service worker configuration. As an immediate workaround, try hard-reloading the page, clearing the browser cache, or unregistering any service workers.
+    at module evaluation (src/components/app-shell/sidebar.tsx:7:1)
+    at module evaluation (src/app/(app)/layout.tsx:7:1)
+   5 | import { useQueryClient } from "@tanstack/react-query"
+   6 | import { toast } from "sonner"
+>  7 | import {
+     | ^
+   8 |   LogOutIcon,
+   9 |   LayoutDashboardIcon,
+  10 |   FileTextIcon,
+ GET /upload 200 in 339ms (next.js: 258ms, proxy.ts: 7ms, application-code: 74ms)
+[browser] Encountered a script tag while rendering React component. Scripts inside React components are never executed when rendering on the client. Consider using template tag instead (https://developer.mozilla.org/en-US/docs/Web/HTML/Element/template). 
+[browser] Uncaught Error: Module [project]/node_modules/lucide-react/dist/esm/icons/shield-check.mjs [app-client] (ecmascript) <export default as ShieldCheckIcon> was instantiated because it was required from module [project]/src/components/app-shell/sidebar.tsx [app-client] (ecmascript), but the module factory is not available.
+This is often caused by a stale browser cache, misconfigured Cache-Control headers, or a service worker serving outdated responses.
+To fix this, make sure your Cache-Control headers allow revalidation of chunks and review your service worker configuration. As an immediate workaround, try hard-reloading the page, clearing the browser cache, or unregistering any service workers.
+    at module evaluation (src/components/app-shell/sidebar.tsx:7:1)
+    at module evaluation (src/app/(app)/layout.tsx:7:1)
+   5 | import { useQueryClient } from "@tanstack/react-query"
+   6 | import { toast } from "sonner"
+>  7 | import {
+     | ^
+   8 |   LogOutIcon,
+   9 |   LayoutDashboardIcon,
+  10 |   FileTextIcon,
+ HEAD / 200 in 860ms (next.js: 442ms, proxy.ts: 7ms, application-code: 411ms)
+ HEAD /login 200 in 131ms (next.js: 53ms, proxy.ts: 6ms, application-code: 72ms)
+ GET /upload 200 in 92ms (next.js: 11ms, proxy.ts: 10ms, application-code: 71ms)
+ GET /dashboard 200 in 286ms (next.js: 237ms, proxy.ts: 7ms, application-code: 42ms)
+ GET /login 200 in 62ms (next.js: 17ms, proxy.ts: 6ms, application-code: 39ms)
+ GET / 200 in 264ms (next.js: 151ms, proxy.ts: 7ms, application-code: 107ms)
+ GET /login 200 in 384ms (next.js: 335ms, proxy.ts: 7ms, application-code: 43ms)
+ GET /dashboard 200 in 286ms (next.js: 252ms, proxy.ts: 4ms, application-code: 30ms)
+ GET /dashboard 200 in 296ms (next.js: 217ms, proxy.ts: 6ms, application-code: 73ms)
+ GET /documents 200 in 987ms (next.js: 952ms, proxy.ts: 7ms, application-code: 29ms)
+ GET /map 200 in 236ms (next.js: 197ms, proxy.ts: 6ms, application-code: 32ms)
+ GET /upload 200 in 315ms (next.js: 276ms, proxy.ts: 7ms, application-code: 33ms)
+ GET /summaries 200 in 426ms (next.js: 387ms, proxy.ts: 7ms, application-code: 31ms)
+ GET /reminders 200 in 385ms (next.js: 342ms, proxy.ts: 8ms, application-code: 34ms)
+ GET /chat 200 in 390ms (next.js: 350ms, proxy.ts: 5ms, application-code: 34ms)
+ GET /search 200 in 409ms (next.js: 371ms, proxy.ts: 6ms, application-code: 33ms)
+ GET /dashboard 200 in 82ms (next.js: 34ms, proxy.ts: 7ms, application-code: 40ms)
+ GET / 200 in 346ms (next.js: 56ms, proxy.ts: 7ms, application-code: 283ms)
+ GET /login 200 in 77ms (next.js: 39ms, proxy.ts: 7ms, application-code: 31ms)
+ GET / 200 in 102ms (next.js: 12ms, proxy.ts: 5ms, application-code: 84ms)
+✓ Compiled in 1017ms
+✓ Compiled in 24ms
+✓ Compiled in 47ms
+✓ Compiled in 133ms
+✓ Compiled in 16ms
+✓ Compiled in 13ms
+ HEAD / 200 in 977ms (next.js: 803ms, proxy.ts: 12ms, application-code: 162ms)
+ HEAD /login 200 in 81ms (next.js: 23ms, proxy.ts: 1.8ms, application-code: 56ms)
+ GET / 200 in 107ms (next.js: 3ms, proxy.ts: 2ms, application-code: 102ms)

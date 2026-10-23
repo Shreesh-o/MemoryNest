@@ -1,0 +1,196 @@
+{
+  "url": "http://127.0.0.1:4400/login",
+  "errors": [
+    "[desktop] Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "[desktop] Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "[keyboard] Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "[hover] Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "[mobile] Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "[reduced] Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  ],
+  "failed": [
+    "[desktop] 401 http://127.0.0.1:4400/api/auth/me",
+    "[desktop] http://127.0.0.1:4400/?_rsc=_H_fFy2_Q06N8BA7 net::ERR_ABORTED",
+    "[desktop] http://127.0.0.1:4400/?_rsc=sW2A7HEmFQnSVIMx net::ERR_ABORTED",
+    "[desktop] http://127.0.0.1:4400/?_rsc=UlNa-HOHTR6CgG-W net::ERR_ABORTED",
+    "[desktop] 401 http://127.0.0.1:4400/api/auth/me",
+    "[keyboard] 401 http://127.0.0.1:4400/api/auth/me",
+    "[keyboard] http://127.0.0.1:4400/?_rsc=sW2A7HEmFQnSVIMx net::ERR_ABORTED",
+    "[hover] 401 http://127.0.0.1:4400/api/auth/me",
+    "[hover] http://127.0.0.1:4400/?_rsc=_H_fFy2_Q06N8BA7 net::ERR_ABORTED",
+    "[hover] http://127.0.0.1:4400/?_rsc=sW2A7HEmFQnSVIMx net::ERR_ABORTED",
+    "[mobile] 401 http://127.0.0.1:4400/api/auth/me",
+    "[reduced] 401 http://127.0.0.1:4400/api/auth/me",
+    "[reduced] http://127.0.0.1:4400/?_rsc=_H_fFy2_Q06N8BA7 net::ERR_ABORTED",
+    "[reduced] http://127.0.0.1:4400/?_rsc=sW2A7HEmFQnSVIMx net::ERR_ABORTED"
+  ],
+  "desktop": {
+    "loadMs": 174,
+    "loaderMs": null,
+    "settledMs": 2429,
+    "vitals": {
+      "lcpMs": 244,
+      "lcpElement": "div.text-xs",
+      "cls": 0
+    },
+    "height": 932,
+    "overflowX": false,
+    "offenders": [],
+    "h1": [
+      "MemoryNest"
+    ],
+    "smallTargets": [
+      "Initialize Vault 79x16"
+    ],
+    "glHidden": [],
+    "title": "MemoryNest - Sign In",
+    "glOn": false,
+    "scrollFps": {
+      "fps": 60,
+      "worstFrameMs": 17
+    },
+    "nav": {
+      "href": "/",
+      "scrollYAfter": 0,
+      "title": "MemoryNest — Local-First Personal Knowledge Manager"
+    },
+    "idleMotion": false,
+    "idleAt": null
+  },
+  "mobile": {
+    "throttled": true,
+    "loadMs": 3778,
+    "loaderMs": null,
+    "settledMs": 5893,
+    "vitals": {
+      "lcpMs": 4096,
+      "lcpElement": "div.text-xs",
+      "cls": 0
+    },
+    "height": 876,
+    "overflowX": false,
+    "offenders": [],
+    "h1": [
+      "MemoryNest"
+    ],
+    "smallTargets": [
+      "Initialize Vault 79x16"
+    ],
+    "glHidden": [],
+    "title": "MemoryNest - Sign In",
+    "glOn": false,
+    "scrollFps": {
+      "fps": 61,
+      "worstFrameMs": 17
+    }
+  },
+  "files": [
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/login/d-00-firstpaint.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/login/d-01-hero.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/login/d-02-scroll.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/login/d-03-scroll.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/login/d-04-scroll.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/login/d-05-scroll.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/login/d-06-scroll.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/login/d-07-scroll.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/login/d-90-transition-a.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/login/d-90-transition-b.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/login/d-90-transition-c.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/login/d-91-after-nav.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/login/d-92-back.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/login/k-01-focus.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/login/k-02-focus.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/login/k-03-focus.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/login/k-04-focus.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/login/h-01-rest.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/login/h-01-hover.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/login/h-02-rest.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/login/h-02-hover.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/login/h-03-rest.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/login/h-03-hover.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/login/m-01-hero.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/login/m-02-scroll.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/login/m-03-scroll.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/login/m-04-scroll.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/login/m-05-scroll.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/login/m-06-scroll.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/login/r-01-hero.png",
+    "/home/shreesh/MemoryNest/.jury/127.0.0.1-4400/shots/login/r-02-mid.png"
+  ],
+  "notes": [
+    "desktop FPS runs headless on a software GPU: treat it as a floor, not a measurement of real hardware",
+    "mobile runs at 4x CPU slowdown on slow 4G: mobile.vitals and mobile.scrollFps are the numbers that count",
+    "loadMs: ms from navigation to the load event, null if it had not fired after 30 s (desktop) or 60 s (phone); a heavy page takes long, while visitors see content at vitals.lcpMs. loaderMs: ms until the #loader ended, null when the page has none",
+    "settledMs: ms from navigation by which the first screen stopped changing, never before the fixed wait. null: still changing at the cap, either a long intro or continuous motion (a live shader, video); d-01-hero / m-01-hero tell which. reduced.moving: the screen was still changing 1.5 s after load with reduced motion on"
+  ],
+  "keyboard": {
+    "stops": [
+      "a \"Return to Overview\"",
+      "input \"INPUT\"",
+      "input \"INPUT\"",
+      "button \"Sign in\"",
+      "a \"Initialize Vault\"",
+      "(body: focus left the page)"
+    ],
+    "skipLinkFirst": false,
+    "noVisibleFocus": [],
+    "invisibleFocus": [],
+    "stuck": false
+  },
+  "hover": {
+    "targets": [
+      {
+        "shot": "h-01",
+        "label": "button \"Sign in\"",
+        "interactive": true,
+        "primary": true,
+        "react": "color",
+        "changed": [
+          "backgroundColor"
+        ]
+      },
+      {
+        "shot": "h-02",
+        "label": "a \"Return to Overview\"",
+        "interactive": true,
+        "primary": true,
+        "react": "color",
+        "changed": [
+          "color",
+          "textDecorationColor",
+          "borderColor"
+        ]
+      },
+      {
+        "shot": "h-03",
+        "label": "a \"Initialize Vault\"",
+        "interactive": true,
+        "primary": true,
+        "react": "color",
+        "changed": [
+          "color",
+          "textDecorationLine",
+          "textDecorationColor",
+          "borderColor"
+        ]
+      }
+    ],
+    "noHoverChange": [],
+    "colorOnly": [
+      "h-01 button \"Sign in\"",
+      "h-02 a \"Return to Overview\"",
+      "h-03 a \"Initialize Vault\""
+    ],
+    "covered": [],
+    "cursorFollower": false
+  },
+  "reduced": {
+    "hiddenText": 0,
+    "moving": false
+  },
+  "a11y": {
+    "violations": [],
+    "serious": 0,
+    "contrastNeedsReview": 0
+  }
+}

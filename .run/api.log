@@ -1,41 +1,58 @@
 INFO:     Will watch for changes in these directories: ['/home/shreesh/MemoryNest/app']
 INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
-INFO:     Started reloader process [802730] using WatchFiles
-INFO:     Started server process [802735]
+INFO:     Started reloader process [926384] using WatchFiles
+INFO:     Started server process [926403]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
-INFO:     127.0.0.1:38588 - "GET /api/health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:38596 - "GET /api/health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:44106 - "GET /api/auth/me HTTP/1.1" 401 Unauthorized
-INFO:     127.0.0.1:44106 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52224 - "GET /api/health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52226 - "GET /api/auth/me HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52226 - "GET /api/health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:44106 - "GET /api/dashboard HTTP/1.1" 200 OK
-INFO:     127.0.0.1:44106 - "GET /api/dashboard HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59772 - "GET /api/documents HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59772 - "GET /api/documents/4 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59772 - "GET /api/documents/4 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59772 - "GET /api/documents/4/content HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59772 - "GET /api/documents/3 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59772 - "GET /api/documents/3 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59772 - "GET /api/documents/3/file HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56722 - "GET /api/graph?min_score=0.45 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55906 - "GET /api/documents HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55908 - "GET /api/summaries HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34044 - "GET /api/chat/documents HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34050 - "GET /api/conversations HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34050 - "GET /api/auth/me HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34066 - "GET /api/health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34044 - "GET /api/google/status HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34066 - "GET /api/reminders/lead-times HTTP/1.1" 405 Method Not Allowed
-INFO:     127.0.0.1:34068 - "GET /api/events?status=pending HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34094 - "GET /api/events HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34084 - "GET /api/reminders HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34084 - "GET /api/calendar/items?start=2026-09-28&end=2026-11-01 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34098 - "GET /api/health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34096 - "GET /api/dashboard HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34098 - "GET /api/health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34098 - "GET /api/dashboard HTTP/1.1" 200 OK
-INFO:     127.0.0.1:39088 - "GET /api/documents HTTP/1.1" 200 OK
-INFO:     127.0.0.1:39088 - "GET /api/graph?min_score=0.45 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48156 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48160 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40820 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40826 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40820 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40826 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40826 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40826 - "POST /api/auth/logout HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40826 - "GET /api/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:37570 - "GET /api/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:37584 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37594 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37598 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37584 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37598 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37598 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53626 - "GET /api/documents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53626 - "GET /api/graph?min_score=0.45 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35384 - "GET /api/summaries HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35384 - "GET /api/google/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35394 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35384 - "GET /api/events?status=pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35418 - "GET /api/events HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35406 - "GET /api/reminders HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35406 - "GET /api/calendar/items?start=2026-09-28&end=2026-11-01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35406 - "GET /api/chat/documents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35418 - "GET /api/conversations HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35406 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35418 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35418 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35406 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38042 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38046 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38042 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38046 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38046 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53890 - "POST /api/auth/logout HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53890 - "GET /api/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:53890 - "GET /api/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:51222 - "POST /api/auth/logout HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51222 - "GET /api/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:56724 - "GET /api/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:56724 - "GET /api/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:32796 - "GET /api/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:40788 - "GET /api/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:40788 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40788 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55908 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55910 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55910 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55908 - "GET /api/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55908 - "GET /api/documents HTTP/1.1" 200 OK
