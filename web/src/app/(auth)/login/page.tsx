@@ -9,7 +9,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardHeader, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
 import { ShieldCheckIcon, AlertCircleIcon, Loader2Icon } from "lucide-react"
 
 export const dynamic = "force-dynamic"
@@ -57,7 +57,7 @@ export default function LoginPage() {
   }
 
   return (
-    <main tabIndex={-1} className="relative min-h-screen flex items-center justify-center bg-background px-4 py-12 selection:bg-primary/20 focus:outline-none">
+    <div className="relative min-h-screen flex items-center justify-center bg-background px-4 py-12 selection:bg-primary/20">
       {/* Subtle decorative background blur */}
       <div
         aria-hidden="true"
@@ -71,9 +71,9 @@ export default function LoginPage() {
           <div className="mx-auto mb-3 flex size-11 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-xs">
             <ShieldCheckIcon className="size-6" />
           </div>
-          <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground">
+          <CardTitle className="font-heading text-2xl font-bold tracking-tight text-foreground">
             MemoryNest
-          </h1>
+          </CardTitle>
           <CardDescription className="text-sm text-muted-foreground mt-1">
             Sign in to your private knowledge vault
           </CardDescription>
@@ -157,6 +157,6 @@ export default function LoginPage() {
           </p>
         </CardFooter>
       </Card>
-    </main>
+    </div>
   )
 }

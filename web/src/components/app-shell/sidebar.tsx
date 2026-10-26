@@ -14,7 +14,7 @@ import {
   BellIcon,
   MessageSquareIcon,
   SearchIcon,
-  Archive,
+  ShieldCheckIcon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -63,8 +63,8 @@ export function Sidebar() {
       <div className="flex flex-col h-full">
         {/* Brand header */}
         <div className="flex items-center gap-2.5 px-5 py-4.5 border-b border-sidebar-border">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-foreground text-background shadow-xs">
-            <Archive className="size-4" />
+          <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-xs">
+            <ShieldCheckIcon className="size-4.5" />
           </div>
           <div className="flex flex-col">
             <span className="font-heading text-base font-semibold tracking-tight text-sidebar-foreground">

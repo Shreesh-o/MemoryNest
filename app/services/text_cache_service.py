@@ -179,44 +179,31 @@ def sanitize_html(html: str) -> str:
         "div", "span",
     }
 
+    # Do not include "rel" in attributes when link_rel is managed by nh3
     allowed_attributes = {
-        "a": {"href", "rel", "target"},
+        "a": {"href", "target"},
         "img": {"src", "alt", "width", "height"},
         "*": {"style"},  # Allow style on all elements for basic formatting
     }
 
-    # Custom attribute filter for links
-    def filter_attributes(tag: str, attrs: dict) -> dict:
-        filtered = {}
-        if tag == "a":
-            href = attrs.get("href", "")
-            # Only allow safe URLs
-            if href.startswith("http://") or href.startswith("https://") or href.startswith("mailto:"):
-                filtered["href"] = href
-                filtered["rel"] = "noopener noreferrer"
-                filtered["target"] = "_blank"
-        elif tag == "img":
-            src = attrs.get("src", "")
-            # Only allow data URIs for images (embedded), with size cap
-            if src.startswith("data:image/"):
-                # Check size (base64 encoded, rough estimate)
-                if len(src) < 500_000:  # ~500KB limit
-                    filtered["src"] = src
-                    if "alt" in attrs:
-                        filtered["alt"] = attrs["alt"]
-                    if "width" in attrs:
-                        filtered["width"] = attrs["width"]
-                    if "height" in attrs:
-                        filtered["height"] = attrs["height"]
-        else:
-            # Allow style attribute
-            if "style" in attrs:
-                filtered["style"] = attrs["style"]
-        return filtered
+    # Custom attribute filter
+    def attribute_filter(tag: str, attr: str, value: str) -> str | None:
+        if tag == "a" and attr == "target":
+            return "_blank"
+        if tag == "img" and attr == "src":
+            # Allow data URIs for images (embedded), with size cap ~2MB
+            if value.startswith("data:image/") and len(value) < 2_000_000:
+                return value
+            if value.startswith(("http://", "https://")):
+                return value
+            return None
+        return value
 
     return nh3.clean(
         html,
         tags=allowed_tags,
         attributes=allowed_attributes,
-        attribute_filter=filter_attributes,
+        attribute_filter=attribute_filter,
+        url_schemes={"http", "https", "mailto", "data"},
+        link_rel="noopener noreferrer",
     )

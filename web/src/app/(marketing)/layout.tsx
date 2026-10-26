@@ -10,9 +10,7 @@ export default function MarketingLayout({
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col selection:bg-primary/20 selection:text-primary">
       <MarketingNavbar />
-      <main id="main-content" tabIndex={-1} className="flex-1 focus:outline-none">
-        {children}
-      </main>
+      <main className="flex-1">{children}</main>
       <MarketingFooter />
     </div>
   )

@@ -15,7 +15,7 @@ import {
   BellIcon,
   MessageSquareIcon,
   SearchIcon,
-  Archive,
+  ShieldCheckIcon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -71,8 +71,8 @@ export function MobileNav() {
       </SheetTrigger>
       <SheetContent side="left" className="w-72 flex flex-col p-0">
         <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border">
-          <div className="flex size-7.5 items-center justify-center rounded-lg bg-foreground text-background">
-            <Archive className="size-4" />
+          <div className="flex size-7.5 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <ShieldCheckIcon className="size-4" />
           </div>
           <div className="flex flex-col">
             <span className="font-heading text-base font-semibold tracking-tight">MemoryNest</span>

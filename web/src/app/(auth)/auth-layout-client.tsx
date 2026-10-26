@@ -39,14 +39,7 @@ export function AuthLayoutClient({
   }, [user, isLoading, isFetching, router])
 
   return (
-    <Suspense
-      fallback={
-        <main tabIndex={-1} className="min-h-screen flex items-center justify-center bg-background p-4">
-          <h1 className="sr-only">MemoryNest Authentication</h1>
-          <div className="text-sm font-medium text-muted-foreground">Loading...</div>
-        </main>
-      }
-    >
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-background">Loading...</div>}>
       <div className="min-h-screen flex items-center justify-center bg-background p-4">{children}</div>
     </Suspense>
   )

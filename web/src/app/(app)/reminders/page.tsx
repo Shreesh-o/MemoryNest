@@ -12,6 +12,7 @@ import {
   reminderSync,
   type UserPublic,
   type GoogleStatusResponse,
+  type LeadTimeOption,
 } from "@/lib/api";
 import {
   Card,
@@ -61,6 +62,7 @@ type Reminder = {
   user_id: number;
   event_id: number;
   remind_at: string;
+  lead_minutes?: number | null;
   channel: string;
   subject?: string | null;
   body?: string | null;
@@ -184,6 +186,8 @@ function ReminderCard({
   onSendNow,
   onCancel,
   onRetrySync,
+  onUpdateLeadTime,
+  leadTimes,
   sendingReminderId,
   cancellingReminderId,
   isSyncing,
@@ -192,6 +196,8 @@ function ReminderCard({
   onSendNow: (id: number) => void;
   onCancel: (id: number) => void;
   onRetrySync?: (id: number) => void;
+  onUpdateLeadTime?: (id: number, leadMinutes: number) => void;
+  leadTimes?: LeadTimeOption[];
   sendingReminderId: number | null;
   cancellingReminderId: number | null;
   isSyncing?: boolean;
@@ -204,6 +210,25 @@ function ReminderCard({
             <div className="flex items-center gap-2 mb-1.5 flex-wrap">
               <span className="font-semibold text-sm text-foreground truncate">{reminder.subject}</span>
               <StatusBadge status={reminder.status} />
+
+              {/* Lead-time chip on scheduled reminders */}
+              {reminder.status === "scheduled" && onUpdateLeadTime && leadTimes && (
+                <span className="inline-flex items-center gap-1 rounded-md border border-border/80 bg-muted/40 px-2 py-0.5 text-2xs text-foreground">
+                  <ClockIcon className="size-3 text-muted-foreground shrink-0" />
+                  <select
+                    value={reminder.lead_minutes || 1440}
+                    onChange={(e) => onUpdateLeadTime(reminder.id, Number(e.target.value))}
+                    className="bg-transparent text-foreground cursor-pointer outline-none border-none p-0 text-2xs font-medium"
+                    aria-label="Update lead time"
+                  >
+                    {leadTimes.map((opt) => (
+                      <option key={opt.minutes} value={opt.minutes} className="bg-popover text-popover-foreground">
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </span>
+              )}
 
               {/* Sync Badge */}
               {reminder.sync_status === "synced" && (
@@ -327,19 +352,41 @@ function ConfirmDialog({
   onOpenChange,
   onConfirm,
   remindingAt,
+  leadTimes,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: (remindAt?: string) => void;
+  onConfirm: (remindAt?: string, leadMinutes?: number) => void;
   remindingAt?: string;
+  leadTimes: LeadTimeOption[];
 }) {
   const [prevRemindingAt, setPrevRemindingAt] = useState(remindingAt || "");
   const [remindAt, setRemindAt] = useState(remindingAt || "");
+  const [leadMinutes, setLeadMinutes] = useState<number>(() => {
+    if (typeof window === "undefined") return 1440;
+    try {
+      const saved = localStorage.getItem("memorynest_lead_minutes");
+      if (saved) {
+        const p = parseInt(saved, 10);
+        if (!isNaN(p) && [10, 30, 60, 120, 1440, 2880, 10080].includes(p)) {
+          return p;
+        }
+      }
+    } catch {}
+    return 1440;
+  });
 
   if (prevRemindingAt !== (remindingAt || "")) {
     setPrevRemindingAt(remindingAt || "");
     setRemindAt(remindingAt || "");
   }
+
+  const handleLeadMinutesChange = (mins: number) => {
+    setLeadMinutes(mins);
+    try {
+      localStorage.setItem("memorynest_lead_minutes", String(mins));
+    } catch {}
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -347,13 +394,33 @@ function ConfirmDialog({
         <DialogHeader>
           <DialogTitle>Confirm Event & Schedule Reminder</DialogTitle>
           <DialogDescription>
-            Set reminder time (optional). Defaults to event date at 09:00 or today at 09:00.
+            Choose a lead time. Defaults to 1 day before.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 mt-3">
+          {/* Lead-Time Dropdown */}
+          <div className="space-y-1.5">
+            <label htmlFor="lead-time-select" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Reminder Lead Time
+            </label>
+            <select
+              id="lead-time-select"
+              value={leadMinutes}
+              onChange={(e) => handleLeadMinutesChange(Number(e.target.value))}
+              className="w-full h-10 px-3 py-2 border border-input rounded-lg bg-background text-foreground text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/40 cursor-pointer"
+            >
+              {leadTimes.map((opt) => (
+                <option key={opt.minutes} value={opt.minutes}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Optional specific datetime */}
           <div className="space-y-1.5">
             <label htmlFor="custom-datetime-input" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Reminder Date &amp; Time (Optional)
+              Specific Date & Time (Optional)
             </label>
             <input
               id="custom-datetime-input"
@@ -372,12 +439,12 @@ function ConfirmDialog({
             <Button
               size="sm"
               onClick={() => {
-                onConfirm(remindAt || undefined);
+                onConfirm(remindAt || undefined, leadMinutes);
                 onOpenChange(false);
               }}
               className="cursor-pointer font-medium"
             >
-              Confirm
+              Confirm & Schedule
             </Button>
           </div>
         </div>
@@ -812,6 +879,34 @@ export default function RemindersPage() {
     queryFn: fetchDocuments,
   });
 
+  const { data: leadTimesData } = useQuery<LeadTimeOption[]>({
+    queryKey: ["lead-times"],
+    queryFn: () => (import("@/lib/api")).then(m => m.remindersLeadTimes()),
+  });
+
+  const leadTimes: LeadTimeOption[] = leadTimesData && leadTimesData.length > 0 ? leadTimesData : [
+    { minutes: 10, label: "10 minutes before" },
+    { minutes: 30, label: "30 minutes before" },
+    { minutes: 60, label: "1 hour before" },
+    { minutes: 120, label: "2 hours before" },
+    { minutes: 1440, label: "1 day before" },
+    { minutes: 2880, label: "2 days before" },
+    { minutes: 10080, label: "1 week before" },
+  ];
+
+  const updateLeadTimeMutation = useMutation({
+    mutationFn: ({ id, leadMinutes }: { id: number; leadMinutes: number }) =>
+      (import("@/lib/api")).then(m => m.reminderUpdate(id, { lead_minutes: leadMinutes })),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reminders"] });
+      queryClient.invalidateQueries({ queryKey: ["calendar-items"] });
+      toast.success("Reminder lead time updated");
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || "Failed to update lead time");
+    },
+  });
+
   const extractMutation = useMutation({
     mutationFn: ({ docId }: { docId: number }) => (import("@/lib/api")).then(m => m.eventsExtract(docId)),
     onSuccess: () => {
@@ -827,8 +922,8 @@ export default function RemindersPage() {
   });
 
   const confirmMutation = useMutation({
-    mutationFn: ({ eventId, remindAt }: { eventId: number; remindAt?: string }) =>
-      (import("@/lib/api")).then(m => m.eventsConfirm(eventId, remindAt)),
+    mutationFn: ({ eventId, remindAt, leadMinutes }: { eventId: number; remindAt?: string; leadMinutes?: number }) =>
+      (import("@/lib/api")).then(m => m.eventsConfirm(eventId, remindAt, leadMinutes)),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ["events", "pending"] });
       queryClient.invalidateQueries({ queryKey: ["reminders", "scheduled"] });
@@ -958,9 +1053,9 @@ export default function RemindersPage() {
     setConfirmDialogOpen(true);
   };
 
-  const handleConfirmSubmit = (remindAt?: string) => {
+  const handleConfirmSubmit = (remindAt?: string, leadMinutes?: number) => {
     if (confirmingEventId !== null) {
-      confirmMutation.mutate({ eventId: confirmingEventId, remindAt });
+      confirmMutation.mutate({ eventId: confirmingEventId, remindAt, leadMinutes });
     }
   };
 
@@ -1262,6 +1357,8 @@ export default function RemindersPage() {
                       onSendNow={handleSendNow}
                       onCancel={handleCancel}
                       onRetrySync={(id) => syncReminderMutation.mutate(id)}
+                      onUpdateLeadTime={(id, leadMinutes) => updateLeadTimeMutation.mutate({ id, leadMinutes })}
+                      leadTimes={leadTimes}
                       sendingReminderId={sendingReminderId}
                       cancellingReminderId={cancellingReminderId}
                       isSyncing={syncingReminderId === reminder.id}
@@ -1333,6 +1430,7 @@ export default function RemindersPage() {
         onOpenChange={setConfirmDialogOpen}
         onConfirm={handleConfirmSubmit}
         remindingAt={confirmRemindAt}
+        leadTimes={leadTimes}
       />
 
       <CancelReminderDialog

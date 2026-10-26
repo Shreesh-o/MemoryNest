@@ -101,3 +101,18 @@ def test_extract_pdf_ocr_fallback(tmp_path):
     assert "INV-2026-001" in text or "2026" in text
     assert "15 October 2026" in text or "October" in text
     assert "1250" in text or "1,250" in text or "1250.00" in text
+
+
+def test_sanitize_html():
+    from app.services.text_cache_service import sanitize_html
+
+    sample_html = """
+    <p>Document content with <a href="https://example.com" target="_blank">link</a></p>
+    <p><img src="data:image/png;base64,iVBORw0KGgo=" alt="test"></p>
+    <script>alert('xss')</script>
+    """
+    clean = sanitize_html(sample_html)
+    assert "<script>" not in clean
+    assert "https://example.com" in clean
+    assert 'rel="noopener noreferrer"' in clean
+    assert "data:image/png" in clean
