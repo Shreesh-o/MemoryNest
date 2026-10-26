@@ -11,6 +11,7 @@ from typing import List, Tuple
 
 from app.database.repositories import DocumentRepository, SummaryRepository
 from app.services import summary_service, tts_service
+from app.services.document_service import get_document_full_text
 from app.database.models import Summary
 from app.utils.config import AUDIO_DIR
 
@@ -49,16 +50,13 @@ def get_or_create_summary(
     if doc.status != "ready":
         raise ValueError("Document is not ready for summarization")
 
-    # Get full text from chunks (we don't store full text in DB, only preview)
-    # For production, we'd reconstruct from chunks. Use text_preview as source.
-    full_text = doc.text_preview or ""
-    if not full_text:
-        raise ValueError("Document has no text content")
-
     # Check for existing summary
     existing = sum_repo.list_for_document(doc_id, user_id)
     if existing and not force:
         return existing[0]  # Return most recent
+
+    # Get full text for summarization
+    full_text = get_document_full_text(user_id, doc_id, doc=doc)
 
     # Generate new summary
     try:

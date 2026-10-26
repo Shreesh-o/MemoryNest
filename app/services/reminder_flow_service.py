@@ -19,6 +19,7 @@ from app.database.repositories import (
     UserRepository,
 )
 from app.services import event_service, email_service, ics_service, google_calendar_service
+from app.services.document_service import get_document_full_text
 from app.services.google_auth_service import is_google_configured
 from app.database.models import Event, Reminder
 
@@ -57,9 +58,6 @@ def extract_events_for_document(user_id: int, doc_id: int) -> List[Event]:
         raise ValueError("Document not found")
     if doc.status != "ready":
         raise ValueError("Document is not ready for extraction")
-    text = doc.text_preview or ""
-    if not text:
-        raise ValueError("Document has no text preview")
 
     # Check if events already exist for this document
     existing_events = ev_repo.list_for_user(user_id)
@@ -67,6 +65,9 @@ def extract_events_for_document(user_id: int, doc_id: int) -> List[Event]:
     if existing_for_doc:
         # Return existing events instead of creating duplicates
         return existing_for_doc
+
+    # Retrieve full text using canonical full-text retrieval
+    text = get_document_full_text(user_id, doc_id, doc=doc)
 
     try:
         extracted = event_service.extract_events(text)

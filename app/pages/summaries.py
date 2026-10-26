@@ -7,7 +7,7 @@ import os
 import streamlit as st
 
 from app.database.repositories import DocumentRepository, SummaryRepository
-from app.services import summary_service, tts_service
+from app.services import summary_flow_service, summary_service, tts_service
 
 
 def render() -> None:
@@ -62,20 +62,11 @@ def render() -> None:
     st.divider()
     if st.button("Generate new summary", type="primary"):
         with st.spinner("Generating summary... (may take a minute)"):
-            # Get full text from chunks (we don't store full text in DB, only preview)
-            # For now, use the text_preview as source - in production, we'd reconstruct from chunks
-            full_text = doc.text_preview or "No text preview available"
             try:
-                summary_text = summary_service.summarize_document(full_text)
-            except RuntimeError as e:
+                s = summary_flow_service.get_or_create_summary(user.id, doc.id, force=True)
+                st.success("Summary generated!")
+                st.rerun()
+            except Exception as e:
                 import logging
                 logging.exception("Summary generation failed for doc %s", doc.id)
-                st.error(str(e))
-                summary_text = None
-
-        if summary_text:
-            s = sum_repo.create(doc.id, user.id, summary_text)
-            st.success("Summary generated!")
-            st.rerun()
-        else:
-            st.error("Summary generation failed (check LLM availability)")
+                st.error(f"Summary generation failed: {e}")

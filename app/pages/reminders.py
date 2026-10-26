@@ -54,23 +54,19 @@ def render() -> None:
             doc = doc_map[sel]
             if st.button("Extract events"):
                 with st.spinner("Analyzing document..."):
-                    text = doc.text_preview or ""
-                    if not text:
-                        st.warning("Document has no text preview")
-                    else:
-                        try:
-                            events = reminder_flow_service.extract_events_for_document(user.id, doc.id)
-                            if not events:
-                                st.info("No events found")
-                            else:
-                                st.success(f"Extracted {len(events)} event(s)")
-                                st.rerun()
-                        except ValueError as e:
-                            st.error(str(e))
-                        except RuntimeError as e:
-                            import logging
-                            logging.exception("Event extraction failed for doc %s", doc.id)
-                            st.error(str(e))
+                    try:
+                        events = reminder_flow_service.extract_events_for_document(user.id, doc.id)
+                        if not events:
+                            st.info("No events found")
+                        else:
+                            st.success(f"Extracted {len(events)} event(s)")
+                            st.rerun()
+                    except ValueError as e:
+                        st.error(str(e))
+                    except RuntimeError as e:
+                        import logging
+                        logging.exception("Event extraction failed for doc %s", doc.id)
+                        st.error(str(e))
 
     with tab_pending:
         st.subheader("Events awaiting confirmation")

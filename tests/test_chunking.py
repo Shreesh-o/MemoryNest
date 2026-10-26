@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from app.services.chunking_service import Chunk, chunk_text, estimate_tokens
+from app.services.chunking_service import Chunk, chunk_text, estimate_tokens, reconstruct_text_from_chunks
 
 
 def test_short_text_single_chunk():
@@ -72,3 +72,30 @@ def test_indices_sequential():
 def test_estimate_tokens():
     assert estimate_tokens("") == 1
     assert estimate_tokens("a" * 400) == 100
+
+
+def test_reconstruct_text_from_chunks_empty():
+    assert reconstruct_text_from_chunks([]) == ""
+
+
+def test_reconstruct_text_from_chunks_single():
+    assert reconstruct_text_from_chunks(["Single chunk content"]) == "Single chunk content"
+
+
+def test_reconstruct_text_from_chunks_deduplicates_boundary():
+    # Simulate overlapping chunks as produced by chunk_text with overlap
+    c1 = "Alpha beta gamma delta epsilon zeta eta."
+    c2 = "zeta eta theta iota kappa lambda mu."
+    reconstructed = reconstruct_text_from_chunks([c1, c2])
+    assert reconstructed == "Alpha beta gamma delta epsilon zeta eta. theta iota kappa lambda mu."
+
+
+def test_reconstruct_text_from_chunks_roundtrip():
+    original = "The quick brown fox jumps over the lazy dog. A second sentence appears. And a third concludes."
+    chunks = chunk_text(original, max_tokens=10, overlap_tokens=3)
+    reconstructed = reconstruct_text_from_chunks(chunks)
+    assert "The quick brown fox" in reconstructed
+    assert "lazy dog" in reconstructed
+    assert "second sentence" in reconstructed
+    assert "third concludes" in reconstructed
+

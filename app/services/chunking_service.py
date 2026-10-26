@@ -115,3 +115,74 @@ def chunk_text(text: str, max_tokens: int = 450, overlap_tokens: int = 50) -> li
 
     # Re-index chunks (flush logic ensures no accidental empty chunks).
     return [Chunk(i, c.text, c.token_count) for i, c in enumerate(chunks)]
+
+
+def reconstruct_text_from_chunks(chunks: list) -> str:
+    """Reconstruct document text from ordered chunks, deduplicating boundary overlap.
+
+    Inspects chunk boundaries for overlapping word sequences generated during
+    chunking and eliminates duplicate boundary content.
+    """
+    if not chunks:
+        return ""
+
+    def _extract_text(chunk) -> str:
+        if isinstance(chunk, str):
+            return chunk
+        if hasattr(chunk, "content") and chunk.content is not None:
+            return chunk.content
+        if hasattr(chunk, "text") and chunk.text is not None:
+            return chunk.text
+        if isinstance(chunk, dict):
+            return chunk.get("content") or chunk.get("text") or ""
+        return str(chunk)
+
+    first_text = _extract_text(chunks[0]).strip()
+    if len(chunks) == 1:
+        return first_text
+
+    reconstructed = first_text
+    for i in range(1, len(chunks)):
+        curr = _extract_text(chunks[i]).strip()
+        if not curr:
+            continue
+
+        curr_words = curr.split()
+        recon_words = reconstructed.split()
+
+        max_overlap_words = min(len(curr_words), len(recon_words), 60)
+        overlap_word_count = 0
+
+        # Check for overlapping word sequences
+        for num_words in range(max_overlap_words, 0, -1):
+            recon_slice = recon_words[-num_words:]
+            curr_slice = curr_words[:num_words]
+
+            # 1. Exact match of word tokens
+            if recon_slice == curr_slice:
+                overlap_word_count = num_words
+                break
+
+            # 2. Match with punctuation stripped from edges
+            recon_clean = [re.sub(r"^[^\w]+|[^\w]+$", "", w).lower() for w in recon_slice]
+            curr_clean = [re.sub(r"^[^\w]+|[^\w]+$", "", w).lower() for w in curr_slice]
+            if recon_clean and recon_clean == curr_clean:
+                overlap_word_count = num_words
+                break
+
+        if overlap_word_count > 0:
+            curr_offset = 0
+            for w in curr_words[:overlap_word_count]:
+                curr_offset = curr.find(w, curr_offset) + len(w)
+            remainder = curr[curr_offset:].strip()
+        else:
+            remainder = curr
+
+        if remainder:
+            if reconstructed and not reconstructed.endswith(("\n", " ")):
+                reconstructed += " " + remainder
+            else:
+                reconstructed += remainder
+
+    return reconstructed
+
