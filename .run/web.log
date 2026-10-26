@@ -76,3 +76,4 @@ To fix this, make sure your Cache-Control headers allow revalidation of chunks a
  HEAD /login 200 in 81ms (next.js: 23ms, proxy.ts: 1.8ms, application-code: 56ms)
  GET / 200 in 107ms (next.js: 3ms, proxy.ts: 2ms, application-code: 102ms)
  HEAD / 200 in 94ms (next.js: 2ms, proxy.ts: 3ms, application-code: 90ms)
+[?25h
