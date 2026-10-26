@@ -92,8 +92,9 @@ def rag_answer(
     vs = vector_service.get_vector_service()
     results = vs.query(user_id, query_vec, top_k=top_k, document_ids=document_ids)
 
-    # 3. Check threshold
-    if not results or results[0]["similarity"] < min_similarity:
+    # 3. Check threshold and filter below-threshold chunks
+    filtered_results = [r for r in results if r["similarity"] >= min_similarity]
+    if not filtered_results:
         refusal_msg = (
             "I couldn't find this information in the selected documents."
             if document_ids is not None
@@ -107,7 +108,7 @@ def rag_answer(
         )
 
     # 4. Build prompt and call LLM
-    context = _format_context(results)
+    context = _format_context(filtered_results)
     prompt = _build_prompt(question, context)
     system_prompt = _SCOPED_SYSTEM_PROMPT if document_ids is not None else _SYSTEM_PROMPT
     answer = llm_service.generate(prompt, system=system_prompt)
@@ -127,7 +128,7 @@ def rag_answer(
             "similarity": round(r["similarity"], 3),
             "document_id": r["metadata"]["document_id"],
         }
-        for r in results
+        for r in filtered_results
     ]
 
     return RAGResult(answer=answer, sources=sources, below_threshold=False, scope=scope)

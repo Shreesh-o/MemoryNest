@@ -72,6 +72,7 @@ class EventExtractResponse(BaseModel):
 
 class ConfirmEventRequest(BaseModel):
     remind_at: Optional[str] = None
+    lead_minutes: Optional[int] = None
 
 
 class ReminderPublic(BaseModel):

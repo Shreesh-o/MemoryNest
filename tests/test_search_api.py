@@ -112,3 +112,15 @@ def test_search_empty_query_400(client, auth_user):
 
     resp = client.post("/api/search", json={"query": "   "}, cookies=cookies)
     assert resp.status_code in (400, 422)
+
+
+def test_search_empty_document_ids_returns_empty_hits(client, auth_user):
+    """Searching with an empty list of document_ids returns 0 hits safely."""
+    cookies = auth_user
+    _upload_document(client, cookies, "doc.txt", b"Test searchable content.")
+
+    resp = client.post("/api/search", json={"query": "searchable", "document_ids": []}, cookies=cookies)
+    assert resp.status_code == 200, f"Search failed: {resp.text}"
+    data = resp.json()
+    assert data["hits"] == []
+

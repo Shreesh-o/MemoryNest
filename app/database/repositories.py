@@ -132,11 +132,14 @@ class DocumentRepository(BaseRepository):
             conn.close()
 
     def get_by_hash(self, user_id: int, file_hash: str) -> Optional[Document]:
-        """Find a document by file_hash for the same user (duplicate detection)."""
+        """Find a document by file_hash for the same user (duplicate detection).
+
+        Error-state documents are excluded so failed uploads do not block retry or re-upload.
+        """
         conn = self._connect()
         try:
             row = conn.execute(
-                "SELECT * FROM documents WHERE user_id = ? AND file_hash = ?",
+                "SELECT * FROM documents WHERE user_id = ? AND file_hash = ? AND status != 'error'",
                 (user_id, file_hash),
             ).fetchone()
             return self._row_to_dataclass(row, Document) if row else None

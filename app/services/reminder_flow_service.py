@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Optional, Tuple
 
 from app.database.repositories import (
@@ -102,6 +102,7 @@ def confirm_event(
     user_id: int,
     event_id: int,
     remind_at: Optional[str] = None,
+    lead_minutes: Optional[int] = None,
 ) -> Tuple[Event, Reminder, str, str]:
     """Confirm an event and create a reminder.
 
@@ -113,7 +114,8 @@ def confirm_event(
         user_id: The user who owns the event.
         event_id: The event ID to confirm.
         remind_at: Optional reminder time in ISO format (e.g., "2026-10-15 09:00:00").
-                   If not provided, defaults to event_date at 09:00 or today at 09:00.
+                   If not provided, defaults to event_date at 09:00 (offset by lead_minutes if given).
+        lead_minutes: Optional lead time in minutes before event_date to schedule reminder.
 
     Returns:
         Tuple of (confirmed Event, created Reminder, email_status, google_status).
@@ -140,9 +142,24 @@ def confirm_event(
     if remind_at is None:
         if ev.event_date:
             date_part = ev.event_date[:10]
-            remind_at = f"{date_part} 09:00:00"
+            try:
+                if len(ev.event_date) > 10 and (" " in ev.event_date or "T" in ev.event_date):
+                    ev_dt = datetime.fromisoformat(ev.event_date.replace(" ", "T"))
+                else:
+                    ev_dt = datetime.fromisoformat(f"{date_part}T09:00:00")
+            except Exception:
+                ev_dt = datetime.fromisoformat(f"{date_part}T09:00:00")
+
+            if lead_minutes is not None:
+                remind_dt = ev_dt - timedelta(minutes=lead_minutes)
+            else:
+                remind_dt = ev_dt
+            remind_at = remind_dt.strftime("%Y-%m-%d %H:%M:%S")
         else:
-            remind_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            if lead_minutes is not None:
+                remind_at = (datetime.now() - timedelta(minutes=lead_minutes)).strftime("%Y-%m-%d %H:%M:%S")
+            else:
+                remind_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     # Create reminder
     reminder = rem_repo.create(

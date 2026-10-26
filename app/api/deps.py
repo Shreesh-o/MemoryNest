@@ -34,14 +34,11 @@ def get_current_user(request: Request) -> User:
         )
     try:
         payload = decode_token(token)
+        sub = payload.get("sub")
+        if not sub or not str(sub).isdigit():
+            raise ValueError("Invalid subject claim in token")
+        user_id = int(sub)
     except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    user_id = int(payload.get("sub"))
-    if not user_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token",

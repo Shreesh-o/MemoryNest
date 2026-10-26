@@ -285,3 +285,47 @@ def test_ics_with_specific_event_ids(client):
     cal = icalendar.Calendar.from_ical(resp.content)
     vevents = [c for c in cal.walk() if c.name == "VEVENT"]
     assert len(vevents) == 1
+
+
+def test_confirm_event_with_lead_minutes(client):
+    """Confirm event with custom lead_minutes calculates correct scheduled remind_at."""
+    cookies = _register_and_login(client, "leaduser1", "testpass123")
+    doc_id = _upload_document(client, cookies, "lead1.txt", b"Conference on 2026-11-20")
+    events = _extract_events(client, cookies, doc_id)
+    event_id = events[0]["id"]
+
+    # Confirm with 1440 minutes (1 day) lead time
+    resp = client.post(
+        f"/api/events/{event_id}/confirm",
+        json={"lead_minutes": 1440},
+        cookies=cookies,
+    )
+    assert resp.status_code == 200
+
+    resp = client.get("/api/reminders", cookies=cookies)
+    reminders = resp.json()
+    assert len(reminders) == 1
+    # 2026-11-20 09:00:00 minus 1 day is 2026-11-19 09:00:00
+    assert "2026-11-19 09:00:00" in reminders[0]["remind_at"]
+
+
+def test_confirm_event_with_hours_lead_minutes(client):
+    """Confirm event with 2-hour lead time."""
+    cookies = _register_and_login(client, "leaduser2", "testpass123")
+    doc_id = _upload_document(client, cookies, "lead2.txt", b"Review on 2026-11-20")
+    events = _extract_events(client, cookies, doc_id)
+    event_id = events[0]["id"]
+
+    # Confirm with 120 minutes (2 hours) lead time
+    resp = client.post(
+        f"/api/events/{event_id}/confirm",
+        json={"lead_minutes": 120},
+        cookies=cookies,
+    )
+    assert resp.status_code == 200
+
+    resp = client.get("/api/reminders", cookies=cookies)
+    reminders = resp.json()
+    assert len(reminders) == 1
+    # 2026-11-20 09:00:00 minus 2 hours is 2026-11-20 07:00:00
+    assert "2026-11-20 07:00:00" in reminders[0]["remind_at"]

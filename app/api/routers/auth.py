@@ -8,7 +8,7 @@ from app.api.schemas import UserPublic, RegisterRequest, LoginRequest, UpdateEma
 from app.api.security import create_token
 from app.api.deps import get_current_user
 from app.services.auth_service import register, authenticate, update_user_email
-from app.utils.config import COOKIE_SECURE
+from app.utils.config import COOKIE_SECURE, JWT_EXPIRE_MINUTES
 
 
 router = APIRouter()
@@ -43,7 +43,7 @@ def api_login(req: LoginRequest, response: Response) -> UserPublic:
         httponly=True,
         samesite="lax",
         secure=COOKIE_SECURE,
-        max_age=int(60 * 60 * 24),  # 1 day
+        max_age=int(JWT_EXPIRE_MINUTES * 60),
     )
     return UserPublic(id=user.id, username=user.username, email=user.email)
 

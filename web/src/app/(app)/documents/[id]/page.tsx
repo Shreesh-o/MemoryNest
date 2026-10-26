@@ -75,6 +75,7 @@ function StatusBadge({ status }: { status: string }) {
     processing: "secondary",
     pending: "secondary",
     failed: "destructive",
+    error: "destructive",
     rejected: "outline",
     duplicate: "outline",
   };
@@ -610,7 +611,7 @@ export default function DocumentViewerPage() {
             </div>
           </CardHeader>
           <CardContent>
-            {doc.status === "failed" ? (
+            {(doc.status === "failed" || doc.status === "error") ? (
               <div className="text-center py-8">
                 <AlertCircleIcon className="mx-auto size-12 text-destructive mb-4" />
                 <h3 className="text-lg font-semibold mb-1">Extraction failed</h3>
@@ -623,7 +624,7 @@ export default function DocumentViewerPage() {
             ) : (
               <ProcessingState message={`Document is currently ${doc.status}...`} />
             )}
-            {doc.status === "failed" && (
+            {(doc.status === "failed" || doc.status === "error") && (
               <div className="mt-6 pt-6 border-t border-border flex justify-center">
                 <Button variant="outline" size="sm" onClick={handleDownload} className="gap-1.5 cursor-pointer">
                   <DownloadIcon className="size-4" />

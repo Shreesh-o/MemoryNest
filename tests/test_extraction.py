@@ -116,3 +116,17 @@ def test_sanitize_html():
     assert "https://example.com" in clean
     assert 'rel="noopener noreferrer"' in clean
     assert "data:image/png" in clean
+
+
+def test_extract_text_less_image_raises_runtime_error(tmp_path):
+    """An image with no detectable text raises RuntimeError, consistent with empty PDF/DOCX/TXT."""
+    from PIL import Image
+
+    # Blank white image
+    img = Image.new("RGB", (300, 300), "white")
+    path = tmp_path / "blank.png"
+    img.save(str(path))
+
+    with pytest.raises(RuntimeError, match="readable text"):
+        extraction_service.extract_text(path, "png")
+

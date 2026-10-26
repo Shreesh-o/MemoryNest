@@ -81,6 +81,16 @@ class TestAuth:
         assert data["username"] == "testuser"
         assert "password_hash" not in data
 
+    def test_login_cookie_max_age_matches_jwt_expire(self, client):
+        """Login cookie Max-Age aligns with JWT_EXPIRE_MINUTES."""
+        from app.utils.config import JWT_EXPIRE_MINUTES
+        resp = _register_and_login(client, username="cookietest", password="password123")
+        assert resp.status_code == 200
+        set_cookie = resp.headers.get("set-cookie", "")
+        expected_max_age = f"Max-Age={JWT_EXPIRE_MINUTES * 60}"
+        assert expected_max_age.lower() in set_cookie.lower(), f"Expected {expected_max_age} in Set-Cookie header: {set_cookie}"
+
+
     def test_login_wrong_password(self, client):
         """Wrong password returns 401."""
         client.post("/api/auth/register", json={
@@ -363,6 +373,22 @@ class TestDocuments:
             files={"files": ("test.txt", file_bytes, "text/plain")},
         )
         assert resp2.json()[0]["status"] == "duplicate"
+
+    def test_upload_streaming_size_limit_rejection(self, client, temp_db, temp_chroma, temp_uploads):
+        """Streaming or oversized upload is rejected safely when exceeding limit."""
+        _register_and_login(client)
+        from app.utils.config import MAX_FILE_SIZE_BYTES
+
+        oversized_bytes = b"x" * (MAX_FILE_SIZE_BYTES + 1024)
+        resp = client.post(
+            "/api/documents/upload",
+            files={"files": ("large.txt", oversized_bytes, "text/plain")},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data) == 1
+        assert data[0]["status"] == "rejected"
+        assert "too large" in data[0]["message"].lower()
 
     def test_upload_binary_pdf_rejected(self, client, temp_db, temp_chroma, temp_uploads):
         """Random binary named .pdf -> 'rejected'."""

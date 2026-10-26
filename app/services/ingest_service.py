@@ -84,10 +84,10 @@ def _save_uploaded_file(uploaded_file, user_id: int, original_filename: str) -> 
 def cleanup_failed_document(doc_id: int, user_id: int, stored_path: str, reason: str) -> None:
     """Clean up partial data from a failed document and mark it as 'error'.
 
-    Removes the partial chunk rows, their Chroma vectors, any partially
-    created events, and the stored file. The document row is kept and set
-    to status='error' with a readable reason, so no row is ever left stuck
-    at 'uploaded'/'extracting'.
+    Removes the partial chunk rows, their Chroma vectors, and any partially
+    created events. The stored file on disk is preserved so that retry_extraction
+    can re-process it. The document row is kept and set to status='error' with
+    a readable reason, so no row is ever left stuck at 'uploaded'/'extracting'.
     """
     doc_repo = DocumentRepository()
     chunk_repo = ChunkRepository()
@@ -132,13 +132,8 @@ def cleanup_failed_document(doc_id: int, user_id: int, stored_path: str, reason:
 
     ev_repo.delete_for_document(doc_id, user_id)
 
-    path = Path(stored_path)
-    if path.exists():
-        path.unlink(missing_ok=True)
-        try:
-            path.parent.rmdir()
-        except OSError:
-            pass  # Directory not empty or doesn't exist
+    # Note: Stored file is preserved on disk so retry_extraction can re-process it.
+    # If the document is later deleted by the user, delete_document will remove the file.
 
     try:
         doc_repo.update_status(doc_id, user_id, "error", reason)

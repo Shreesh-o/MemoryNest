@@ -72,6 +72,8 @@ class VectorService:
             return []
 
         if document_ids is not None:
+            if not document_ids:
+                return []
             where = {
                 "$and": [
                     {"user_id": int(user_id)},

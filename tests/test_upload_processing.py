@@ -13,11 +13,11 @@ from app.services import extraction_service, chunking_service, embedding_service
 
 
 def _assert_no_partial_data(doc_id: int, user_id: int, stored_path: Path) -> None:
-    """No chunk rows, no vectors, no file left behind for a failed document."""
+    """No chunk rows and no vectors left behind for a failed document; file preserved on disk for retry."""
     assert ChunkRepository().list_for_document(doc_id, user_id) == []
     vs = vector_service.get_vector_service()
     assert vs.collection.get(where={"document_id": doc_id})["ids"] == []
-    assert not stored_path.exists()
+    assert stored_path.exists()
 
 
 @pytest.fixture
@@ -533,5 +533,69 @@ def test_document_repo_delete_basic(temp_db, temp_chroma, temp_uploads, test_use
     assert retrieved.filename == "basic_test.txt"
     # Note: full vector cleanup requires the retry mechanism,
     # but the delete method should be callable without immediate crash
+
+
+def test_failed_upload_preserves_file_and_allows_retry(temp_db, temp_chroma, temp_uploads, test_user, monkeypatch):
+    """When processing fails, stored file is preserved so retry_extraction succeeds, and re-upload is allowed."""
+    from app.services.ingest_service import ingest_upload
+    from app.services.document_service import retry_extraction
+
+    fail_now = True
+    real_embed = embedding_service.embed_texts
+
+    def flakey_embed(texts):
+        if fail_now:
+            raise RuntimeError("Temporary embedding failure")
+        return real_embed(texts)
+
+    monkeypatch.setattr(embedding_service, "embed_texts", flakey_embed)
+
+    content = b"Content that initially fails during embedding."
+    res = ingest_upload(test_user.id, "flakey.txt", content)
+    assert res.status == "error"
+    doc_id = res.doc_id
+
+    doc_repo = DocumentRepository()
+    doc = doc_repo.get_by_id(doc_id, test_user.id)
+    assert doc.status == "error"
+
+    # Stored file on disk must be preserved for retry
+    assert os.path.exists(doc.stored_path), "Stored file was deleted on failure, breaking retry!"
+
+    # Partial chunk rows and vectors are cleaned up
+    assert ChunkRepository().list_for_document(doc_id, test_user.id) == []
+
+    # Retry should now succeed once the transient failure is resolved
+    fail_now = False
+    retry_extraction(test_user.id, doc_id)
+
+    updated = doc_repo.get_by_id(doc_id, test_user.id)
+    assert updated.status == "ready"
+    assert updated.chunk_count > 0
+
+
+def test_failed_upload_duplicate_detection_does_not_block_reupload(temp_db, temp_chroma, temp_uploads, test_user, monkeypatch):
+    """An error-state document is not treated as duplicate, allowing re-upload."""
+    from app.services.ingest_service import ingest_upload
+
+    fail_now = True
+    real_embed = embedding_service.embed_texts
+
+    def maybe_boom(texts):
+        if fail_now:
+            raise RuntimeError("Embedding crash")
+        return real_embed(texts)
+
+    monkeypatch.setattr(embedding_service, "embed_texts", maybe_boom)
+
+    content = b"Identical file content."
+    res1 = ingest_upload(test_user.id, "same.txt", content)
+    assert res1.status == "error"
+
+    # Re-uploading with the failure fixed should NOT be rejected as duplicate
+    fail_now = False
+    res2 = ingest_upload(test_user.id, "same.txt", content)
+    assert res2.status == "ready", f"Re-upload failed with: {res2.status} ({res2.message})"
+
 
 

@@ -88,3 +88,48 @@ def test_rag_empty_db():
     assert result.below_threshold is True
     assert "couldn't find" in result.answer.lower()
     assert result.sources == []
+
+
+def test_rag_filters_below_threshold_chunks_from_context_and_sources(monkeypatch):
+    """When some chunks exceed threshold and others fall below it, only above-threshold chunks reach context and sources."""
+    from unittest.mock import MagicMock
+    from app.services import llm_service
+
+    captured_prompts = []
+
+    def mock_generate(prompt: str, system: str = "") -> str:
+        captured_prompts.append(prompt)
+        return "Generated answer based on relevant context."
+
+    monkeypatch.setattr(llm_service, "generate", mock_generate)
+
+    # Mock vector service query returning one chunk at 0.55 and one at 0.15
+    mock_vs = MagicMock()
+    mock_vs.query.return_value = [
+        {
+            "chroma_id": "c1",
+            "text": "Relevant chunk content about project Alpha.",
+            "similarity": 0.55,
+            "metadata": {"filename": "alpha.pdf", "chunk_index": 0, "document_id": 1},
+        },
+        {
+            "chroma_id": "c2",
+            "text": "Irrelevant chunk content about unrelated bananas.",
+            "similarity": 0.15,
+            "metadata": {"filename": "beta.pdf", "chunk_index": 0, "document_id": 2},
+        },
+    ]
+    monkeypatch.setattr(rag_service.vector_service, "get_vector_service", lambda: mock_vs)
+
+    res = rag_service.rag_answer(user_id=1, question="Tell me about Alpha", min_similarity=0.30)
+
+    assert res.below_threshold is False
+    # Only 1 source should remain (the one above 0.30)
+    assert len(res.sources) == 1
+    assert res.sources[0]["document"] == "alpha.pdf"
+    assert res.sources[0]["similarity"] == 0.55
+
+    # Context passed to LLM must NOT contain the irrelevant chunk
+    assert len(captured_prompts) == 1
+    assert "Relevant chunk content about project Alpha." in captured_prompts[0]
+    assert "Irrelevant chunk content about unrelated bananas." not in captured_prompts[0]

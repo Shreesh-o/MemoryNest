@@ -46,6 +46,7 @@ def _doc_to_public(doc) -> DocumentPublic:
 
 def _safe_path(stored_path: str) -> Path:
     """Resolve path and ensure it's inside UPLOAD_DIR (no path traversal)."""
+    from app.utils.config import UPLOAD_DIR
     upload_dir = Path(UPLOAD_DIR).resolve()
     file_path = Path(stored_path).resolve()
     # Ensure the file is inside UPLOAD_DIR
@@ -123,17 +124,42 @@ async def api_upload(
             ))
             continue
 
-        # Read file content, enforcing size limit
-        content = await upload.read()
-        if len(content) > MAX_FILE_SIZE_BYTES:
+        # Check size if reported by headers/spool
+        if upload.size is not None and upload.size > MAX_FILE_SIZE_BYTES:
             results.append(IngestResultResponse(
                 filename=original_name,
                 status="rejected",
-                message=f"File too large ({(len(content) / 1e6):.1f} MB, limit {(MAX_FILE_SIZE_BYTES / 1e6):.0f} MB)",
+                message=f"File too large ({(upload.size / 1e6):.1f} MB, limit {(MAX_FILE_SIZE_BYTES / 1e6):.0f} MB)",
                 doc_id=None,
                 chunk_count=0,
             ))
             continue
+
+        # Read file content in chunks, aborting early if limit exceeded
+        content_buf = bytearray()
+        chunk_size = 1024 * 1024  # 1MB
+        oversized = False
+        while True:
+            chunk = await upload.read(chunk_size)
+            if not chunk:
+                break
+            content_buf.extend(chunk)
+            if len(content_buf) > MAX_FILE_SIZE_BYTES:
+                oversized = True
+                break
+
+        if oversized:
+            reported_size = upload.size if upload.size and upload.size > len(content_buf) else len(content_buf)
+            results.append(IngestResultResponse(
+                filename=original_name,
+                status="rejected",
+                message=f"File too large ({(reported_size / 1e6):.1f} MB, limit {(MAX_FILE_SIZE_BYTES / 1e6):.0f} MB)",
+                doc_id=None,
+                chunk_count=0,
+            ))
+            continue
+
+        content = bytes(content_buf)
 
         # Process the upload in a worker thread to prevent blocking the event loop
         result: IngestResult = await run_in_threadpool(ingest_upload, user.id, original_name, content)

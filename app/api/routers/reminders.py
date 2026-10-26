@@ -97,7 +97,9 @@ def api_confirm_event(
 ):
     """Confirm an event and create a reminder."""
     try:
-        ev, reminder, email_status, google_status = confirm_event(user.id, event_id, req.remind_at)
+        ev, reminder, email_status, google_status = confirm_event(
+            user.id, event_id, req.remind_at, req.lead_minutes
+        )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     return ConfirmEventResponse(

@@ -104,6 +104,7 @@ function StatusBadge({ status }: { status: string }) {
     processing: "secondary",
     pending: "secondary",
     failed: "destructive",
+    error: "destructive",
     rejected: "outline",
     duplicate: "outline",
   };
@@ -223,7 +224,7 @@ function DocumentsTable({ documents, onView, onDelete, onRetry }: {
                     <DropdownMenuItem onClick={() => onView(doc.id)} className="cursor-pointer">
                       <EyeIcon className="mr-2 size-4" /> View Details
                     </DropdownMenuItem>
-                    {doc.status === "failed" && (
+                    {(doc.status === "failed" || doc.status === "error") && (
                       <>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => onRetry(doc.id)} className="cursor-pointer text-primary focus:text-primary">
@@ -277,7 +278,7 @@ function DocumentCard({ doc, onView, onDelete, onRetry }: {
           <Button variant="outline" size="sm" onClick={() => onView(doc.id)} className="flex-1 text-xs h-8 cursor-pointer">
             <EyeIcon className="mr-1.5 size-3.5" /> View
           </Button>
-          {doc.status === "failed" && (
+          {(doc.status === "failed" || doc.status === "error") && (
             <Button variant="outline" size="sm" onClick={() => onRetry(doc.id)} className="text-xs h-8 text-primary border-primary/30 hover:bg-primary/10 cursor-pointer">
               <RotateCcwIcon className="mr-1.5 size-3.5" /> Retry
             </Button>

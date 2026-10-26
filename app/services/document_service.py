@@ -6,6 +6,7 @@ No Streamlit imports. Pure business logic for document management.
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 from typing import List, Optional
 
 from app.database.repositories import ChunkRepository, DocumentRepository
@@ -171,6 +172,8 @@ def retry_extraction(user_id: int, doc_id: int) -> None:
         raise ValueError(f"Document {doc_id} not found for user {user_id}")
     if doc.status != "error":
         raise ValueError(f"Document {doc_id} is not in error state (status: {doc.status})")
+    if not doc.stored_path or not Path(doc.stored_path).exists():
+        raise ValueError(f"Document file not found on disk for document {doc_id}")
 
     # Clean up existing chunks and vectors before reprocessing
     chunk_repo = ChunkRepository()

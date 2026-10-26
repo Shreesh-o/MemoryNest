@@ -32,7 +32,7 @@ async function logoutApi() {
 }
 
 function GuardedContent({ children }: { children: React.ReactNode }) {
-  const { data: user, isLoading, isFetching, isError, refetch } = useQuery({
+  const { data: user, error, isLoading, isFetching, isError, refetch } = useQuery({
     queryKey: ["me"],
     queryFn: fetchMe,
     retry: false,
@@ -44,12 +44,12 @@ function GuardedContent({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient()
 
   useEffect(() => {
-    if (isError && !isFetching) {
+    if (isError && !isFetching && error?.message === "Unauthorized") {
       logoutApi()
       queryClient.clear()
       router.replace("/login")
     }
-  }, [isError, isFetching, router, queryClient])
+  }, [isError, isFetching, error, router, queryClient])
 
   const isPending = (isLoading || isFetching) && !user
   if (isPending) {

@@ -26,7 +26,10 @@ def extract_text(stored_path: str | Path, file_type: str) -> str:
     if ft == "txt":
         return _extract_txt(path)
     if ft in ("image", "png", "jpg", "jpeg", "tiff", "tif", "bmp"):
-        return ocr_service.ocr_image(path)
+        text = ocr_service.ocr_image(path)
+        if not text or not text.strip():
+            raise RuntimeError("Image contains no readable text.")
+        return text
     raise ValueError(f"Unsupported file type: {file_type}")
 
 

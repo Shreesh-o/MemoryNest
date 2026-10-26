@@ -91,7 +91,7 @@ export default function RegisterPage() {
         </CardHeader>
 
         <CardContent className="pt-2">
-          <form onSubmit={handleSubmit} className="space-y-3.5">
+          <form onSubmit={handleSubmit} action="javascript:void(0)" className="space-y-3.5">
             <div className="space-y-1">
               <Label htmlFor="username" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Username

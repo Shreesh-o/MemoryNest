@@ -1,8 +1,8 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 
-const EMAIL = `e2e_${Date.now()}@example.com`;
+const EMAIL = 'e2e_default_user@example.com';
 const PASSWORD = 'demo1234';
-const USERNAME = `e2e_${Date.now()}`;
+const USERNAME = 'e2e_default_user';
 
 const consoleErrors: string[] = [];
 const pageErrors: string[] = [];
@@ -24,7 +24,20 @@ test.describe('MemoryNest E2E Tests', () => {
   const baseURL = process.env.E2E_BASE_URL || 'http://127.0.0.1:3000';
   const apiURL = process.env.E2E_API_URL || 'http://127.0.0.1:8000';
 
+  async function ensureUserExists() {
+    try {
+      await fetch(`${apiURL}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: USERNAME, email: EMAIL, password: PASSWORD }),
+      });
+    } catch {
+      // Ignore if already registered
+    }
+  }
+
   test.beforeAll(async ({ browser }) => {
+    await ensureUserExists();
     context = await browser.newContext({ baseURL });
     page = await context.newPage();
     attachErrorCollectors(page);
@@ -35,6 +48,7 @@ test.describe('MemoryNest E2E Tests', () => {
   });
 
   test.beforeEach(async () => {
+    await ensureUserExists();
     await context.clearCookies();
   });
 
@@ -63,9 +77,11 @@ test.describe('MemoryNest E2E Tests', () => {
 
   test.describe('T2: Register and login', () => {
     test('T2: Register new user and login', async () => {
+      const regUser = `e2e_reg_${Date.now()}`;
+      const regEmail = `e2e_reg_${Date.now()}@example.com`;
       await page.goto('/register');
-      await page.getByLabel(/username/i).fill(USERNAME);
-      await page.getByLabel(/email/i).fill(EMAIL);
+      await page.getByLabel(/username/i).fill(regUser);
+      await page.getByLabel(/email/i).fill(regEmail);
       await page.getByLabel(/password/i).first().fill(PASSWORD);
       await page.getByLabel(/confirm password/i).fill(PASSWORD);
       await page.getByRole('button', { name: /create account|register/i }).click();
@@ -100,24 +116,25 @@ test.describe('MemoryNest E2E Tests', () => {
       await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 });
     });
 
-    test('T4: Sidebar shows Dashboard, Documents, Upload and Soon badges', async () => {
+    test('T4: Sidebar shows Dashboard, Documents, Upload, Chat, Summaries, Reminders links', async () => {
       await expect(page.getByRole('link', { name: /dashboard/i })).toBeVisible();
       await expect(page.getByRole('link', { name: /documents/i })).toBeVisible();
       await expect(page.getByRole('link', { name: /upload/i })).toBeVisible();
-      await expect(page.locator('text=Soon').first()).toBeVisible();
-      await expect(page.getByText('Chat')).toBeVisible();
-      await expect(page.getByText('Summaries')).toBeVisible();
-      await expect(page.getByText('Reminders')).toBeVisible();
+      await expect(page.getByRole('link', { name: /chat/i })).toBeVisible();
+      await expect(page.getByRole('link', { name: /summaries/i })).toBeVisible();
+      await expect(page.getByRole('link', { name: /reminders/i })).toBeVisible();
       await page.screenshot({ path: 'e2e/screenshots/T4-sidebar.png', fullPage: true });
     });
 
-    test('T4: Soon items do not navigate', async () => {
-      await page.getByText('Chat', { exact: true }).click();
-      await expect(page).toHaveURL(/\/dashboard/);
-      await page.getByText('Summaries', { exact: true }).click();
-      await expect(page).toHaveURL(/\/dashboard/);
-      await page.getByText('Reminders', { exact: true }).click();
-      await expect(page).toHaveURL(/\/dashboard/);
+    test('T4: Sidebar navigation links navigate to correct routes', async () => {
+      await page.getByRole('link', { name: /chat/i }).click();
+      await expect(page).toHaveURL(/\/chat/, { timeout: 10000 });
+      await page.getByRole('link', { name: /summaries/i }).click();
+      await expect(page).toHaveURL(/\/summaries/, { timeout: 10000 });
+      await page.getByRole('link', { name: /reminders/i }).click();
+      await expect(page).toHaveURL(/\/reminders/, { timeout: 10000 });
+      await page.getByRole('link', { name: /dashboard/i }).click();
+      await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 });
     });
   });
 
@@ -128,12 +145,7 @@ test.describe('MemoryNest E2E Tests', () => {
       await page.getByLabel(/password/i).fill(PASSWORD);
       await page.getByRole('button', { name: /sign in/i }).click();
       await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 });
-      await page.locator('button:has-text("Log out"), button:has-text("Logout"), button[aria-label*="user"], button:has([aria-label="user"])').first().click().catch(async () => {
-        await page.locator('button:has(svg.lucide-user), [aria-label*="account"], [aria-label*="profile"]').first().click();
-      });
-      await page.getByRole('menuitem', { name: /logout|log out/i }).click().catch(async () => {
-        await page.getByRole('button', { name: /logout|log out/i }).click();
-      });
+      await page.getByRole('button', { name: /log out/i }).click();
       await expect(page).toHaveURL(/\/login/, { timeout: 10000 });
       await page.screenshot({ path: 'e2e/screenshots/T5-logout.png', fullPage: true });
       await page.goto('/dashboard');
@@ -149,7 +161,9 @@ test.describe('MemoryNest E2E Tests', () => {
       await page.getByLabel(/password/i).fill('wrongpassword');
       await page.getByRole('button', { name: /sign in/i }).click();
       await expect(page).toHaveURL(/\/login/);
-      const errorMsg = await page.locator('.text-destructive, .text-red, [role="alert"], .text-red-500, .text-red-600, [class*="error"]').first().textContent();
+      const alert = page.locator('[role="alert"]').filter({ hasText: /invalid|failed|error|incorrect/i }).first();
+      await expect(alert).toBeVisible({ timeout: 5000 });
+      const errorMsg = await alert.textContent();
       expect(errorMsg && errorMsg.length > 0).toBeTruthy();
       await page.screenshot({ path: 'e2e/screenshots/T6-wrong-password.png', fullPage: true });
     });
@@ -214,28 +228,41 @@ test.describe('MemoryNest E2E Tests', () => {
 
     test('T9: Upload document, preview, delete', async () => {
       const testContent = `Test document for E2E ${Date.now()}. Meeting scheduled for 2026-10-25.`;
-      const files = [{ name: 'e2e-note.txt', mimeType: 'text/plain', buffer: Buffer.from(testContent) }];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const response = await page.request.post(`${apiURL}/api/documents/upload`, { multipart: { files: files as any } });
+      const response = await page.request.post(`${apiURL}/api/documents/upload`, {
+        multipart: {
+          files: {
+            name: 'e2e-note.txt',
+            mimeType: 'text/plain',
+            buffer: Buffer.from(testContent),
+          },
+        },
+      });
       const responseJson = await response.json();
       expect(responseJson[0].status).toBe('ready');
       expect(responseJson[0].doc_id).toBeTruthy();
       await page.goto('/documents');
-      await expect(page.locator('text=e2e-note.txt')).toBeVisible({ timeout: 10000 });
+      await expect(page.locator('text=e2e-note.txt').first()).toBeVisible({ timeout: 10000 });
       await expect(page.locator('text=Ready').first()).toBeVisible();
-      await page.getByRole('button', { name: /preview/i }).first().click();
-      await expect(page.locator('text=Text Preview')).toBeVisible({ timeout: 5000 });
-      await expect(page.locator('text=Test document for E2E')).toBeVisible({ timeout: 5000 });
-      await page.keyboard.press('Escape');
-      await page.getByRole('button', { name: /delete/i }).first().click();
-      await page.getByRole('button', { name: /delete|confirm/i }).click();
-      await expect(page.locator('text=e2e-note.txt')).not.toBeVisible({ timeout: 5000 });
+      
+      // View document details
+      await page.locator('text=e2e-note.txt').first().click();
+      await expect(page).toHaveURL(/\/documents\/\d+/, { timeout: 10000 });
+      await expect(page.locator('text=Meeting scheduled for 2026-10-25')).toBeVisible({ timeout: 10000 });
+      
+      // Delete document from documents list
+      await page.goto('/documents');
+      await expect(page.locator('table').locator('text=e2e-note.txt').first()).toBeVisible({ timeout: 10000 });
+      await page.locator('button:has(svg.lucide-more-vertical)').first().click();
+      await page.getByRole('menuitem', { name: /delete/i }).click();
+      await page.getByRole('button', { name: /delete permanently/i }).click();
+      await expect(page.locator('table').locator('text=e2e-note.txt')).not.toBeVisible({ timeout: 5000 });
       await page.reload();
-      await expect(page.locator('text=e2e-note.txt')).not.toBeVisible({ timeout: 5000 });
+      await expect(page.locator('table').locator('text=e2e-note.txt')).not.toBeVisible({ timeout: 5000 });
       await page.screenshot({ path: 'e2e/screenshots/T9-documents-flow.png', fullPage: true });
     });
 
     test('T9: Empty account shows empty state', async () => {
+      await context.clearCookies();
       await page.goto('/register');
       await page.getByLabel(/username/i).fill(`e2e_fresh_${Date.now()}`);
       await page.getByLabel(/email/i).fill(`fresh_${Date.now()}@example.com`);
@@ -245,7 +272,7 @@ test.describe('MemoryNest E2E Tests', () => {
       await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 });
       await page.getByRole('link', { name: /documents/i }).click();
       await expect(page.locator('text=No documents yet')).toBeVisible({ timeout: 10000 });
-      await expect(page.locator('text=Upload your first document')).toBeVisible();
+      await expect(page.getByRole('button', { name: /upload first document/i })).toBeVisible();
       await page.screenshot({ path: 'e2e/screenshots/T9-empty-state.png', fullPage: true });
     });
   });
@@ -271,13 +298,13 @@ test.describe('MemoryNest E2E Tests', () => {
         { name: 'test.txt', mimeType: 'text/plain', buffer: Buffer.from('Test text file for upload') },
         { name: 'fake.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4 fake pdf content') },
       ]);
-      await page.getByRole('button', { name: /upload/i }).click();
-      await page.waitForSelector('text=ready, text=rejected', { timeout: 15000 });
-      const results = await page.locator('text=ready, text=rejected').allTextContents();
-      const hasReady = results.some(r => r.includes('ready'));
-      const hasRejected = results.some(r => r.includes('rejected'));
+      await page.getByRole('button', { name: /upload & process/i }).click();
+      await expect(page.locator('text=Processing Results')).toBeVisible({ timeout: 15000 });
+      const results = await page.locator('text=/ready|rejected|error/i').allTextContents();
+      const hasReady = results.some(r => /ready/i.test(r));
+      const hasRejectedOrError = results.some(r => /rejected|error/i.test(r));
       expect(hasReady).toBeTruthy();
-      expect(hasRejected).toBeTruthy();
+      expect(hasRejectedOrError).toBeTruthy();
       await page.screenshot({ path: 'e2e/screenshots/T10-upload-results.png', fullPage: true });
     });
   });
@@ -292,7 +319,7 @@ test.describe('MemoryNest E2E Tests', () => {
     });
 
     test('T11: Theme toggle persists after reload', async () => {
-      const themeToggle = page.getByRole('button', { name: /theme|dark|light/i }).first();
+      const themeToggle = page.getByRole('button', { name: /dark mode/i }).first();
       await themeToggle.click();
       await expect(page.locator('html')).toHaveClass(/dark/);
       await page.screenshot({ path: 'e2e/screenshots/T11-dark-mode.png', fullPage: true });
@@ -317,9 +344,9 @@ test.describe('MemoryNest E2E Tests', () => {
       await menuButton.click();
       const sheet = page.locator('[role="dialog"], [data-testid="sheet"], .sheet-content');
       await expect(sheet).toBeVisible({ timeout: 5000 });
-      await expect(page.locator('text=Dashboard')).toBeVisible();
-      await expect(page.locator('text=Documents')).toBeVisible();
-      await expect(page.locator('text=Upload')).toBeVisible();
+      await expect(sheet.getByRole('link', { name: /dashboard/i })).toBeVisible();
+      await expect(sheet.getByRole('link', { name: /documents/i })).toBeVisible();
+      await expect(sheet.getByRole('link', { name: /upload/i })).toBeVisible();
       await page.screenshot({ path: 'e2e/screenshots/T12-mobile.png', fullPage: true });
     });
   });

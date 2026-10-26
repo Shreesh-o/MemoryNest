@@ -99,3 +99,32 @@ def test_update_user_email_service(db):
     with pytest.raises(ValueError, match="email"):
         update_user_email(user.id, "invalid-email")
 
+
+def test_jwt_missing_or_invalid_sub_returns_401():
+    import jwt
+    from fastapi.testclient import TestClient
+    from app.api.main import create_app
+    from app.api.security import get_jwt_secret
+
+    client = TestClient(create_app())
+    secret = get_jwt_secret()
+
+    # 1. Missing sub
+    token_no_sub = jwt.encode({"username": "nosub"}, secret, algorithm="HS256")
+    resp = client.get("/api/auth/me", cookies={"mn_session": token_no_sub})
+    assert resp.status_code == 401
+    assert resp.json()["detail"] == "Invalid token"
+
+    # 2. Non-numeric sub
+    token_str_sub = jwt.encode({"sub": "not-an-int", "username": "bad"}, secret, algorithm="HS256")
+    resp = client.get("/api/auth/me", cookies={"mn_session": token_str_sub})
+    assert resp.status_code == 401
+    assert resp.json()["detail"] == "Invalid token"
+
+    # 3. None/empty sub
+    token_empty_sub = jwt.encode({"sub": "", "username": "bad"}, secret, algorithm="HS256")
+    resp = client.get("/api/auth/me", cookies={"mn_session": token_empty_sub})
+    assert resp.status_code == 401
+    assert resp.json()["detail"] == "Invalid token"
+
+
