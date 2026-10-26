@@ -44,7 +44,8 @@ def test_production_rejects_missing_token_encryption_key(monkeypatch):
     """Production mode must raise RuntimeError if TOKEN_ENCRYPTION_KEY is unset."""
     monkeypatch.setenv("ENVIRONMENT", "production")
     monkeypatch.setenv("JWT_SECRET", "a" * 40)
-    monkeypatch.delenv("TOKEN_ENCRYPTION_KEY", raising=False)
+    monkeypatch.setenv("TOKEN_ENCRYPTION_KEY", "")
+    monkeypatch.setattr("app.utils.config.TOKEN_ENCRYPTION_KEY", "")
     reset_jwt_secret()
 
     with pytest.raises(RuntimeError, match="Production requires TOKEN_ENCRYPTION_KEY"):
@@ -99,7 +100,9 @@ def test_token_encryption_legacy_key_fallback(monkeypatch):
     monkeypatch.setenv("ENVIRONMENT", "development")
     legacy_jwt_secret = "legacy_jwt_secret_key_used_before_token_key_was_set"
     monkeypatch.setenv("JWT_SECRET", legacy_jwt_secret)
-    monkeypatch.delenv("TOKEN_ENCRYPTION_KEY", raising=False)
+    monkeypatch.setattr("app.utils.config.JWT_SECRET", legacy_jwt_secret)
+    monkeypatch.setenv("TOKEN_ENCRYPTION_KEY", "")
+    monkeypatch.setattr("app.utils.config.TOKEN_ENCRYPTION_KEY", "")
     reset_jwt_secret()
 
     # Token encrypted when only JWT_SECRET was configured
@@ -109,6 +112,7 @@ def test_token_encryption_legacy_key_fallback(monkeypatch):
     # Now the user configures a dedicated TOKEN_ENCRYPTION_KEY
     new_encryption_key = "brand_new_dedicated_token_encryption_key_789"
     monkeypatch.setenv("TOKEN_ENCRYPTION_KEY", new_encryption_key)
+    monkeypatch.setattr("app.utils.config.TOKEN_ENCRYPTION_KEY", new_encryption_key)
     reset_jwt_secret()
 
     # Decrypt must transparently succeed using fallback key

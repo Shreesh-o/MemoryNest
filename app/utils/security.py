@@ -93,7 +93,7 @@ def decrypt_token(cipher_token: str) -> str:
         pass
 
     # 2. Try fallback key if TOKEN_ENCRYPTION_KEY and JWT_SECRET differ
-    configured_key = os.environ.get("TOKEN_ENCRYPTION_KEY") or getattr(config, "TOKEN_ENCRYPTION_KEY", "")
+    configured_key = os.environ.get("TOKEN_ENCRYPTION_KEY") if "TOKEN_ENCRYPTION_KEY" in os.environ else getattr(config, "TOKEN_ENCRYPTION_KEY", "")
     try:
         jwt_sec = get_jwt_secret()
     except Exception:
