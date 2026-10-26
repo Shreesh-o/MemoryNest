@@ -9,13 +9,11 @@ Features:
 
 from __future__ import annotations
 
-import io
 import logging
 import os
 import re
 import shutil
 import subprocess
-import struct
 import wave
 from pathlib import Path
 from typing import List, Tuple, Optional

@@ -42,21 +42,21 @@ test.describe('MemoryNest E2E Tests', () => {
     test('T1: /dashboard redirects to /login', async () => {
       await page.goto('/dashboard');
       await expect(page).toHaveURL(/\/login/, { timeout: 10000 });
-      await expect(page.getByRole('heading', { name: /sign in|log in/i })).toBeVisible({ timeout: 5000 });
+      await expect(page.getByRole('heading', { name: /memorynest/i }).or(page.getByText('MemoryNest').first())).toBeVisible({ timeout: 5000 });
       await page.screenshot({ path: 'e2e/screenshots/T1-dashboard-redirect.png', fullPage: true });
     });
 
     test('T1: /documents redirects to /login', async () => {
       await page.goto('/documents');
       await expect(page).toHaveURL(/\/login/, { timeout: 10000 });
-      await expect(page.getByRole('heading', { name: /sign in|log in/i })).toBeVisible({ timeout: 5000 });
+      await expect(page.getByRole('heading', { name: /memorynest/i }).or(page.getByText('MemoryNest').first())).toBeVisible({ timeout: 5000 });
       await page.screenshot({ path: 'e2e/screenshots/T1-documents-redirect.png', fullPage: true });
     });
 
     test('T1: /upload redirects to /login', async () => {
       await page.goto('/upload');
       await expect(page).toHaveURL(/\/login/, { timeout: 10000 });
-      await expect(page.getByRole('heading', { name: /sign in|log in/i })).toBeVisible({ timeout: 5000 });
+      await expect(page.getByRole('heading', { name: /memorynest/i }).or(page.getByText('MemoryNest').first())).toBeVisible({ timeout: 5000 });
       await page.screenshot({ path: 'e2e/screenshots/T1-upload-redirect.png', fullPage: true });
     });
   });
@@ -83,7 +83,7 @@ test.describe('MemoryNest E2E Tests', () => {
       await page.goto('/login');
       await page.getByLabel(/username/i).fill(USERNAME);
       await page.getByLabel(/password/i).fill(PASSWORD);
-      await page.getByRole('button', { name: /log in/i }).click();
+      await page.getByRole('button', { name: /sign in/i }).click();
       await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 });
       await page.reload();
       await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 });
@@ -96,7 +96,7 @@ test.describe('MemoryNest E2E Tests', () => {
       await page.goto('/login');
       await page.getByLabel(/username/i).fill(USERNAME);
       await page.getByLabel(/password/i).fill(PASSWORD);
-      await page.getByRole('button', { name: /log in/i }).click();
+      await page.getByRole('button', { name: /sign in/i }).click();
       await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 });
     });
 
@@ -126,13 +126,13 @@ test.describe('MemoryNest E2E Tests', () => {
       await page.goto('/login');
       await page.getByLabel(/username/i).fill(USERNAME);
       await page.getByLabel(/password/i).fill(PASSWORD);
-      await page.getByRole('button', { name: /log in/i }).click();
+      await page.getByRole('button', { name: /sign in/i }).click();
       await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 });
-      await page.locator('button:has-text("Logout"), button[aria-label*="user"], button:has([aria-label="user"])').first().click().catch(async () => {
+      await page.locator('button:has-text("Log out"), button:has-text("Logout"), button[aria-label*="user"], button:has([aria-label="user"])').first().click().catch(async () => {
         await page.locator('button:has(svg.lucide-user), [aria-label*="account"], [aria-label*="profile"]').first().click();
       });
-      await page.getByRole('menuitem', { name: /logout/i }).click().catch(async () => {
-        await page.getByRole('button', { name: /logout/i }).click();
+      await page.getByRole('menuitem', { name: /logout|log out/i }).click().catch(async () => {
+        await page.getByRole('button', { name: /logout|log out/i }).click();
       });
       await expect(page).toHaveURL(/\/login/, { timeout: 10000 });
       await page.screenshot({ path: 'e2e/screenshots/T5-logout.png', fullPage: true });
@@ -147,7 +147,7 @@ test.describe('MemoryNest E2E Tests', () => {
       await page.goto('/login');
       await page.getByLabel(/username/i).fill(USERNAME);
       await page.getByLabel(/password/i).fill('wrongpassword');
-      await page.getByRole('button', { name: /log in/i }).click();
+      await page.getByRole('button', { name: /sign in/i }).click();
       await expect(page).toHaveURL(/\/login/);
       const errorMsg = await page.locator('.text-destructive, .text-red, [role="alert"], .text-red-500, .text-red-600, [class*="error"]').first().textContent();
       expect(errorMsg && errorMsg.length > 0).toBeTruthy();
@@ -158,7 +158,7 @@ test.describe('MemoryNest E2E Tests', () => {
       await page.goto('/login');
       await page.getByLabel(/username/i).fill(USERNAME);
       await page.getByLabel(/password/i).fill(PASSWORD);
-      await page.getByRole('button', { name: /log in/i }).click();
+      await page.getByRole('button', { name: /sign in/i }).click();
       await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 });
       await page.screenshot({ path: 'e2e/screenshots/T6-correct-password.png', fullPage: true });
     });
@@ -174,7 +174,7 @@ test.describe('MemoryNest E2E Tests', () => {
       await deadPage.goto('/dashboard');
       await expect(deadPage).toHaveURL(/\/login/, { timeout: 15000 });
       expect(navCount).toBeLessThan(6);
-      await expect(deadPage.getByRole('heading', { name: /sign in|log in/i })).toBeVisible({ timeout: 5000 });
+      await expect(deadPage.getByRole('heading', { name: /memorynest/i }).or(deadPage.getByText('MemoryNest').first())).toBeVisible({ timeout: 5000 });
       await page.screenshot({ path: 'e2e/screenshots/T7-dead-cookie.png', fullPage: true });
       await deadPage.close();
     });
@@ -185,7 +185,7 @@ test.describe('MemoryNest E2E Tests', () => {
       await page.goto('/login');
       await page.getByLabel(/username/i).fill(USERNAME);
       await page.getByLabel(/password/i).fill(PASSWORD);
-      await page.getByRole('button', { name: /log in/i }).click();
+      await page.getByRole('button', { name: /sign in/i }).click();
       await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 });
     });
 
@@ -208,7 +208,7 @@ test.describe('MemoryNest E2E Tests', () => {
       await page.goto('/login');
       await page.getByLabel(/username/i).fill(USERNAME);
       await page.getByLabel(/password/i).fill(PASSWORD);
-      await page.getByRole('button', { name: /log in/i }).click();
+      await page.getByRole('button', { name: /sign in/i }).click();
       await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 });
     });
 
@@ -219,7 +219,7 @@ test.describe('MemoryNest E2E Tests', () => {
       const response = await page.request.post(`${apiURL}/api/documents/upload`, { multipart: { files: files as any } });
       const responseJson = await response.json();
       expect(responseJson[0].status).toBe('ready');
-      const docId = responseJson[0].doc_id;
+      expect(responseJson[0].doc_id).toBeTruthy();
       await page.goto('/documents');
       await expect(page.locator('text=e2e-note.txt')).toBeVisible({ timeout: 10000 });
       await expect(page.locator('text=Ready').first()).toBeVisible();
@@ -255,7 +255,7 @@ test.describe('MemoryNest E2E Tests', () => {
       await page.goto('/login');
       await page.getByLabel(/username/i).fill(USERNAME);
       await page.getByLabel(/password/i).fill(PASSWORD);
-      await page.getByRole('button', { name: /log in/i }).click();
+      await page.getByRole('button', { name: /sign in/i }).click();
       await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 });
     });
 
@@ -287,7 +287,7 @@ test.describe('MemoryNest E2E Tests', () => {
       await page.goto('/login');
       await page.getByLabel(/username/i).fill(USERNAME);
       await page.getByLabel(/password/i).fill(PASSWORD);
-      await page.getByRole('button', { name: /log in/i }).click();
+      await page.getByRole('button', { name: /sign in/i }).click();
       await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 });
     });
 
@@ -308,7 +308,7 @@ test.describe('MemoryNest E2E Tests', () => {
       await page.goto('/login');
       await page.getByLabel(/username/i).fill(USERNAME);
       await page.getByLabel(/password/i).fill(PASSWORD);
-      await page.getByRole('button', { name: /log in/i }).click();
+      await page.getByRole('button', { name: /sign in/i }).click();
       await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 });
       const sidebar = page.locator('aside, nav[aria-label="sidebar"], [data-testid="sidebar"]');
       await expect(sidebar).not.toBeVisible({ timeout: 5000 });

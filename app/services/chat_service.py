@@ -178,16 +178,11 @@ def list_conversations(user_id: int) -> List[Conversation]:
 
 
 def get_conversation(user_id: int, conversation_id: int) -> Optional[Conversation]:
-    """Get a conversation with its messages."""
+    """Get a conversation."""
     convo_repo = ConversationRepository()
-    msg_repo = MessageRepository()
-
     convo = convo_repo.get_by_id(conversation_id, user_id)
     if not convo:
         return None
-
-    messages = msg_repo.list_for_conversation(conversation_id, user_id)
-    # We don't attach messages to the dataclass; caller can fetch separately
     return convo
 
 

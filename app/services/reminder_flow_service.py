@@ -21,7 +21,6 @@ from app.database.repositories import (
 from app.services import event_service, email_service, ics_service, google_calendar_service
 from app.services.google_auth_service import is_google_configured
 from app.database.models import Event, Reminder
-from app.utils.config import EMAIL_USERNAME, EMAIL_APP_PASSWORD, RECIPIENT_EMAIL
 
 logger = logging.getLogger(__name__)
 
@@ -303,7 +302,6 @@ def build_ics_for_user(user_id: int, event_ids: Optional[List[int]] = None) -> b
     """
     ev_repo = EventRepository()
     rem_repo = ReminderRepository()
-    doc_repo = DocumentRepository()
 
     if event_ids is not None:
         events = []

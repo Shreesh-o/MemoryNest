@@ -10,3 +10,13 @@ from app.services.link_service import (
     get_document_vectors,
     rebuild_links,
 )
+
+__all__ = [
+    "get_cached_text",
+    "get_cached_html",
+    "invalidate_text_cache",
+    "normalize_text",
+    "compute_links",
+    "get_document_vectors",
+    "rebuild_links",
+]

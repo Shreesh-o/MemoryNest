@@ -6,10 +6,8 @@ No Streamlit imports. Pure business logic for API and page use.
 from __future__ import annotations
 
 import logging
-import os
 import uuid
-from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 
 from app.database.repositories import DocumentRepository, SummaryRepository
 from app.services import summary_service, tts_service

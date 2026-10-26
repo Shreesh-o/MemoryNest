@@ -272,7 +272,7 @@ export const updateEmail = authUpdateEmail;
 
 // Documents
 export async function documentsList() {
-  return fetchApi<UserPublic[]>("documents");
+  return fetchApi<DocumentPublic[]>("documents");
 }
 
 export async function documentsGet(id: number) {

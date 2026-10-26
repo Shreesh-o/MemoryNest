@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import FileResponse
 
@@ -70,7 +68,6 @@ def api_generate_summary_audio(
     # Return relative URL for the audio file
     # The file is at AUDIO_DIR/<user_id>/filename.wav
     # We'll serve it via a separate endpoint
-    filename = Path(audio_path).name
     url = f"/api/summaries/{summary_id}/audio/file"
     return SummaryAudioResponse(engine=engine, url=url)
 

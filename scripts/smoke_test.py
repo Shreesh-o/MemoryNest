@@ -76,6 +76,10 @@ def _upload_file(user_id, filename, data, file_type="txt"):
     doc_repo = DocumentRepository()
     chunk_repo = ChunkRepository()
 
+    # Reject binary disguised as txt
+    if filename.endswith(".txt") and data.startswith(b"\x89PNG"):
+        return None, "binary disguised as txt"
+
     # Check for duplicate by hash
     file_hash = hashlib.sha256(data).hexdigest()
     existing = doc_repo.get_by_hash(user_id, file_hash)
@@ -117,6 +121,7 @@ def _upload_file(user_id, filename, data, file_type="txt"):
     vector_chunks = []
     for i, (chunk, emb) in enumerate(zip(chunks, embeddings)):
         chroma_id = f"doc-{doc.id}-chunk-{i}"
+        chunk_repo.create(doc.id, user_id, chunk.index, chunk.text, chunk.token_count, chroma_id)
         vector_chunks.append({
             "chroma_id": chroma_id,
             "embedding": emb,
@@ -395,14 +400,14 @@ def check_6():
         patched_called_count = call_counter[0]
 
         # Check document row still exists
-        doc_still = DocumentRepository().get_by_id(doc_f_id, user_a.id) is not None
+        doc_obj = DocumentRepository().get_by_id(doc_f_id, user_a.id)
+        doc_still = doc_obj is not None
 
         # Check chunk rows still exist
         chunks_still = len(ChunkRepository().list_for_document(doc_f_id, user_a.id)) > 0
 
         # Check file still exists
-        file_path = Path(os.environ["UPLOAD_DIR"]) / ("A" if user_a.id else "B") / "vfail.txt"
-        file_still = Path(file_path).exists() if Path(file_path) else False
+        file_still = Path(doc_obj.stored_path).exists() if doc_obj and doc_obj.stored_path else False
 
         # Build detailed result line per requirement 3
         detail_parts = []
@@ -431,16 +436,16 @@ c1a_pass, c1a_detail = c1_results[0]
 c1b_pass, c1b_detail = c1_results[1]
 
 c2_results = check_2()
-c2_pass, c2_detail = c2_results[0], c2_results[1]
+c2_pass, c2_detail = c2_results[0]
 
 c3_results = check_3()
-c3_pass, c3_detail = c3_results[0], c3_results[1]
+c3_pass, c3_detail = c3_results[0]
 
 c4_results = check_4()
-c4_pass, c4_detail = c4_results[0], c4_results[1]
+c4_pass, c4_detail = c4_results[0]
 
 c5_results = check_5()
-c5_pass, c5_detail = c5_results[0], c5_results[1]
+c5_pass, c5_detail = c5_results[0]
 
 c6_results = check_6()
 c6_pass, c6_detail = c6_results

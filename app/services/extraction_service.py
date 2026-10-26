@@ -102,7 +102,6 @@ def _extract_docx(path: Path) -> str:
 
 
 def _extract_txt(path: Path) -> str:
-    import io
     raw = path.read_bytes()
     # Try decoding orders: utf-8-sig strips BOM automatically,
     # then utf-8, utf-16 (BOM-detected), cp1252, latin-1 (fallback)

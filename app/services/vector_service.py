@@ -5,7 +5,7 @@ from __future__ import annotations
 import chromadb
 from chromadb.config import Settings
 
-from app.utils.config import CHROMA_DIR, EMBEDDING_MODEL
+from app.utils.config import CHROMA_DIR
 
 
 class VectorService:

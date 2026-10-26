@@ -107,7 +107,6 @@ def get_document_vectors(user_id: int) -> Dict[int, np.ndarray]:
     Returns a dict mapping document_id -> vector (numpy array, L2-normalized).
     Skips documents with no chunks in ChromaDB.
     """
-    from app.services import vector_service
 
     vs = get_vector_service()
 

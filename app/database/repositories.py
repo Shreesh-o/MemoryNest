@@ -227,9 +227,7 @@ class DocumentRepository(BaseRepository):
         so nothing is half-deleted. Chunk rows, the document row, and the
         stored file are preserved for the repair script.
         """
-        import os
         from app.services import vector_service
-        from app.utils.config import UPLOAD_DIR
 
         conn = self._connect()
         try:
@@ -570,11 +568,11 @@ class EventRepository(BaseRepository):
     def delete(self, event_id: int, user_id: int) -> None:
         conn = self._connect()
         try:
-            print(f"DEBUG delete: event_id={event_id}, user_id={user_id}")
+            logger.debug("delete: event_id=%s, user_id=%s", event_id, user_id)
             cursor = conn.execute("DELETE FROM events WHERE id = ? AND user_id = ?", (event_id, user_id))
-            print(f"DEBUG delete: rowcount={cursor.rowcount}")
+            logger.debug("delete: rowcount=%s", cursor.rowcount)
             conn.commit()
-            print(f"DEBUG delete: committed")
+            logger.debug("delete: committed")
         finally:
             conn.close()
 

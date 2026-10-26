@@ -4,12 +4,11 @@ from __future__ import annotations
 
 import logging
 import mimetypes
-import os
 from pathlib import Path
 from typing import List
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, status
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse
 
 from app.api.deps import get_current_user
 from app.api.schemas import DocumentPublic, IngestResultResponse

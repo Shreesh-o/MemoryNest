@@ -3,16 +3,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
-from typing import List, Optional
+from typing import List
 
-from app.database.models import Conversation, Document, Event, Reminder
+from app.database.models import Conversation, Event
 from app.database.repositories import (
     ConversationRepository,
     DocumentRepository,
     EventRepository,
-    ReminderRepository,
-    SummaryRepository,
 )
 
 
@@ -41,10 +38,8 @@ def get_dashboard(user_id: int) -> DashboardData:
         DashboardData with all dashboard stats and recent items.
     """
     doc_repo = DocumentRepository()
-    sum_repo = SummaryRepository()
     convo_repo = ConversationRepository()
     ev_repo = EventRepository()
-    rem_repo = ReminderRepository()
 
     # Documents stats
     docs = doc_repo.list_for_user(user_id)

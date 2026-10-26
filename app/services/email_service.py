@@ -7,9 +7,6 @@ import smtplib
 from email.message import EmailMessage
 from typing import Optional
 
-from app.utils.config import (
-    EMAIL_HOST, EMAIL_PORT, EMAIL_USERNAME, EMAIL_APP_PASSWORD, RECIPIENT_EMAIL
-)
 
 
 def is_smtp_configured() -> bool:

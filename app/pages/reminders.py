@@ -7,7 +7,6 @@ from datetime import datetime
 
 from app.database.repositories import DocumentRepository, EventRepository, ReminderRepository
 from app.services import email_service, ics_service, reminder_flow_service
-from app.utils.config import RAG_MIN_SIMILARITY
 
 
 def _get_confirmed_events_with_reminders(ev_repo, rem_repo, user_id):

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
@@ -20,7 +19,6 @@ router = APIRouter()
 
 def _doc_to_graph_node(doc, link_count: int = 0):
     """Convert a document to a GraphNode."""
-    from app.api.schemas import GraphNode
     return GraphNode(
         id=doc.id,
         label=doc.filename,
