@@ -19,7 +19,9 @@ def test_synthesize_with_espeak(tmp_path, monkeypatch):
     if not shutil.which("espeak-ng"):
         pytest.skip("espeak-ng is not installed")
 
-    path = tts_service.synthesize_to_file("Hello world, this is a test.", "test_espeak.wav")
+    path = tts_service.synthesize_to_file(
+        "Hello world, this is a test.", str(tmp_path / "test_espeak.wav")
+    )
 
     assert os.path.exists(path)
     assert os.path.getsize(path) > 1024
@@ -34,7 +36,7 @@ def test_synthesize_missing_engine_raises(tmp_path, monkeypatch):
 
     with patch.object(tts_service, "tts_available", return_value=False):
         try:
-            tts_service.synthesize_to_file("test text", "test_fail.wav")
+            tts_service.synthesize_to_file("test text", str(tmp_path / "test_fail.wav"))
             assert False, "Expected RuntimeError"
         except RuntimeError as e:
             assert "Audio generation failed" in str(e)
@@ -50,7 +52,7 @@ def test_summaries_page_helper_does_not_crash(tmp_path, monkeypatch):
     with patch.object(tts_service, "tts_available", return_value=False):
         path = None
         try:
-            path = tts_service.synthesize_to_file("test", "fail.wav")
+            path = tts_service.synthesize_to_file("test", str(tmp_path / "fail.wav"))
         except RuntimeError:
             pass
         assert path is None  # either None or RuntimeError caught — no crash

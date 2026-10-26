@@ -2,7 +2,7 @@
 __pycache__/
 *.py[cod]
 *.egg-info/
-.venv/
+.venv*/
 venv/
 
 # Streamlit
@@ -10,14 +10,23 @@ venv/
 
 # Data (never commit user data)
 data/
+data_*/
 data/text_cache/
 *.db
 *.db-journal
 *.db-wal
 *.db-shm
 
-# Environment
+# Environment & Secrets
 .env
+.jwt_secret
+
+# Runtime & Process artifacts
+.run/
+.jury/
+
+# Generated Test Audio
+/test_espeak.wav
 
 # Test/CI
 .pytest_cache/
@@ -35,3 +44,4 @@ data_backup_*/
 *.bak*
 data_old/
 AUDIT_REPORT.md
+
