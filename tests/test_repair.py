@@ -64,7 +64,7 @@ def test_repair_orphan_vectors(temp_db, temp_chroma, temp_uploads, test_user):
         file_hash=file_hash,
     )
     
-    from app.pages.upload import _process_document
+    from app.services.ingest_service import process_document as _process_document
     _process_document(doc.id, test_user.id, str(txt_path), "txt", "orphan_test.txt")
     
     # Manually add an orphan vector to ChromaDB
@@ -155,7 +155,7 @@ def test_repair_chunks_without_document(temp_db, temp_chroma, temp_uploads, test
     )
     
     # Process document
-    from app.pages.upload import _process_document
+    from app.services.ingest_service import process_document as _process_document
     _process_document(doc.id, test_user.id, str(txt_path), "txt", "chunk_test.txt")
     
     # Manually delete the document but leave chunks (simulate orphan chunks)

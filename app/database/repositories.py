@@ -219,51 +219,28 @@ class DocumentRepository(BaseRepository):
         finally:
             conn.close()
 
+    def delete_row(self, doc_id: int, user_id: int) -> Optional[str]:
+        """Delete document row from SQLite; returns stored_path if found."""
+        conn = self._connect()
+        try:
+            row = conn.execute(
+                "SELECT stored_path FROM documents WHERE id = ? AND user_id = ?",
+                (doc_id, user_id),
+            ).fetchone()
+            stored_path = row["stored_path"] if row else None
+            conn.execute("DELETE FROM documents WHERE id = ? AND user_id = ?", (doc_id, user_id))
+            conn.commit()
+            return stored_path
+        finally:
+            conn.close()
+
     def delete(self, doc_id: int, user_id: int) -> None:
         """Delete document, its chunks, ChromaDB vectors, and the stored file.
 
-        Vector deletion happens FIRST via VectorService.delete_document.
-        If it fails, RuntimeError propagates without touching SQLite rows,
-        so nothing is half-deleted. Chunk rows, the document row, and the
-        stored file are preserved for the repair script.
+        Coordinates cleanup through document_service to preserve separation of concerns.
         """
-        from app.services import vector_service
-
-        conn = self._connect()
-        try:
-            # Get stored_path before any deletions
-            row = conn.execute(
-                "SELECT stored_path FROM documents WHERE id = ? AND user_id = ?", (doc_id, user_id)
-            ).fetchone()
-            stored_path = row["stored_path"] if row else None
-
-            # Delete vectors from ChromaDB FIRST, using VectorService (with retry).
-            # If this fails, raise RuntimeError before any SQLite change so nothing
-            # is half-deleted. Chunk rows below will be preserved.
-            vs = vector_service.get_vector_service()
-            vs.delete_document(doc_id, user_id)
-
-            # Delete chunks from SQLite
-            from app.database.repositories import ChunkRepository
-            chunk_repo = ChunkRepository()
-            chunk_repo.delete_for_document(doc_id, user_id)
-
-            # Delete document
-            conn.execute("DELETE FROM documents WHERE id = ? AND user_id = ?", (doc_id, user_id))
-            conn.commit()
-
-            # Delete stored file
-            if stored_path:
-                path = Path(stored_path)
-                if path.exists():
-                    path.unlink(missing_ok=True)
-                    # Try to remove empty user directory
-                    try:
-                        path.parent.rmdir()
-                    except OSError:
-                        pass  # Directory not empty or doesn't exist
-        finally:
-            conn.close()
+        from app.services.document_service import delete_document
+        delete_document(user_id, doc_id)
 
 
 class ChunkRepository(BaseRepository):
@@ -284,6 +261,39 @@ class ChunkRepository(BaseRepository):
                 "SELECT * FROM document_chunks WHERE id = ?", (cur.lastrowid,)
             ).fetchone()
             return self._row_to_dataclass(row, DocumentChunk)
+        finally:
+            conn.close()
+
+    def create_batch(self, chunks_data: List[dict]) -> List[DocumentChunk]:
+        """Insert multiple document chunks in a single atomic transaction.
+
+        Each dict in chunks_data must contain:
+        document_id, user_id, chunk_index, content, token_count, chroma_id.
+        Automatically rolls back on failure to prevent orphaned chunks.
+        """
+        if not chunks_data:
+            return []
+        conn = self._connect()
+        try:
+            conn.execute("BEGIN TRANSACTION")
+            conn.executemany(
+                """INSERT INTO document_chunks
+                   (document_id, user_id, chunk_index, content, token_count, chroma_id)
+                   VALUES (:document_id, :user_id, :chunk_index, :content, :token_count, :chroma_id)""",
+                chunks_data,
+            )
+            conn.commit()
+            doc_id = chunks_data[0]["document_id"]
+            user_id = chunks_data[0]["user_id"]
+            rows = conn.execute(
+                """SELECT * FROM document_chunks
+                   WHERE document_id = ? AND user_id = ? ORDER BY chunk_index""",
+                (doc_id, user_id),
+            ).fetchall()
+            return [self._row_to_dataclass(r, DocumentChunk) for r in rows]
+        except Exception:
+            conn.rollback()
+            raise
         finally:
             conn.close()
 
@@ -528,6 +538,38 @@ class EventRepository(BaseRepository):
         finally:
             conn.close()
 
+    def create_batch(self, events_data: List[dict]) -> List[Event]:
+        """Insert multiple events in a single atomic transaction."""
+        if not events_data:
+            return []
+        conn = self._connect()
+        try:
+            conn.execute("BEGIN TRANSACTION")
+            conn.executemany(
+                """INSERT INTO events
+                   (user_id, document_id, event_text, event_date, raw_date)
+                   VALUES (:user_id, :document_id, :event_text, :event_date, :raw_date)""",
+                events_data,
+            )
+            conn.commit()
+            user_id = events_data[0]["user_id"]
+            doc_id = events_data[0].get("document_id")
+            if doc_id:
+                rows = conn.execute(
+                    "SELECT * FROM events WHERE user_id = ? AND document_id = ? ORDER BY id",
+                    (user_id, doc_id),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    "SELECT * FROM events WHERE user_id = ? ORDER BY id", (user_id,)
+                ).fetchall()
+            return [self._row_to_dataclass(r, Event) for r in rows]
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+
     def get_by_id(self, event_id: int, user_id: int) -> Optional[Event]:
         conn = self._connect()
         try:
@@ -535,6 +577,21 @@ class EventRepository(BaseRepository):
                 "SELECT * FROM events WHERE id = ? AND user_id = ?", (event_id, user_id)
             ).fetchone()
             return self._row_to_dataclass(row, Event) if row else None
+        finally:
+            conn.close()
+
+    def list_by_ids(self, event_ids: List[int], user_id: int) -> List[Event]:
+        """Batch query events by ID for a user."""
+        if not event_ids:
+            return []
+        conn = self._connect()
+        try:
+            placeholders = ",".join("?" for _ in event_ids)
+            rows = conn.execute(
+                f"SELECT * FROM events WHERE user_id = ? AND id IN ({placeholders})",
+                [user_id] + list(event_ids),
+            ).fetchall()
+            return [self._row_to_dataclass(r, Event) for r in rows]
         finally:
             conn.close()
 

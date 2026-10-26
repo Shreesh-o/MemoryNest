@@ -84,15 +84,16 @@ def get_calendar_items(user_id: int, start: str, end: str) -> List[CalendarItem]
             )
         )
 
+    # Batch resolve missing event document_ids to avoid N+1 queries
+    missing_event_ids = list({r.event_id for r in reminders if r.event_id and r.event_id not in event_doc_map})
+    if missing_event_ids:
+        batch_events = ev_repo.list_by_ids(missing_event_ids, user_id)
+        for ev in batch_events:
+            event_doc_map[ev.id] = ev.document_id
+
     # Map reminders
     for r in reminders:
         doc_id = event_doc_map.get(r.event_id)
-        if doc_id is None:
-            ev = ev_repo.get_by_id(r.event_id, user_id)
-            if ev:
-                doc_id = ev.document_id
-                event_doc_map[r.event_id] = doc_id
-
         items.append(
             CalendarItem(
                 id=r.id,

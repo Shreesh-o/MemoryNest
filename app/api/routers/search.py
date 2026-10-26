@@ -19,7 +19,7 @@ def api_search(
 ):
     """Semantic search over the current user's documents."""
     try:
-        hits = search(user.id, req.query, top_k=req.top_k)
+        hits = search(user.id, req.query, top_k=req.top_k, document_ids=req.document_ids)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     return SearchResponse(

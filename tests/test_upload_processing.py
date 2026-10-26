@@ -52,7 +52,7 @@ def test_user(temp_db):
 
 def test_process_txt_document(temp_db, temp_chroma, temp_uploads, test_user):
     """Test processing a simple TXT file."""
-    from app.pages.upload import _process_document
+    from app.services.ingest_service import process_document as _process_document
     
     # Create a test TXT file
     txt_content = """This is a test document.
@@ -102,7 +102,7 @@ Meeting scheduled for 2026-10-15 at 10:00 AM."""
 def test_process_docx_document(temp_db, temp_chroma, temp_uploads, test_user):
     """Test processing a simple DOCX file."""
     import docx
-    from app.pages.upload import _process_document
+    from app.services.ingest_service import process_document as _process_document
     
     # Create a test DOCX file
     docx_path = temp_uploads / "test.docx"
@@ -158,7 +158,7 @@ def test_process_document_failure_marks_failed(temp_db, temp_chroma, temp_upload
     )
     
     # Process should fail and mark document as failed
-    from app.pages.upload import _process_document
+    from app.services.ingest_service import process_document as _process_document
     with pytest.raises(FileNotFoundError):
         _process_document(doc.id, test_user.id, fake_path, "txt", "nonexistent.txt")
     
@@ -184,7 +184,7 @@ def test_process_document_invalid_type(temp_db, temp_chroma, temp_uploads, test_
         size_bytes=12,
     )
     
-    from app.pages.upload import _process_document
+    from app.services.ingest_service import process_document as _process_document
     with pytest.raises(ValueError):
         _process_document(doc.id, test_user.id, str(txt_path), "invalid_type", "test.txt")
     
@@ -216,7 +216,7 @@ def test_process_document_extracts_events(temp_db, temp_chroma, temp_uploads, te
     )
     
     # Process the document
-    from app.pages.upload import _process_document
+    from app.services.ingest_service import process_document as _process_document
     _process_document(doc.id, test_user.id, str(txt_path), "txt", "deadline.txt")
     
     # Verify document status is "ready"
@@ -344,7 +344,7 @@ def test_failure_cleanup_removes_partial_data(temp_db, temp_chroma, temp_uploads
     fake_path = str(temp_uploads / "nonexistent.txt")
     
     # Process should fail
-    from app.pages.upload import _process_document
+    from app.services.ingest_service import process_document as _process_document
     with pytest.raises(FileNotFoundError):
         _process_document(doc.id, test_user.id, fake_path, "txt", "fail_test.txt")
     
@@ -390,7 +390,7 @@ def test_document_delete_cleans_everything(temp_db, temp_chroma, temp_uploads, t
     )
     
     # Process successfully
-    from app.pages.upload import _process_document
+    from app.services.ingest_service import process_document as _process_document
     _process_document(doc.id, test_user.id, str(txt_path), "txt", "delete_test.txt")
     
     # Verify everything exists
@@ -442,7 +442,7 @@ def test_corrupt_pdf_marked_error_and_cleaned(tmp_path, test_user):
         size_bytes=corrupt.stat().st_size,
     )
 
-    from app.pages.upload import _process_document
+    from app.services.ingest_service import process_document as _process_document
     with pytest.raises(Exception):
         _process_document(doc.id, test_user.id, str(corrupt), "pdf", "corrupt.pdf")
 
@@ -471,7 +471,7 @@ def test_embedding_failure_marks_error_and_cleans(tmp_path, monkeypatch, test_us
         size_bytes=txt.stat().st_size,
     )
 
-    from app.pages.upload import _process_document
+    from app.services.ingest_service import process_document as _process_document
     with pytest.raises(RuntimeError, match="embedding backend unavailable"):
         _process_document(doc.id, test_user.id, str(txt), "txt", "embed_fail.txt")
 
@@ -503,7 +503,7 @@ def test_chroma_failure_marks_error_and_cleans(tmp_path, monkeypatch, test_user)
         size_bytes=txt.stat().st_size,
     )
 
-    from app.pages.upload import _process_document
+    from app.services.ingest_service import process_document as _process_document
     with pytest.raises(RuntimeError, match="chroma store unavailable"):
         _process_document(doc.id, test_user.id, str(txt), "txt", "chroma_fail.txt")
 

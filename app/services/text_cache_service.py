@@ -12,8 +12,14 @@ from app.utils.config import UPLOAD_DIR
 
 
 # Cache directory for extracted text and HTML
-TEXT_CACHE_DIR = UPLOAD_DIR.parent / "text_cache"
-TEXT_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+def get_text_cache_dir() -> Path:
+    from app.utils.config import UPLOAD_DIR
+    cache_dir = UPLOAD_DIR.parent / "text_cache"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    return cache_dir
+
+
+TEXT_CACHE_DIR = get_text_cache_dir()
 
 # Max characters for text content
 MAX_TEXT_CHARS = 500_000
@@ -21,7 +27,7 @@ MAX_TEXT_CHARS = 500_000
 
 def _cache_path(doc_id: int, suffix: str = ".txt") -> Path:
     """Get the cache file path for a document."""
-    return TEXT_CACHE_DIR / f"{doc_id}{suffix}"
+    return get_text_cache_dir() / f"{doc_id}{suffix}"
 
 
 def _file_hash(path: Path) -> str:

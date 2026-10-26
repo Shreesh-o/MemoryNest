@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import logging
 import sqlite3
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 
 def _get_db_path() -> Path:
@@ -16,16 +19,17 @@ def _get_db_path() -> Path:
 
 
 def get_connection(db_path: Path | None = None) -> sqlite3.Connection:
-    """Return a connection with row access by column name and FK enforcement.
+    """Return a connection with row access by column name, FK enforcement, and busy timeout.
 
     Pass an explicit ``db_path`` to bypass the configured path (used by
     tests and scripts); otherwise the path is resolved from config.
     """
     path = Path(db_path) if db_path is not None else _get_db_path()
     path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(str(path), isolation_level="DEFERRED")
+    conn = sqlite3.connect(str(path), isolation_level="DEFERRED", timeout=30.0)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA busy_timeout = 30000")
     return conn
 
 
@@ -178,6 +182,11 @@ def init_db(db_path: Path | None = None) -> None:
     app.utils.config.ensure_dirs()
     conn = get_connection(db_path)
     try:
+        # Enable WAL journal mode in database header for concurrency
+        try:
+            conn.execute("PRAGMA journal_mode = WAL")
+        except sqlite3.OperationalError as e:
+            logger.warning("Could not set journal_mode = WAL: %s", e)
         conn.executescript(SCHEMA)
         conn.commit()
         _migrate_add_user_email(conn)

@@ -263,7 +263,7 @@ def test_upload_batch_rejected_file_does_not_stop_valid_files(tmp_path, monkeypa
     # Now import modules that use config (after env vars are set and config reloaded)
     from app.database.database import init_db
     from app.database.repositories import DocumentRepository, UserRepository
-    from app.pages.upload import _save_uploaded_file, _process_document
+    from app.services.ingest_service import _save_uploaded_file, process_document as _process_document
 
     init_db()
 

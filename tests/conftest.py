@@ -28,8 +28,10 @@ def _check_real_data_access(path: Path) -> None:
 def _check_real_data_access_during_test():
     yield
     import app.utils.config as config_module
+    from app.services import text_cache_service
     for attr in ("DB_PATH", "CHROMA_DIR", "UPLOAD_DIR", "AUDIO_DIR"):
         _check_real_data_access(Path(getattr(config_module, attr)))
+    _check_real_data_access(text_cache_service.get_text_cache_dir())
 
 
 @pytest.fixture(autouse=True)
@@ -46,6 +48,14 @@ def test_storage(tmp_path, monkeypatch):
     monkeypatch.setenv("UPLOAD_DIR", str(tmp_path / "uploads"))
     monkeypatch.setenv("AUDIO_DIR", str(tmp_path / "audio"))
     monkeypatch.setenv("MOCK_LLM", "1")
+
+    from app.api.security import reset_jwt_secret
+    reset_jwt_secret()
+
+    from app.services import text_cache_service
+    test_cache_dir = tmp_path / "text_cache"
+    test_cache_dir.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr(text_cache_service, "get_text_cache_dir", lambda: test_cache_dir)
 
     import importlib
     import app.utils.config as config_module

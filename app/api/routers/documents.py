@@ -9,6 +9,7 @@ from typing import List
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, status
 from fastapi.responses import FileResponse
+from starlette.concurrency import run_in_threadpool
 
 from app.api.deps import get_current_user
 from app.api.schemas import DocumentPublic, IngestResultResponse
@@ -134,8 +135,8 @@ async def api_upload(
             ))
             continue
 
-        # Process the upload
-        result: IngestResult = ingest_upload(user.id, original_name, content)
+        # Process the upload in a worker thread to prevent blocking the event loop
+        result: IngestResult = await run_in_threadpool(ingest_upload, user.id, original_name, content)
         if result.status == "ready":
             any_success = True
         results.append(IngestResultResponse(
@@ -149,7 +150,7 @@ async def api_upload(
     # Rebuild document links once at the end if any document was successfully processed
     if any_success:
         try:
-            rebuild_links(user.id)
+            await run_in_threadpool(rebuild_links, user.id)
         except Exception as e:
             logger.warning("Failed to rebuild document links for user %s after upload: %s", user.id, e)
 

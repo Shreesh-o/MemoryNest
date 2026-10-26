@@ -168,6 +168,7 @@ def process_document(doc_id: int, user_id: int, stored_path: str, file_type: str
         embeddings = embedding_service.embed_texts([c.text for c in chunks])
 
         vector_chunks = []
+        chunk_dicts = []
         for i, (chunk, emb) in enumerate(zip(chunks, embeddings)):
             chroma_id = f"doc-{doc_id}-chunk-{i}"
             vector_chunks.append(
@@ -179,20 +180,36 @@ def process_document(doc_id: int, user_id: int, stored_path: str, file_type: str
                     "embedding": emb,
                 }
             )
-            chunk_repo.create(doc_id, user_id, chunk.index, chunk.text, chunk.token_count, chroma_id)
+            chunk_dicts.append(
+                {
+                    "document_id": doc_id,
+                    "user_id": user_id,
+                    "chunk_index": chunk.index,
+                    "content": chunk.text,
+                    "token_count": chunk.token_count,
+                    "chroma_id": chroma_id,
+                }
+            )
+
+        if chunk_dicts:
+            chunk_repo.create_batch(chunk_dicts)
 
         vs.add_chunks(user_id, doc_id, filename, vector_chunks)
 
         events = event_service.extract_events(text)
-        ev_repo = EventRepository()
-        for e in events:
-            ev_repo.create(
-                user_id=user_id,
-                event_text=e["event_text"],
-                document_id=doc_id,
-                event_date=e.get("event_date"),
-                raw_date=e.get("raw_date"),
-            )
+        if events:
+            ev_repo = EventRepository()
+            ev_data = [
+                {
+                    "user_id": user_id,
+                    "document_id": doc_id,
+                    "event_text": e["event_text"],
+                    "event_date": e.get("event_date"),
+                    "raw_date": e.get("raw_date"),
+                }
+                for e in events
+            ]
+            ev_repo.create_batch(ev_data)
 
         preview = text[:500]
         doc_repo.set_text(doc_id, user_id, preview, len(chunks))

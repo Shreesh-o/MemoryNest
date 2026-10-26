@@ -52,11 +52,13 @@ def get_dashboard(user_id: int) -> DashboardData:
     pending_events = ev_repo.list_for_user(user_id, status="pending")
     confirmed_events = ev_repo.list_for_user(user_id, status="confirmed")
 
-    # Upcoming deadlines: confirmed events with dates, sorted by date
+    # Upcoming deadlines: confirmed events on or after today, sorted chronologically
+    from datetime import datetime
+    today_str = datetime.now().strftime("%Y-%m-%d")
     upcoming = [
         e
         for e in confirmed_events
-        if e.event_date
+        if e.event_date and e.event_date[:10] >= today_str
     ]
     upcoming.sort(key=lambda e: e.event_date or "")
     upcoming_deadlines = upcoming[:5]

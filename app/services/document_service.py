@@ -112,20 +112,47 @@ def get_document_full_text(user_id: int, doc_id: int, doc: Optional[Document] = 
 
 
 def delete_document(user_id: int, doc_id: int) -> None:
-    """Delete a document and all associated data.
+    """Coordinate document deletion across vector store, text cache, database, and disk.
 
-    Calls DocumentRepository.delete which handles:
-    - ChromaDB vector deletion (first, with retry)
-    - Chunk rows deletion
-    - Document row deletion
-    - Stored file deletion
-
-    Raises RuntimeError if vector cleanup fails (propagated from repository).
+    1. Deletes ChromaDB vectors first (with retry). If this fails, RuntimeError propagates
+       before touching SQLite rows or stored files, preserving state for repair.
+    2. Invalidates extracted text and HTML cache.
+    3. Deletes document chunks and document row from SQLite.
+    4. Deletes stored file from disk and cleans up empty directory.
+    5. Rebuilds document links for the user (best effort).
     """
-    doc_repo = DocumentRepository()
-    doc_repo.delete(doc_id, user_id)
+    from pathlib import Path
+    from app.services.text_cache_service import invalidate_text_cache
 
-    # Rebuild document links (non-blocking, best effort)
+    doc_repo = DocumentRepository()
+    chunk_repo = ChunkRepository()
+
+    doc = doc_repo.get_by_id(doc_id, user_id)
+    if not doc:
+        return
+
+    # 1. Delete Chroma vectors FIRST; if this fails, raise RuntimeError before SQLite deletion
+    vs = vector_service.get_vector_service()
+    vs.delete_document(doc_id, user_id)
+
+    # 2. Invalidate text cache
+    invalidate_text_cache(doc_id)
+
+    # 3. Delete database rows
+    chunk_repo.delete_for_document(doc_id, user_id)
+    doc_repo.delete_row(doc_id, user_id)
+
+    # 4. Delete stored file
+    if doc.stored_path:
+        path = Path(doc.stored_path)
+        if path.exists():
+            path.unlink(missing_ok=True)
+            try:
+                path.parent.rmdir()
+            except OSError:
+                pass
+
+    # 5. Rebuild document links (non-blocking, best effort)
     try:
         rebuild_links(user_id)
     except Exception as e:

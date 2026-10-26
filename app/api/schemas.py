@@ -175,6 +175,7 @@ class SearchHit(BaseModel):
 class SearchRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=500)
     top_k: Optional[int] = Field(default=8, ge=1, le=20)
+    document_ids: Optional[List[int]] = Field(default=None, description="Optional document IDs to scope search to")
 
 
 class SearchResponse(BaseModel):

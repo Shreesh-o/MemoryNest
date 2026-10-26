@@ -25,8 +25,9 @@ def search(
     query: str,
     top_k: int = 8,
     min_similarity: Optional[float] = None,
+    document_ids: Optional[List[int]] = None,
 ) -> List[SearchHit]:
-    """Semantic search over document chunks.
+    """Semantic search over document chunks, optionally scoped to document_ids.
 
     Args:
         user_id: The user whose documents to search.
@@ -34,6 +35,7 @@ def search(
         top_k: Maximum number of hits to return (clamped to 1-20).
         min_similarity: Minimum similarity threshold (0-1). Defaults to
             RAG_MIN_SIMILARITY; never allowed below 0.15.
+        document_ids: Optional list of document IDs to scope search to.
 
     Returns:
         List of SearchHit objects sorted by similarity descending.
@@ -58,9 +60,9 @@ def search(
     # Embed the query using the same embedding service as RAG
     query_vec = embedding_service.embed_query(query)
 
-    # Query the vector service (filtered by user_id)
+    # Query the vector service (filtered by user_id and optionally document_ids)
     vs = vector_service.get_vector_service()
-    results = vs.query(user_id, query_vec, top_k=top_k)
+    results = vs.query(user_id, query_vec, top_k=top_k, document_ids=document_ids)
 
     # Filter by minimum similarity and build hits
     hits: List[SearchHit] = []

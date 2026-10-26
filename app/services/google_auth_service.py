@@ -247,8 +247,12 @@ def get_calendar_client(user_id: int) -> Optional[Any]:
 
     try:
         refresh_token = decrypt_token(conn.refresh_token_encrypted)
-    except Exception:
-        repo.delete_by_user_id(user_id)
+    except Exception as e:
+        logger.error(
+            "Failed to decrypt Google refresh token for user_id=%s (%s). Preserving connection record.",
+            user_id,
+            type(e).__name__,
+        )
         return None
 
     scopes = [s.strip() for s in conn.scope.split(",") if s.strip()] or GOOGLE_SCOPES
