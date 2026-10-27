@@ -30,7 +30,7 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Slider } from "@/components/ui/slider"
+import { Input } from "@/components/ui/input"
 import { getGraph, refreshGraph, type GraphNode, type GraphEdge } from "@/lib/api"
 
 // Import react-force-graph-2d dynamically with SSR disabled
@@ -252,19 +252,19 @@ function SidePanel({ node, onClose, onNavigate, isMobile }: SidePanelProps) {
 export default function MapPage() {
   const queryClient = useQueryClient()
   const router = useRouter()
-  const [minScore, setMinScore] = useState(0.45)
-  const [debouncedMinScore, setDebouncedMinScore] = useState(0.45)
+  const [minScore, setMinScore] = useState(0.20)
+  const [debouncedMinScore, setDebouncedMinScore] = useState(0.20)
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null)
   const [selectedNodeData, setSelectedNodeData] = useState<{
     node: GraphNode
     edges: GraphEdge[]
     neighbors: GraphNode[]
   } | null>(null)
+  const [containerEl, setContainerEl] = useState<HTMLDivElement | null>(null)
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 })
   const [showUnlinked, setShowUnlinked] = useState(true)
   const [isMobile, setIsMobile] = useState(false)
   const [isDark, setIsDark] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const graphRef = useRef<any>(null)
 
@@ -318,17 +318,28 @@ export default function MapPage() {
     },
   })
 
-  // Handle container resize
+  // Handle container resize with callback ref element
   useEffect(() => {
-    if (!containerRef.current) return
+    if (!containerEl) return
+    const updateSize = () => {
+      const rect = containerEl.getBoundingClientRect()
+      if (rect.width > 0 && rect.height > 0) {
+        setContainerSize({ width: Math.floor(rect.width), height: Math.floor(rect.height) })
+      }
+    }
+    updateSize()
+
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        setContainerSize({ width: entry.contentRect.width, height: entry.contentRect.height })
+        const { width, height } = entry.contentRect
+        if (width > 0 && height > 0) {
+          setContainerSize({ width: Math.floor(width), height: Math.floor(height) })
+        }
       }
     })
-    observer.observe(containerRef.current)
+    observer.observe(containerEl)
     return () => observer.disconnect()
-  }, [])
+  }, [containerEl])
 
   // Prepare graph data (memoized to prevent re-layout)
   const graphDataMemo = useMemo(() => {
@@ -488,27 +499,46 @@ export default function MapPage() {
       <Card className="shrink-0 border border-border/80 shadow-xs">
         <CardContent className="p-3.5 sm:p-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex-1 max-w-md">
-              <div className="flex items-center justify-between mb-2">
-                <Label htmlFor="minScore" className="text-xs font-medium text-foreground cursor-pointer">
-                  Minimum similarity threshold
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="minScoreInput" className="text-xs font-medium text-foreground cursor-pointer">
+                  Minimum similarity threshold:
                 </Label>
-                <span className="text-xs font-mono font-semibold text-primary">
-                  {Math.round(minScore * 100)}%
-                </span>
+                <div className="relative inline-flex items-center">
+                  <Input
+                    id="minScoreInput"
+                    type="number"
+                    min={10}
+                    max={95}
+                    step={5}
+                    value={Math.round(minScore * 100)}
+                    onChange={(e) => {
+                      const val = Number(e.target.value)
+                      if (!isNaN(val) && val >= 10 && val <= 95) {
+                        setMinScore(val / 100)
+                      }
+                    }}
+                    className="w-16 h-8 text-xs font-mono font-semibold pr-5 text-right bg-background"
+                  />
+                  <span className="absolute right-2 text-xs font-mono font-semibold text-primary pointer-events-none">
+                    %
+                  </span>
+                </div>
               </div>
-              <Slider
-                id="minScore"
-                min={0.3}
-                max={0.9}
-                step={0.05}
-                value={minScore}
-                onValueChange={(v) => {
-                  if (typeof v === "number") setMinScore(v)
-                  else if (Array.isArray(v) && typeof v[0] === "number") setMinScore(v[0])
-                }}
-                className="w-full"
-              />
+              <div className="flex items-center gap-1.5">
+                {[20, 35, 50, 65].map((pct) => (
+                  <Button
+                    key={pct}
+                    type="button"
+                    variant={Math.round(minScore * 100) === pct ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setMinScore(pct / 100)}
+                    className="h-7 px-2.5 text-xs font-mono cursor-pointer"
+                  >
+                    {pct}%
+                  </Button>
+                ))}
+              </div>
             </div>
 
             {/* Legend inline on wide screens */}
@@ -534,7 +564,7 @@ export default function MapPage() {
       <Card className="flex-1 min-h-[360px] overflow-hidden relative border border-border/80 shadow-xs bg-card/60 backdrop-blur-2xs">
         <CardContent className="h-full p-0 relative">
           <div
-            ref={containerRef}
+            ref={setContainerEl}
             className="w-full h-full min-h-[360px]"
             onClick={onBackgroundClick}
           >
@@ -555,6 +585,7 @@ export default function MapPage() {
                 linkTarget="target"
                 linkColor={() => (isDark ? "rgba(148, 163, 184, 0.3)" : "rgba(100, 116, 139, 0.25)")}
                 linkWidth={(link) => Math.max(0.75, (link.score || 0) * 3)}
+                linkLabel={(link: any) => `${Math.round((link.score || 0) * 100)}% match${link.shared_terms?.length ? ` (${link.shared_terms.join(", ")})` : ""}`}
                 linkDirectionalParticles={0}
                 onEngineTick={() => {}}
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any

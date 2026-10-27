@@ -28,6 +28,20 @@ class UpdateEmailRequest(BaseModel):
     email: Optional[str] = None
 
 
+class UpdateProfileRequest(BaseModel):
+    username: Optional[str] = None
+    email: Optional[str] = None
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
+class DeactivateAccountRequest(BaseModel):
+    password: Optional[str] = None
+
+
 class DocumentPublic(BaseModel):
     id: int
     filename: str

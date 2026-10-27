@@ -20,6 +20,20 @@ export interface UpdateEmailRequest {
   email?: string | null;
 }
 
+export interface UpdateProfileRequest {
+  username?: string | null;
+  email?: string | null;
+}
+
+export interface ChangePasswordRequest {
+  current_password: string;
+  new_password: string;
+}
+
+export interface DeactivateAccountRequest {
+  password?: string | null;
+}
+
 export interface DocumentPublic {
   id: number;
   filename: string;
@@ -269,6 +283,27 @@ export async function authUpdateEmail(data: UpdateEmailRequest) {
 }
 
 export const updateEmail = authUpdateEmail;
+
+export async function authUpdateProfile(data: UpdateProfileRequest) {
+  return fetchApi<UserPublic>("auth/me/profile", {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function authChangePassword(data: ChangePasswordRequest) {
+  return fetchApi<{ detail: string }>("auth/me/password", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function authDeactivateAccount(data?: DeactivateAccountRequest) {
+  return fetchApi<{ detail: string }>("auth/me/deactivate", {
+    method: "POST",
+    body: JSON.stringify(data || {}),
+  });
+}
 
 // Documents
 export async function documentsList() {

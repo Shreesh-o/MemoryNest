@@ -23,6 +23,7 @@ import {
   MessageSquareIcon,
   SearchIcon,
   ShieldCheckIcon,
+  UserIcon,
 } from "lucide-react"
 import {
   DropdownMenu,
@@ -83,6 +84,7 @@ export function TopBar({ pageTitle }: TopBarProps) {
     { href: "/reminders", label: "Reminders", icon: BellIcon },
     { href: "/chat", label: "Chat", icon: MessageSquareIcon },
     { href: "/search", label: "Search", icon: SearchIcon },
+    { href: "/profile", label: "Profile", icon: UserIcon },
   ]
 
   return (
@@ -207,6 +209,11 @@ export function TopBar({ pageTitle }: TopBarProps) {
               <DropdownMenuLabel className="font-medium text-xs text-muted-foreground">
                 Signed in as <span className="font-semibold text-foreground block text-sm mt-0.5">{username}</span>
               </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => router.push("/profile")} className="cursor-pointer">
+                <UserIcon className="size-4 mr-2" />
+                Profile & Settings
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive focus:text-destructive">
                 <LogOutIcon className="size-4 mr-2" />

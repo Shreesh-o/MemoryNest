@@ -16,6 +16,7 @@ import {
   MessageSquareIcon,
   SearchIcon,
   ShieldCheckIcon,
+  UserIcon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -35,6 +36,7 @@ const mainNav = [
   { href: "/reminders", label: "Reminders", icon: BellIcon },
   { href: "/chat", label: "Chat", icon: MessageSquareIcon },
   { href: "/search", label: "Search", icon: SearchIcon },
+  { href: "/profile", label: "Profile", icon: UserIcon },
 ] as const
 
 export function MobileNav() {

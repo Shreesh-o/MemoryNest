@@ -118,6 +118,7 @@ function GuardedContent({ children }: { children: React.ReactNode }) {
     "/reminders": "Reminders",
     "/chat": "Chat",
     "/search": "Search",
+    "/profile": "Profile & Settings",
   }
   const pageTitle = titles[pathname] || "MemoryNest"
 

@@ -89,3 +89,98 @@ def authenticate(username: str, password: str) -> User | None:
     if not verify_password(password or "", user.password_hash):
         return None
     return user
+
+
+def update_profile(
+    user_id: int,
+    username: Optional[str] = None,
+    email: Optional[str] = None,
+) -> User:
+    """Update user username and/or email."""
+    repo = UserRepository()
+    user = repo.get_by_id(user_id)
+    if user is None:
+        raise ValueError("User not found.")
+
+    cleaned_username: Optional[str] = None
+    if username is not None:
+        trimmed_u = username.strip()
+        if trimmed_u and trimmed_u != user.username:
+            if not _USER_RE.match(trimmed_u):
+                raise ValueError("Username must be 3-32 characters: letters, digits, dot, dash, underscore.")
+            existing_u = repo.get_by_username(trimmed_u)
+            if existing_u and existing_u.id != user_id:
+                raise ValueError("Username is already taken.")
+            cleaned_username = trimmed_u
+
+    cleaned_email: Optional[str] = None
+    email_changed = False
+    if email is not None:
+        trimmed_e = email.strip()
+        if trimmed_e:
+            ok, reason = validate_email(trimmed_e)
+            if not ok:
+                raise ValueError(reason)
+            cleaned_email = trimmed_e.lower()
+            if cleaned_email != (user.email or "").lower():
+                existing_e = repo.get_by_email(cleaned_email)
+                if existing_e and existing_e.id != user_id:
+                    raise ValueError("Email is already taken.")
+                email_changed = True
+        else:
+            if user.email is not None:
+                cleaned_email = None
+                email_changed = True
+
+    updated = repo.update_profile(
+        user_id,
+        username=cleaned_username,
+        email=cleaned_email,
+        update_email_flag=email_changed,
+    )
+    if updated is None:
+        raise ValueError("User not found.")
+    return updated
+
+
+def change_password(user_id: int, current_password: str, new_password: str) -> bool:
+    """Verify current password and update to new password."""
+    repo = UserRepository()
+    user = repo.get_by_id(user_id)
+    if user is None:
+        raise ValueError("User not found.")
+    if not verify_password(current_password or "", user.password_hash):
+        raise ValueError("Current password is incorrect.")
+    if not new_password or len(new_password) < 6:
+        raise ValueError("New password must be at least 6 characters.")
+    repo.update_password(user_id, hash_password(new_password))
+    return True
+
+
+def deactivate_user(user_id: int, password: Optional[str] = None) -> bool:
+    """Deactivate (delete) user account and clean up all their documents/data."""
+    repo = UserRepository()
+    user = repo.get_by_id(user_id)
+    if user is None:
+        raise ValueError("User not found.")
+
+    if password is not None and password != "":
+        if not verify_password(password, user.password_hash):
+            raise ValueError("Incorrect password.")
+
+    # Clean up all user's documents (ChromaDB vectors, cache, files on disk)
+    try:
+        from app.database.repositories import DocumentRepository
+        from app.services.document_service import delete_document
+        doc_repo = DocumentRepository()
+        user_docs = doc_repo.list_by_user(user_id)
+        for doc in user_docs:
+            try:
+                delete_document(user_id, doc.id)
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+    repo.delete(user_id)
+    return True

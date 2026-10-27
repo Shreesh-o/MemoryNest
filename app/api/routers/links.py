@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from app.api.deps import get_current_user
 from app.api.schemas import GraphEdge, GraphNode, GraphRefreshResponse, GraphResponse, RelatedDocument, RelatedResponse
 from app.database.repositories import DocumentLinkRepository, DocumentRepository
-from app.services.link_service import rebuild_links
+from app.services import link_service
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +61,14 @@ def api_get_graph(
     # Get all stored links for the user
     link_repo = DocumentLinkRepository()
     all_links = link_repo.list_links(user.id)
+
+    # If no links stored yet and user has >= 2 ready documents, auto-rebuild
+    if not all_links and len(ready_docs) >= 2:
+        try:
+            link_service.rebuild_links(user.id)
+            all_links = link_repo.list_links(user.id)
+        except Exception as e:
+            logger.warning("Auto-rebuilding links on graph fetch failed for user %s: %s", user.id, e)
 
     # Filter edges by min_score
     filtered_edges = [link for link in all_links if link.score >= min_score]
@@ -162,7 +170,7 @@ def api_refresh_graph(user=Depends(get_current_user)):
 
     Returns counts of documents and edges stored.
     """
-    links = rebuild_links(user.id)
+    links = link_service.rebuild_links(user.id)
 
     # Count unique documents involved in links
     doc_ids = set()

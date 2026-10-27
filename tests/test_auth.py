@@ -128,3 +128,80 @@ def test_jwt_missing_or_invalid_sub_returns_401():
     assert resp.json()["detail"] == "Invalid token"
 
 
+def test_update_profile_and_change_password():
+    from fastapi.testclient import TestClient
+    from app.api.main import create_app
+    from app.services.auth_service import register
+
+    client = TestClient(create_app())
+    u = register("user_settings", "secret123", "settings@example.com")
+
+    # Login
+    login_resp = client.post("/api/auth/login", json={"username": "user_settings", "password": "secret123"})
+    assert login_resp.status_code == 200
+    token = login_resp.cookies.get("mn_session")
+
+    # Update profile name and email
+    patch_resp = client.patch(
+        "/api/auth/me/profile",
+        json={"username": "user_renamed", "email": "new_settings@example.com"},
+        cookies={"mn_session": token},
+    )
+    assert patch_resp.status_code == 200
+    assert patch_resp.json()["username"] == "user_renamed"
+    assert patch_resp.json()["email"] == "new_settings@example.com"
+    new_token = patch_resp.cookies.get("mn_session") or token
+
+    # Change password
+    pwd_resp = client.post(
+        "/api/auth/me/password",
+        json={"current_password": "wrongpassword", "new_password": "newsecret123"},
+        cookies={"mn_session": new_token},
+    )
+    assert pwd_resp.status_code == 400
+
+    pwd_resp2 = client.post(
+        "/api/auth/me/password",
+        json={"current_password": "secret123", "new_password": "newsecret123"},
+        cookies={"mn_session": new_token},
+    )
+    assert pwd_resp2.status_code == 200
+
+    # Login with new password and new username
+    login_resp2 = client.post("/api/auth/login", json={"username": "user_renamed", "password": "newsecret123"})
+    assert login_resp2.status_code == 200
+
+
+def test_deactivate_account_api():
+    from fastapi.testclient import TestClient
+    from app.api.main import create_app
+    from app.services.auth_service import register
+
+    client = TestClient(create_app())
+    u = register("user_deact", "secret123", "deact@example.com")
+
+    login_resp = client.post("/api/auth/login", json={"username": "user_deact", "password": "secret123"})
+    assert login_resp.status_code == 200
+    token = login_resp.cookies.get("mn_session")
+
+    # Wrong password deactivation fails
+    fail_resp = client.post(
+        "/api/auth/me/deactivate",
+        json={"password": "wrong"},
+        cookies={"mn_session": token},
+    )
+    assert fail_resp.status_code == 400
+
+    # Successful deactivation
+    deact_resp = client.post(
+        "/api/auth/me/deactivate",
+        json={"password": "secret123"},
+        cookies={"mn_session": token},
+    )
+    assert deact_resp.status_code == 200
+
+    # User no longer exists
+    login_after = client.post("/api/auth/login", json={"username": "user_deact", "password": "secret123"})
+    assert login_after.status_code == 401
+
+

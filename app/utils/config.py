@@ -68,8 +68,8 @@ CHUNK_OVERLAP: int = int(os.environ.get("CHUNK_OVERLAP", "50"))
 
 # --- Document Map (related documents) ---
 LINK_MIN_SIMILARITY: float = float(os.environ.get("LINK_MIN_SIMILARITY", "0.45"))
-LINK_STORE_MIN_SIMILARITY: float = float(os.environ.get("LINK_STORE_MIN_SIMILARITY", "0.30"))
-LINK_MAX_PER_DOC: int = int(os.environ.get("LINK_MAX_PER_DOC", "3"))
+LINK_STORE_MIN_SIMILARITY: float = float(os.environ.get("LINK_STORE_MIN_SIMILARITY", "0.15"))
+LINK_MAX_PER_DOC: int = int(os.environ.get("LINK_MAX_PER_DOC", "20"))
 
 # --- Upload ---
 MAX_FILE_SIZE_MB: int = int(os.environ.get("MAX_FILE_SIZE_MB", "20"))

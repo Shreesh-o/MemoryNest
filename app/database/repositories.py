@@ -80,6 +80,41 @@ class UserRepository(BaseRepository):
         finally:
             conn.close()
 
+    def update_profile(
+        self,
+        user_id: int,
+        username: Optional[str] = None,
+        email: Optional[str] = None,
+        update_email_flag: bool = False,
+    ) -> Optional[User]:
+        conn = self._connect()
+        try:
+            fields = []
+            values = []
+            if username is not None:
+                fields.append("username = ?")
+                values.append(username)
+            if update_email_flag:
+                fields.append("email = ?")
+                values.append(email)
+            if not fields:
+                return self.get_by_id(user_id)
+            values.append(user_id)
+            conn.execute(f"UPDATE users SET {', '.join(fields)} WHERE id = ?", tuple(values))
+            conn.commit()
+            return self.get_by_id(user_id)
+        finally:
+            conn.close()
+
+    def update_password(self, user_id: int, password_hash: str) -> bool:
+        conn = self._connect()
+        try:
+            conn.execute("UPDATE users SET password_hash = ? WHERE id = ?", (password_hash, user_id))
+            conn.commit()
+            return True
+        finally:
+            conn.close()
+
     def list_all(self) -> List[User]:
         conn = self._connect()
         try:
