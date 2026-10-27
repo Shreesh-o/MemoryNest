@@ -25,28 +25,28 @@ export function BentoGrid() {
     <section
       id="features"
       aria-labelledby="features-heading"
-      className="py-20 sm:py-28 bg-muted/20 border-y border-border/40"
+      className="py-20 sm:py-28 2xl:py-36 bg-muted/20 border-y border-border/40"
     >
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl 2xl:max-w-[1536px] 3xl:max-w-[1720px] px-4 sm:px-6 lg:px-8 2xl:px-12">
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-16 sm:mb-20">
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-background px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary mb-4 shadow-2xs">
+        <div className="text-center max-w-3xl 2xl:max-w-4xl mx-auto mb-16 sm:mb-20 2xl:mb-24">
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-background px-3 py-1 2xl:px-4 2xl:py-1.5 text-xs 2xl:text-sm font-semibold uppercase tracking-wider text-primary mb-4 2xl:mb-6 shadow-2xs">
             Comprehensive Capabilities
           </div>
           <h2
             id="features-heading"
-            className="font-heading text-3xl font-extrabold tracking-tight sm:text-4xl lg:text-5xl text-foreground text-balance"
+            className="font-heading text-3xl font-extrabold tracking-tight sm:text-4xl lg:text-5xl 2xl:text-6xl text-foreground text-balance"
           >
             Everything you need to turn documents into actionable memory.
           </h2>
-          <p className="mt-4 text-base sm:text-lg text-muted-foreground leading-relaxed text-balance">
+          <p className="mt-4 2xl:mt-6 text-base sm:text-lg 2xl:text-xl text-muted-foreground leading-relaxed text-balance">
             Every feature runs locally on your machine with zero cloud lock-in.
             From OCR ingestion to RAG chat, audio playback, and calendar scheduling.
           </p>
         </div>
 
         {/* Bento Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 2xl:gap-8">
           {/* Card 1: Ask Your Documents (RAG Chat) - 8 cols on desktop */}
           <motion.div
             initial={shouldReduceMotion ? false : { opacity: 0, y: 20 }}
@@ -54,15 +54,15 @@ export function BentoGrid() {
             viewport={{ once: true, margin: "-40px" }}
             transition={{ duration: 0.4, delay: 0 }}
             whileHover={shouldReduceMotion ? undefined : { y: -3 }}
-            className="md:col-span-12 lg:col-span-8 rounded-2xl border border-border/70 bg-card p-6 sm:p-7 shadow-xs hover:border-primary/40 hover:shadow-lg transition-all flex flex-col justify-between overflow-hidden relative group"
+            className="md:col-span-12 lg:col-span-8 rounded-2xl 2xl:rounded-3xl border border-border/70 bg-card p-6 sm:p-7 2xl:p-8 shadow-xs hover:border-primary/40 hover:shadow-lg transition-all flex flex-col justify-between overflow-hidden relative group"
           >
             <div>
               <div className="flex items-center gap-3 mb-3">
-                <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                <div className="size-10 2xl:size-12 rounded-xl 2xl:rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0 [&_svg]:2xl:size-6">
                   <MessageSquare className="size-5" aria-hidden="true" />
                 </div>
                 <div>
-                  <h3 className="font-heading text-lg font-bold text-foreground">
+                  <h3 className="font-heading text-lg 2xl:text-xl font-bold text-foreground">
                     Ask Your Documents (RAG Chat)
                   </h3>
                   <p className="text-xs text-muted-foreground">
@@ -70,7 +70,7 @@ export function BentoGrid() {
                   </p>
                 </div>
               </div>
-              <p className="text-sm text-muted-foreground leading-relaxed">
+              <p className="text-sm 2xl:text-base text-muted-foreground leading-relaxed">
                 Pose natural-language questions and receive answers cited down to the exact
                 chunk. If the answer isn&apos;t in your files, MemoryNest says &ldquo;I couldn&apos;t find
                 that&rdquo; instead of guessing.
@@ -120,21 +120,21 @@ export function BentoGrid() {
             viewport={{ once: true, margin: "-40px" }}
             transition={{ duration: 0.4, delay: 0.05 }}
             whileHover={shouldReduceMotion ? undefined : { y: -3 }}
-            className="md:col-span-6 lg:col-span-4 rounded-2xl border border-border/70 bg-card p-6 sm:p-7 shadow-xs hover:border-primary/40 hover:shadow-lg transition-all flex flex-col justify-between overflow-hidden relative group"
+            className="md:col-span-6 lg:col-span-4 rounded-2xl 2xl:rounded-3xl border border-border/70 bg-card p-6 sm:p-7 2xl:p-8 shadow-xs hover:border-primary/40 hover:shadow-lg transition-all flex flex-col justify-between overflow-hidden relative group"
           >
             <div>
               <div className="flex items-center gap-3 mb-3">
-                <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                <div className="size-10 2xl:size-12 rounded-xl 2xl:rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0 [&_svg]:2xl:size-6">
                   <Upload className="size-5" aria-hidden="true" />
                 </div>
                 <div>
-                  <h3 className="font-heading text-lg font-bold text-foreground">
+                  <h3 className="font-heading text-lg 2xl:text-xl font-bold text-foreground">
                     Multi-Format Upload & OCR
                   </h3>
                   <p className="text-xs text-muted-foreground">PDF, DOCX, TXT, and scanned images</p>
                 </div>
               </div>
-              <p className="text-sm text-muted-foreground leading-relaxed">
+              <p className="text-sm 2xl:text-base text-muted-foreground leading-relaxed">
                 Drag-and-drop any document format. Images and scanned receipts are processed via
                 built-in Tesseract OCR without sending data over the network.
               </p>
@@ -171,21 +171,21 @@ export function BentoGrid() {
             viewport={{ once: true, margin: "-40px" }}
             transition={{ duration: 0.4, delay: 0.1 }}
             whileHover={shouldReduceMotion ? undefined : { y: -3 }}
-            className="md:col-span-6 lg:col-span-4 rounded-2xl border border-border/70 bg-card p-6 sm:p-7 shadow-xs hover:border-primary/40 hover:shadow-lg transition-all flex flex-col justify-between overflow-hidden relative group"
+            className="md:col-span-6 lg:col-span-4 rounded-2xl 2xl:rounded-3xl border border-border/70 bg-card p-6 sm:p-7 2xl:p-8 shadow-xs hover:border-primary/40 hover:shadow-lg transition-all flex flex-col justify-between overflow-hidden relative group"
           >
             <div>
               <div className="flex items-center gap-3 mb-3">
-                <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                <div className="size-10 2xl:size-12 rounded-xl 2xl:rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0 [&_svg]:2xl:size-6">
                   <Search className="size-5" aria-hidden="true" />
                 </div>
                 <div>
-                  <h3 className="font-heading text-lg font-bold text-foreground">
+                  <h3 className="font-heading text-lg 2xl:text-xl font-bold text-foreground">
                     Semantic Search
                   </h3>
                   <p className="text-xs text-muted-foreground">Find by meaning, not just exact keywords</p>
                 </div>
               </div>
-              <p className="text-sm text-muted-foreground leading-relaxed">
+              <p className="text-sm 2xl:text-base text-muted-foreground leading-relaxed">
                 Powered by sentence-transformers embeddings in ChromaDB. Match conceptual queries
                 even when phrasing differs completely from the original text.
               </p>
@@ -216,21 +216,21 @@ export function BentoGrid() {
             viewport={{ once: true, margin: "-40px" }}
             transition={{ duration: 0.4, delay: 0.15 }}
             whileHover={shouldReduceMotion ? undefined : { y: -3 }}
-            className="md:col-span-6 lg:col-span-4 rounded-2xl border border-border/70 bg-card p-6 sm:p-7 shadow-xs hover:border-primary/40 hover:shadow-lg transition-all flex flex-col justify-between overflow-hidden relative group"
+            className="md:col-span-6 lg:col-span-4 rounded-2xl 2xl:rounded-3xl border border-border/70 bg-card p-6 sm:p-7 2xl:p-8 shadow-xs hover:border-primary/40 hover:shadow-lg transition-all flex flex-col justify-between overflow-hidden relative group"
           >
             <div>
               <div className="flex items-center gap-3 mb-3">
-                <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                <div className="size-10 2xl:size-12 rounded-xl 2xl:rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0 [&_svg]:2xl:size-6">
                   <Volume2 className="size-5" aria-hidden="true" />
                 </div>
                 <div>
-                  <h3 className="font-heading text-lg font-bold text-foreground">
+                  <h3 className="font-heading text-lg 2xl:text-xl font-bold text-foreground">
                     Summaries & Audio TTS
                   </h3>
                   <p className="text-xs text-muted-foreground">Map-reduce summaries with voice readout</p>
                 </div>
               </div>
-              <p className="text-sm text-muted-foreground leading-relaxed">
+              <p className="text-sm 2xl:text-base text-muted-foreground leading-relaxed">
                 Map-reduce summarization digests massive multi-page documents. Listen on demand
                 with edge-tts, piper, or espeak audio synthesis.
               </p>
@@ -274,21 +274,21 @@ export function BentoGrid() {
             viewport={{ once: true, margin: "-40px" }}
             transition={{ duration: 0.4, delay: 0.2 }}
             whileHover={shouldReduceMotion ? undefined : { y: -3 }}
-            className="md:col-span-6 lg:col-span-4 rounded-2xl border border-border/70 bg-card p-6 sm:p-7 shadow-xs hover:border-primary/40 hover:shadow-lg transition-all flex flex-col justify-between overflow-hidden relative group"
+            className="md:col-span-6 lg:col-span-4 rounded-2xl 2xl:rounded-3xl border border-border/70 bg-card p-6 sm:p-7 2xl:p-8 shadow-xs hover:border-primary/40 hover:shadow-lg transition-all flex flex-col justify-between overflow-hidden relative group"
           >
             <div>
               <div className="flex items-center gap-3 mb-3">
-                <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                <div className="size-10 2xl:size-12 rounded-xl 2xl:rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0 [&_svg]:2xl:size-6">
                   <CalendarClock className="size-5" aria-hidden="true" />
                 </div>
                 <div>
-                  <h3 className="font-heading text-lg font-bold text-foreground">
+                  <h3 className="font-heading text-lg 2xl:text-xl font-bold text-foreground">
                     Deadlines & Reminders
                   </h3>
                   <p className="text-xs text-muted-foreground">Auto-extracted dates & email alerts</p>
                 </div>
               </div>
-              <p className="text-sm text-muted-foreground leading-relaxed">
+              <p className="text-sm 2xl:text-base text-muted-foreground leading-relaxed">
                 Regex, dateparser, and LLM fallbacks scan every document for dates and commitments.
                 Confirm reminders and get timely email notifications.
               </p>
@@ -319,21 +319,21 @@ export function BentoGrid() {
             viewport={{ once: true, margin: "-40px" }}
             transition={{ duration: 0.4, delay: 0.25 }}
             whileHover={shouldReduceMotion ? undefined : { y: -3 }}
-            className="md:col-span-12 lg:col-span-6 rounded-2xl border border-border/70 bg-card p-6 sm:p-7 shadow-xs hover:border-primary/40 hover:shadow-lg transition-all flex flex-col justify-between overflow-hidden relative group"
+            className="md:col-span-12 lg:col-span-6 rounded-2xl 2xl:rounded-3xl border border-border/70 bg-card p-6 sm:p-7 2xl:p-8 shadow-xs hover:border-primary/40 hover:shadow-lg transition-all flex flex-col justify-between overflow-hidden relative group"
           >
             <div>
               <div className="flex items-center gap-3 mb-3">
-                <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                <div className="size-10 2xl:size-12 rounded-xl 2xl:rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0 [&_svg]:2xl:size-6">
                   <Calendar className="size-5" aria-hidden="true" />
                 </div>
                 <div>
-                  <h3 className="font-heading text-lg font-bold text-foreground">
+                  <h3 className="font-heading text-lg 2xl:text-xl font-bold text-foreground">
                     Calendar View & Google Calendar Sync
                   </h3>
                   <p className="text-xs text-muted-foreground">Interactive month view + optional OAuth 2.0 sync</p>
                 </div>
               </div>
-              <p className="text-sm text-muted-foreground leading-relaxed">
+              <p className="text-sm 2xl:text-base text-muted-foreground leading-relaxed">
                 Visualize deadlines in an in-app interactive month calendar. Connect your personal
                 Google Calendar via OAuth 2.0 for automatic event creation, or export offline .ics files.
               </p>
@@ -381,21 +381,21 @@ export function BentoGrid() {
             viewport={{ once: true, margin: "-40px" }}
             transition={{ duration: 0.4, delay: 0.3 }}
             whileHover={shouldReduceMotion ? undefined : { y: -3 }}
-            className="md:col-span-12 lg:col-span-6 rounded-2xl border border-border/70 bg-card p-6 sm:p-7 shadow-xs hover:border-primary/40 hover:shadow-lg transition-all flex flex-col justify-between overflow-hidden relative group"
+            className="md:col-span-12 lg:col-span-6 rounded-2xl 2xl:rounded-3xl border border-border/70 bg-card p-6 sm:p-7 2xl:p-8 shadow-xs hover:border-primary/40 hover:shadow-lg transition-all flex flex-col justify-between overflow-hidden relative group"
           >
             <div>
               <div className="flex items-center gap-3 mb-3">
-                <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                <div className="size-10 2xl:size-12 rounded-xl 2xl:rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0 [&_svg]:2xl:size-6">
                   <Network className="size-5" aria-hidden="true" />
                 </div>
                 <div>
-                  <h3 className="font-heading text-lg font-bold text-foreground">
+                  <h3 className="font-heading text-lg 2xl:text-xl font-bold text-foreground">
                     Topic-Similarity Document Map
                   </h3>
                   <p className="text-xs text-muted-foreground">Thematic graph with TF-IDF shared keywords</p>
                 </div>
               </div>
-              <p className="text-sm text-muted-foreground leading-relaxed">
+              <p className="text-sm 2xl:text-base text-muted-foreground leading-relaxed">
                 Explore latent relationships between files. Cosine similarity of chunk embeddings
                 identifies clusters, while TF-IDF labels links with meaningful shared terminology.
               </p>
@@ -444,21 +444,21 @@ export function BentoGrid() {
             viewport={{ once: true, margin: "-40px" }}
             transition={{ duration: 0.4, delay: 0.35 }}
             whileHover={shouldReduceMotion ? undefined : { y: -3 }}
-            className="md:col-span-6 lg:col-span-4 rounded-2xl border border-border/70 bg-card p-6 sm:p-7 shadow-xs hover:border-primary/40 hover:shadow-lg transition-all flex flex-col justify-between overflow-hidden relative group"
+            className="md:col-span-6 lg:col-span-4 rounded-2xl 2xl:rounded-3xl border border-border/70 bg-card p-6 sm:p-7 2xl:p-8 shadow-xs hover:border-primary/40 hover:shadow-lg transition-all flex flex-col justify-between overflow-hidden relative group"
           >
             <div>
               <div className="flex items-center gap-3 mb-3">
-                <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                <div className="size-10 2xl:size-12 rounded-xl 2xl:rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0 [&_svg]:2xl:size-6">
                   <FileText className="size-5" aria-hidden="true" />
                 </div>
                 <div>
-                  <h3 className="font-heading text-lg font-bold text-foreground">
+                  <h3 className="font-heading text-lg 2xl:text-xl font-bold text-foreground">
                     Dual-Pane Document Viewer
                   </h3>
                   <p className="text-xs text-muted-foreground">Original rendering & extracted text</p>
                 </div>
               </div>
-              <p className="text-sm text-muted-foreground leading-relaxed">
+              <p className="text-sm 2xl:text-base text-muted-foreground leading-relaxed">
                 Inspect original PDF/DOCX layouts or switch to cleaned extracted text with in-viewer
                 search, syntax highlighting, and instant copying.
               </p>
@@ -488,21 +488,21 @@ export function BentoGrid() {
             viewport={{ once: true, margin: "-40px" }}
             transition={{ duration: 0.4, delay: 0.4 }}
             whileHover={shouldReduceMotion ? undefined : { y: -3 }}
-            className="md:col-span-6 lg:col-span-4 rounded-2xl border border-border/70 bg-card p-6 sm:p-7 shadow-xs hover:border-primary/40 hover:shadow-lg transition-all flex flex-col justify-between overflow-hidden relative group"
+            className="md:col-span-6 lg:col-span-4 rounded-2xl 2xl:rounded-3xl border border-border/70 bg-card p-6 sm:p-7 2xl:p-8 shadow-xs hover:border-primary/40 hover:shadow-lg transition-all flex flex-col justify-between overflow-hidden relative group"
           >
             <div>
               <div className="flex items-center gap-3 mb-3">
-                <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                <div className="size-10 2xl:size-12 rounded-xl 2xl:rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0 [&_svg]:2xl:size-6">
                   <History className="size-5" aria-hidden="true" />
                 </div>
                 <div>
-                  <h3 className="font-heading text-lg font-bold text-foreground">
+                  <h3 className="font-heading text-lg 2xl:text-xl font-bold text-foreground">
                     Conversation History
                   </h3>
                   <p className="text-xs text-muted-foreground">Per-user searchable chat threads</p>
                 </div>
               </div>
-              <p className="text-sm text-muted-foreground leading-relaxed">
+              <p className="text-sm 2xl:text-base text-muted-foreground leading-relaxed">
                 Every conversation is saved, indexed, and isolated per user. Resume complex inquiries
                 anytime or search historical answers effortlessly.
               </p>
@@ -534,21 +534,21 @@ export function BentoGrid() {
             viewport={{ once: true, margin: "-40px" }}
             transition={{ duration: 0.4, delay: 0.45 }}
             whileHover={shouldReduceMotion ? undefined : { y: -3 }}
-            className="md:col-span-12 lg:col-span-4 rounded-2xl border border-border/70 bg-card p-6 sm:p-7 shadow-xs hover:border-primary/40 hover:shadow-lg transition-all flex flex-col justify-between overflow-hidden relative group"
+            className="md:col-span-12 lg:col-span-4 rounded-2xl 2xl:rounded-3xl border border-border/70 bg-card p-6 sm:p-7 2xl:p-8 shadow-xs hover:border-primary/40 hover:shadow-lg transition-all flex flex-col justify-between overflow-hidden relative group"
           >
             <div>
               <div className="flex items-center gap-3 mb-3">
-                <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                <div className="size-10 2xl:size-12 rounded-xl 2xl:rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0 [&_svg]:2xl:size-6">
                   <ShieldCheck className="size-5 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
                 </div>
                 <div>
-                  <h3 className="font-heading text-lg font-bold text-foreground">
+                  <h3 className="font-heading text-lg 2xl:text-xl font-bold text-foreground">
                     Private by Design
                   </h3>
                   <p className="text-xs text-muted-foreground">Rigorous data isolation & HTTP-only sessions</p>
                 </div>
               </div>
-              <p className="text-sm text-muted-foreground leading-relaxed">
+              <p className="text-sm 2xl:text-base text-muted-foreground leading-relaxed">
                 Bcrypt passwords, HTTP-only JWT cookies, and strict per-user database scoping on
                 every query. Your vault is completely isolated.
               </p>

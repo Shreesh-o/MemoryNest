@@ -39,22 +39,22 @@ export function MarketingNavbar() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-md transition-colors supports-[backdrop-filter]:bg-background/60">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-16 2xl:h-20 max-w-7xl 2xl:max-w-[1536px] 3xl:max-w-[1720px] items-center justify-between px-4 sm:px-6 lg:px-8 2xl:px-12">
         {/* Brand / Logo */}
         <Link
           href="/"
-          className="flex items-center gap-2.5 font-heading text-lg font-bold tracking-tight text-foreground transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md"
+          className="flex items-center gap-2.5 font-heading text-lg 2xl:text-xl font-bold tracking-tight text-foreground transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md"
           aria-label="MemoryNest Home"
         >
-          <div className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
-            <Layers className="size-5" aria-hidden="true" />
+          <div className="flex size-9 2xl:size-11 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+            <Layers className="size-5 2xl:size-6" aria-hidden="true" />
           </div>
-          <span className="text-xl font-bold tracking-tight">MemoryNest</span>
+          <span className="text-xl 2xl:text-2xl font-bold tracking-tight">MemoryNest</span>
         </Link>
 
         {/* Desktop Navigation */}
         <nav
-          className="hidden md:flex items-center gap-8 text-sm font-medium"
+          className="hidden md:flex items-center gap-8 2xl:gap-10 text-sm 2xl:text-base font-medium"
           aria-label="Main Navigation"
         >
           {navLinks.map((link) => (
@@ -70,7 +70,7 @@ export function MarketingNavbar() {
         </nav>
 
         {/* Desktop Actions */}
-        <div className="hidden md:flex items-center gap-3">
+        <div className="hidden md:flex items-center gap-3 2xl:gap-4">
           <Button
             variant="ghost"
             size="icon"
@@ -80,7 +80,7 @@ export function MarketingNavbar() {
                 ? "Switch to light theme"
                 : "Switch to dark theme"
             }
-            className="text-muted-foreground hover:text-foreground rounded-lg"
+            className="text-muted-foreground hover:text-foreground rounded-lg 2xl:size-10 [&_svg]:2xl:size-5"
           >
             {mounted && resolvedTheme === "dark" ? (
               <Sun className="size-4" aria-hidden="true" />
@@ -93,7 +93,7 @@ export function MarketingNavbar() {
             href="/login"
             className={cn(
               buttonVariants({ variant: "ghost", size: "sm" }),
-              "text-sm font-medium text-muted-foreground hover:text-foreground"
+              "text-sm 2xl:text-base font-medium text-muted-foreground hover:text-foreground 2xl:h-11 2xl:px-4"
             )}
           >
             Log in
@@ -103,7 +103,7 @@ export function MarketingNavbar() {
             href="/register"
             className={cn(
               buttonVariants({ variant: "default", size: "sm" }),
-              "text-sm font-medium shadow-sm transition-transform active:scale-[0.98]"
+              "text-sm 2xl:text-base font-medium shadow-sm transition-transform active:scale-[0.98] 2xl:h-11 2xl:px-5"
             )}
           >
             Get started

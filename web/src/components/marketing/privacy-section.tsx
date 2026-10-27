@@ -28,43 +28,43 @@ export function PrivacySection() {
     <section
       id="privacy"
       aria-labelledby="privacy-heading"
-      className="py-20 sm:py-28 bg-muted/20 border-t border-border/40"
+      className="py-20 sm:py-28 2xl:py-36 bg-muted/20 border-t border-border/40"
     >
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl 2xl:max-w-[1536px] 3xl:max-w-[1720px] px-4 sm:px-6 lg:px-8 2xl:px-12">
         {/* Header */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-background px-3 py-1 text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-4 shadow-2xs">
+        <div className="text-center max-w-3xl 2xl:max-w-4xl mx-auto mb-16 2xl:mb-24">
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-background px-3 py-1 2xl:px-4 2xl:py-1.5 text-xs 2xl:text-sm font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-4 2xl:mb-6 shadow-2xs">
             Data Sovereignty
           </div>
           <h2
             id="privacy-heading"
-            className="font-heading text-3xl font-extrabold tracking-tight sm:text-4xl lg:text-5xl text-foreground text-balance"
+            className="font-heading text-3xl font-extrabold tracking-tight sm:text-4xl lg:text-5xl 2xl:text-6xl text-foreground text-balance"
           >
             Local-first by design
           </h2>
-          <p className="mt-4 text-base sm:text-lg text-muted-foreground leading-relaxed text-balance">
+          <p className="mt-4 2xl:mt-6 text-base sm:text-lg 2xl:text-xl text-muted-foreground leading-relaxed text-balance">
             Your personal notes, financial files, contracts, and medical records stay under your
             control. MemoryNest is built to run self-hosted on your own hardware.
           </p>
         </div>
 
         {/* 4 Feature Pillars */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 2xl:gap-8 max-w-5xl 2xl:max-w-none mx-auto">
           {localGuarantees.map((item) => {
             const Icon = item.icon
             return (
               <div
                 key={item.title}
-                className="rounded-2xl border border-border/70 bg-card p-6 shadow-xs flex items-start gap-4"
+                className="rounded-2xl 2xl:rounded-3xl border border-border/70 bg-card p-6 2xl:p-8 shadow-xs flex items-start gap-4 2xl:gap-5"
               >
-                <div className="size-11 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
+                <div className="size-11 2xl:size-14 rounded-xl 2xl:rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 mt-0.5 [&_svg]:2xl:size-7">
                   <Icon className="size-5" aria-hidden="true" />
                 </div>
                 <div>
-                  <h3 className="font-heading text-base font-bold text-foreground mb-1">
+                  <h3 className="font-heading text-base 2xl:text-xl font-bold text-foreground mb-1 2xl:mb-2">
                     {item.title}
                   </h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
+                  <p className="text-sm 2xl:text-base text-muted-foreground leading-relaxed">
                     {item.desc}
                   </p>
                 </div>
@@ -74,38 +74,38 @@ export function PrivacySection() {
         </div>
 
         {/* Transparent Opt-in Notice Box */}
-        <div className="mt-10 max-w-5xl mx-auto rounded-2xl border border-border/70 bg-background p-6 sm:p-7 shadow-xs">
-          <div className="flex items-start gap-4">
-            <div className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
+        <div className="mt-10 2xl:mt-12 max-w-5xl 2xl:max-w-none mx-auto rounded-2xl 2xl:rounded-3xl border border-border/70 bg-background p-6 sm:p-7 2xl:p-8 shadow-xs">
+          <div className="flex items-start gap-4 2xl:gap-5">
+            <div className="size-10 2xl:size-12 rounded-xl 2xl:rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5 [&_svg]:2xl:size-6">
               <Radio className="size-5" aria-hidden="true" />
             </div>
-            <div className="space-y-3">
+            <div className="space-y-3 2xl:space-y-4">
               <div className="flex items-center gap-2">
-                <h3 className="font-heading text-base font-bold text-foreground">
+                <h3 className="font-heading text-base 2xl:text-lg font-bold text-foreground">
                   Accurate Disclosure on External Services (Strictly Opt-In)
                 </h3>
               </div>
-              <p className="text-sm text-muted-foreground leading-relaxed">
+              <p className="text-sm 2xl:text-base text-muted-foreground leading-relaxed">
                 We believe in complete transparency: MemoryNest is local-first, but we do not claim
                 it is 100% offline because certain optional features integrate with third-party
                 services when explicitly configured:
               </p>
-              <ul className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-muted-foreground pt-1">
-                <li className="flex items-start gap-2 bg-muted/50 p-2.5 rounded-lg border border-border/40">
+              <ul className="grid grid-cols-1 sm:grid-cols-3 gap-3 2xl:gap-4 text-xs 2xl:text-sm text-muted-foreground pt-1">
+                <li className="flex items-start gap-2 2xl:gap-3 bg-muted/50 p-2.5 2xl:p-4 rounded-lg 2xl:rounded-xl border border-border/40">
                   <Check className="size-4 text-emerald-500 shrink-0 mt-0.5" aria-hidden="true" />
                   <span>
                     <strong className="text-foreground">Google Calendar:</strong> Only connects if
                     you link your Google account to push event dates.
                   </span>
                 </li>
-                <li className="flex items-start gap-2 bg-muted/50 p-2.5 rounded-lg border border-border/40">
+                <li className="flex items-start gap-2 2xl:gap-3 bg-muted/50 p-2.5 2xl:p-4 rounded-lg 2xl:rounded-xl border border-border/40">
                   <Check className="size-4 text-emerald-500 shrink-0 mt-0.5" aria-hidden="true" />
                   <span>
                     <strong className="text-foreground">Online TTS Voice:</strong> edge-tts requests
                     neural voice audio from Microsoft online; offline engines (piper, espeak) run locally.
                   </span>
                 </li>
-                <li className="flex items-start gap-2 bg-muted/50 p-2.5 rounded-lg border border-border/40">
+                <li className="flex items-start gap-2 2xl:gap-3 bg-muted/50 p-2.5 2xl:p-4 rounded-lg 2xl:rounded-xl border border-border/40">
                   <Check className="size-4 text-emerald-500 shrink-0 mt-0.5" aria-hidden="true" />
                   <span>
                     <strong className="text-foreground">Email Reminders:</strong> Connects to your
