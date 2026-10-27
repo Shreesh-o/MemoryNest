@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
-import { ShieldCheckIcon, AlertCircleIcon, Loader2Icon } from "lucide-react"
+import { Layers, ArrowLeftIcon, AlertCircleIcon, Loader2Icon } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
@@ -68,24 +68,41 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center bg-background px-4 py-12 selection:bg-primary/20">
+    <div className="relative min-h-screen w-full flex items-center justify-center bg-background px-4 py-12 selection:bg-primary/20">
+      {/* Back to main showcase website */}
+      <div className="absolute top-5 left-5 sm:top-8 sm:left-8 z-20">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-all duration-200 px-3.5 py-2 rounded-xl border border-border/70 bg-card/70 backdrop-blur-md hover:bg-muted/80 hover:border-border shadow-xs group"
+        >
+          <ArrowLeftIcon className="size-4 transition-transform group-hover:-translate-x-1" />
+          <span>Back to website</span>
+        </Link>
+      </div>
+
       {/* Decorative ambient gradient */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 -z-10 flex items-center justify-center overflow-hidden"
       >
-        <div className="size-[28rem] rounded-full bg-primary/5 blur-3xl" />
+        <div className="size-[34rem] rounded-full bg-primary/5 blur-3xl" />
       </div>
 
-      <Card className="w-full max-w-md border border-border/80 shadow-lg dark:shadow-2xl">
-        <CardHeader className="text-center pb-4 pt-6">
-          <div className="mx-auto mb-3 flex size-11 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-xs">
-            <ShieldCheckIcon className="size-6" />
-          </div>
-          <CardTitle className="font-heading text-2xl font-bold tracking-tight text-foreground">
-            MemoryNest
-          </CardTitle>
-          <CardDescription className="text-sm text-muted-foreground mt-1">
+      <Card className="w-full max-w-lg border border-border/80 shadow-xl dark:shadow-2xl">
+        <CardHeader className="text-center pb-6 pt-8 px-6 sm:px-10">
+          <Link
+            href="/"
+            className="group mx-auto mb-4 flex flex-col items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-2xl"
+            title="Go to main website"
+          >
+            <div className="flex size-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-md transition-all duration-200 group-hover:scale-105 group-hover:shadow-lg">
+              <Layers className="size-7" />
+            </div>
+            <CardTitle className="font-heading text-3xl font-bold tracking-tight text-foreground transition-colors group-hover:text-primary mt-3">
+              MemoryNest
+            </CardTitle>
+          </Link>
+          <CardDescription className="text-base text-muted-foreground mt-1">
             Create your local-first knowledge vault
           </CardDescription>
         </CardHeader>
@@ -193,7 +210,7 @@ export default function RegisterPage() {
           </form>
         </CardContent>
 
-        <CardFooter className="flex justify-center border-t border-border/60 bg-muted/20 py-4">
+        <CardFooter className="flex flex-col items-center gap-3.5 border-t border-border/60 bg-muted/20 py-6 px-6 sm:px-10">
           <p className="text-sm text-muted-foreground">
             Already have an account?{" "}
             <Link
@@ -203,6 +220,15 @@ export default function RegisterPage() {
               Sign in
             </Link>
           </p>
+          <div className="w-full flex items-center justify-center pt-2 border-t border-border/40">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors group"
+            >
+              <ArrowLeftIcon className="size-3.5 transition-transform group-hover:-translate-x-0.5" />
+              <span>Back to project showcase</span>
+            </Link>
+          </div>
         </CardFooter>
       </Card>
     </div>
