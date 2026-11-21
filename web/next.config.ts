@@ -16,6 +16,7 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     proxyTimeout: 300000,
+    agentUpgrade: "security",
   },
   async rewrites() {
     const apiUrl = process.env.API_URL || "http://127.0.0.1:8000";
