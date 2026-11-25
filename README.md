@@ -8,6 +8,7 @@
   <a href="#-tech-stack"><img src="https://img.shields.io/badge/Next.js-16%20App%20Router-black?style=for-the-badge&logo=next.js" alt="Next.js" /></a>
   <a href="#-tech-stack"><img src="https://img.shields.io/badge/FastAPI-Modern%20REST-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI" /></a>
   <a href="#-tech-stack"><img src="https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python&logoColor=white" alt="Python" /></a>
+  <a href="#-tech-stack"><img src="https://img.shields.io/badge/Node.js-v20%2B-green?style=for-the-badge&logo=node.js" alt="Node.js" /></a>
   <a href="#-tech-stack"><img src="https://img.shields.io/badge/Vector%20DB-ChromaDB-orange?style=for-the-badge" alt="ChromaDB" /></a>
   <a href="#-tech-stack"><img src="https://img.shields.io/badge/LLM-Ollama%20(Local)-green?style=for-the-badge&logo=ollama" alt="Ollama" /></a>
   <a href="#-testing--quality-assurance"><img src="https://img.shields.io/badge/Tests-349%20Passing-brightgreen?style=for-the-badge" alt="Tests" /></a>
@@ -16,7 +17,9 @@
 
 ---
 
-![MemoryNest Hero Landing](docs/screenshots/hero-landing.png)
+<p align="center">
+  <img src="docs/screenshots/hero-landing.png" alt="MemoryNest Hero Landing" width="100%" style="border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);" />
+</p>
 
 ## 📖 Overview
 
@@ -29,20 +32,19 @@ Upload **PDFs, DOCX files, raw TXT documents, and scanned images (via OCR)** —
 ## 📑 Table of Contents
 
 - [Overview](#-overview)
-- [System Architecture](#-system-architecture)
-- [Core Pipelines](#-core-pipelines)
-  - [1. Ingestion & Indexing Pipeline](#1-ingestion--indexing-pipeline)
-  - [2. Scoped RAG & Citations Pipeline](#2-scoped-rag--citations-pipeline)
-  - [3. Event Extraction & Calendar Sync Flow](#3-event-extraction--calendar-sync-flow)
+- [System Architecture & Diagrams](#-system-architecture--diagrams)
+  - [Full Architecture Blueprint](#full-architecture-blueprint)
+  - [Data Flow Diagrams (DFD)](#data-flow-diagrams-dfd)
+  - [System Use Cases](#system-use-cases)
 - [Key Features](#-key-features)
 - [Visual Interface Showcase](#-visual-interface-showcase)
 - [Tech Stack](#-tech-stack)
-- [Quick Start](#-quick-start)
-  - [Prerequisites & System Dependencies](#1-prerequisites--system-dependencies)
-  - [Local LLM Setup (Ollama)](#2-local-llm-setup-ollama)
-  - [Python Environment & Backend Setup](#3-python-environment--backend-setup)
-  - [Web Frontend Setup](#4-web-frontend-setup)
-  - [Running Everything](#5-running-everything)
+- [Quick Start Guide (Any Device)](#-quick-start-guide-any-device)
+  - [Step 1: Prerequisites & System Dependencies](#step-1-prerequisites--system-dependencies)
+  - [Step 2: Local LLM Setup (Ollama)](#step-2-local-llm-setup-ollama)
+  - [Step 3: Clone & Backend Environment Setup](#step-3-clone--backend-environment-setup)
+  - [Step 4: Web Frontend Setup](#step-4-web-frontend-setup)
+  - [Step 5: Launch the Application](#step-5-launch-the-application)
 - [Configuration & Environment Variables](#-configuration--environment-variables)
 - [Google Calendar OAuth Setup](#-google-calendar-oauth-setup)
 - [Voice & TTS Options](#-voice--tts-options)
@@ -53,15 +55,21 @@ Upload **PDFs, DOCX files, raw TXT documents, and scanned images (via OCR)** —
 
 ---
 
-## 🏛️ System Architecture
+## 🏛️ System Architecture & Diagrams
 
-MemoryNest separates concerns into a reactive **Next.js 16 Web Frontend**, a high-performance **FastAPI API Gateway**, and a modular **Service Layer** backed by local-only storage engines:
+MemoryNest separates concerns into a reactive **Next.js 16 Web Frontend**, a high-performance **FastAPI API Gateway**, and a modular **Service Layer** backed by local-only storage engines.
+
+### Full Architecture Blueprint
+
+<p align="center">
+  <img src="docs/architecture-a4.svg" alt="MemoryNest Architecture Blueprint" width="85%" style="border-radius: 8px; border: 1px solid #e2e8f0;" />
+</p>
 
 ```mermaid
 flowchart TD
     subgraph Clients["Presentation Layer"]
         Web["Next.js 16 Web App<br/>(Tailwind v4, Base UI, TanStack Query)<br/>Port: 3000"]
-        Streamlit["Streamlit UI (Legacy / Alt)<br/>Port: 8501"]
+        Streamlit["Streamlit UI (Legacy / Alternative)<br/>Port: 8501"]
     end
 
     subgraph Gateway["API Gateway & Security"]
@@ -123,62 +131,48 @@ flowchart TD
 
 ---
 
-## ⚡ Core Pipelines
+### Data Flow Diagrams (DFD)
 
-### 1. Ingestion & Indexing Pipeline
+<details>
+<summary><strong>🔍 Level 0: Context Level Diagram</strong></summary>
 
-Every uploaded file is safely validated, text-extracted, chunked with sentence boundaries preserved, and indexed into both a relational database and a local vector store.
+<br/>
+<p align="center">
+  <img src="docs/dfd-level-0.svg" alt="DFD Level 0 Context Diagram" width="85%" style="border-radius: 8px; border: 1px solid #e2e8f0;" />
+</p>
 
-```mermaid
-flowchart LR
-    A["File Upload<br/>(PDF, DOCX, TXT, Image)"] --> B{"File Type?"}
-    B -->|"PDF"| C["PyMuPDF Parser"]
-    B -->|"DOCX"| D["python-docx + mammoth"]
-    B -->|"Images"| E["Tesseract OCR"]
-    B -->|"Plain Text"| F["UTF-8 Ingest"]
-    
-    C & D & E & F --> G["Normalized Text Cache"]
-    G --> H["Sentence-Aware Chunking<br/>(~450 chars, 50 overlap)"]
-    H --> I["Dense Embedding<br/>(all-MiniLM-L6-v2)"]
-    I --> J["ChromaDB Local Vector DB"]
-    G --> K["Metadata & Chunks -> SQLite"]
-    G --> L["Event & Date Detection"]
-```
+*Shows the external entities (User, Local Storage, Google Cloud Services, LLM Daemon) and how information enters and exits MemoryNest.*
+</details>
 
-### 2. Scoped RAG & Citations Pipeline
+<details open>
+<summary><strong>🔍 Level 1: Major System Processes</strong></summary>
 
-MemoryNest allows querying across your entire library or filtering retrieval to a selected subset of active documents.
+<br/>
+<p align="center">
+  <img src="docs/dfd-level-1.svg" alt="DFD Level 1 Major Processes Diagram" width="90%" style="border-radius: 8px; border: 1px solid #e2e8f0;" />
+</p>
 
-```mermaid
-flowchart TD
-    Q["User Prompt"] --> Scope{"Scoped to Docs?"}
-    Scope -->|"Yes"| Filter["ChromaDB user_id + doc_id Filter"]
-    Scope -->|"No (Global)"| All["ChromaDB user_id Filter"]
-    Filter & All --> EmbedQuery["Embed Query via sentence-transformers"]
-    EmbedQuery --> VectorSearch["Top-K Cosine Similarity Retrieval"]
-    VectorSearch --> Gate{"Similarity >= Threshold (0.30)?"}
-    Gate -->|"No"| Refuse["Return 'Insufficient confidence' Refusal"]
-    Gate -->|"Yes"| PromptAssembly["Assemble Grounded Context Chunks"]
-    PromptAssembly --> OllamaCall["Ollama Inference (qwen2.5:3b-instruct)"]
-    OllamaCall --> StreamResp["Grounded Response with Accurate File Citations"]
-```
+*Illustrates data exchange between the 6 primary processes: Authentication, Document Ingestion, Semantic Indexing, Scoped Chat/RAG, Summarization/TTS, and Calendar Automation.*
+</details>
 
-### 3. Event Extraction & Calendar Sync Flow
+<details>
+<summary><strong>🔍 Level 2: Ingestion & RAG Deep Dive</strong></summary>
 
-Never miss a deadline or action item extracted from contracts, invoices, syllabi, or meeting notes.
+<br/>
+<p align="center">
+  <img src="docs/dfd-level-2.svg" alt="DFD Level 2 Pipeline Decomposition" width="90%" style="border-radius: 8px; border: 1px solid #e2e8f0;" />
+</p>
 
-```mermaid
-flowchart LR
-    Doc["Document Text"] --> Extractor["Regex + NLP Date Parser"]
-    Extractor --> Fallback{"Detected Dates?"}
-    Fallback -->|"No"| LLMExtract["LLM Date Extraction Fallback"]
-    Fallback -->|"Yes"| Review["Pending Events Table"]
-    LLMExtract --> Review
-    Review -->|"User Confirms"| Schedule["Schedule Reminder"]
-    Schedule --> GCal["Push to Google Calendar (OAuth 2.0)"]
-    Schedule --> Email["Send Gmail Confirmation"]
-    Schedule --> ICS["Generate .ics Calendar Event"]
-```
+*Detailed data breakdown of the extraction, chunking, embedding, vector storage, and similarity-gated prompt synthesis pipelines.*
+</details>
+
+---
+
+### System Use Cases
+
+<p align="center">
+  <img src="docs/use-case-diagram.svg" alt="MemoryNest Use Case Diagram" width="85%" style="border-radius: 8px; border: 1px solid #e2e8f0;" />
+</p>
 
 ---
 
@@ -203,25 +197,31 @@ flowchart LR
 
 ### Modern Knowledge Dashboard
 *Instant overview of your indexed document library, deadlines, and recent chats.*
-![MemoryNest Dashboard](docs/screenshots/dashboard.png)
+<img src="docs/screenshots/dashboard.png" alt="MemoryNest Dashboard" width="90%" style="border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 24px;" />
 
 ---
 
 ### Ingestion & Documents Inventory
 *Real-time processing status, file type badges, and dual-mode document viewer.*
-![MemoryNest Documents](docs/screenshots/documents-view.png)
+<img src="docs/screenshots/documents-view.png" alt="MemoryNest Documents" width="90%" style="border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 24px;" />
 
 ---
 
 ### Drag-and-Drop File Upload Flow
 *Client-side file validation, multi-file uploads, and automatic OCR ingestion.*
-![MemoryNest Upload Flow](docs/screenshots/upload-flow.png)
+<img src="docs/screenshots/upload-flow.png" alt="MemoryNest Upload Flow" width="90%" style="border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 24px;" />
 
 ---
 
 ### Dark Mode & Archival Styling
 *Thoughtfully crafted theme variables with reduced-motion compliance and high-contrast readability.*
-![MemoryNest Dark Mode](docs/screenshots/dark-mode.png)
+<img src="docs/screenshots/dark-mode.png" alt="MemoryNest Dark Mode" width="90%" style="border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 24px;" />
+
+---
+
+### Mobile & Responsive Layout
+*Full-featured responsive experience optimized for mobile screens, tablets, and desktops.*
+<img src="docs/screenshots/mobile-view.png" alt="MemoryNest Mobile View" width="50%" style="border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 24px;" />
 
 </div>
 
@@ -251,79 +251,161 @@ flowchart LR
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Start Guide (Any Device)
 
-### 1. Prerequisites & System Dependencies
+Follow the simple setup steps below for your operating system. MemoryNest runs seamlessly on **Linux**, **macOS**, and **Windows**.
 
-On Ubuntu/Debian Linux:
+### Step 1: Prerequisites & System Dependencies
+
+Make sure you have:
+- **Python**: 3.10 – 3.12 installed
+- **Node.js**: v18.18+ or v20+ LTS (with `npm`)
+
+Choose your operating system to install the required system tools (**Tesseract OCR**, **FFmpeg**, and optional **eSpeak-ng**):
+
+<details open>
+<summary><strong>🐧 Linux (Ubuntu / Debian / Mint)</strong></summary>
 
 ```bash
-# Install core system packages for OCR, audio, and TTS
 sudo apt-get update
-sudo apt-get install -y tesseract-ocr espeak-ng ffmpeg python3-venv
+sudo apt-get install -y python3-venv nodejs npm tesseract-ocr espeak-ng ffmpeg
 ```
+*(On Fedora: `sudo dnf install python3-virtualenv nodejs tesseract espeak-ng ffmpeg`)*  
+*(On Arch Linux: `sudo pacman -S python nodejs npm tesseract espeak-ng ffmpeg`)*
+</details>
 
-### 2. Local LLM Setup (Ollama)
+<details>
+<summary><strong>🍎 macOS (Apple Silicon & Intel)</strong></summary>
 
-Install Ollama and pull the recommended lightweight instruct model:
+Using [Homebrew](https://brew.sh/):
+```bash
+brew install python@3.11 node tesseract espeak-ng ffmpeg
+```
+</details>
+
+<details>
+<summary><strong>🪟 Windows (WSL2 Recommended or Native)</strong></summary>
+
+> **💡 Recommended: WSL2 (Windows Subsystem for Linux)**  
+> Run `wsl --install` in PowerShell, then follow the Linux instructions inside your Ubuntu terminal.
+
+**If installing on Native Windows via [winget](https://learn.microsoft.com/en-us/windows/package-manager/winget/):**
+```powershell
+winget install Python.Python.3.11 OpenJS.NodeJS.LTS UB-Mannheim.TesseractOCR Gyan.FFmpeg
+```
+*(After installing Tesseract on Windows, ensure `C:\Program Files\Tesseract-OCR` is in your system `PATH`.)*
+</details>
+
+---
+
+### Step 2: Local LLM Setup (Ollama)
+
+MemoryNest uses Ollama to run the high-speed `qwen2.5:3b-instruct` model completely offline on your CPU or GPU.
+
+1. **Install Ollama**:
+   - **Linux & macOS**:
+     ```bash
+     curl -fsSL https://ollama.ai/install.sh | sh
+     ```
+   - **macOS via Homebrew**:
+     ```bash
+     brew install --cask ollama
+     ```
+   - **Windows**: Download the installer from [ollama.com/download/windows](https://ollama.com/download/windows) or run:
+     ```powershell
+     winget install Ollama.Ollama
+     ```
+
+2. **Pull the recommended lightweight model**:
+   ```bash
+   ollama pull qwen2.5:3b-instruct
+   ```
+   *(Takes ~2.0 GB of disk space. Smoothly runs on 4GB+ RAM on both CPU and GPU.)*
+
+---
+
+### Step 3: Clone & Backend Environment Setup
 
 ```bash
-# Install Ollama
-curl -fsSL https://ollama.ai/install.sh | sh
-
-# Pull the 3B model (runs smoothly even on CPU)
-ollama pull qwen2.5:3b-instruct
-```
-
-### 3. Python Environment & Backend Setup
-
-```bash
-# Clone the repository
+# 1. Clone the repository
 git clone https://github.com/Shreesh-o/MemoryNest.git
 cd MemoryNest
 
-# Create and activate Python virtual environment
+# 2. Create Python virtual environment
 python3 -m venv .venv
-source .venv/bin/activate
 
-# Install backend dependencies
+# 3. Activate the virtual environment
+# On Linux / macOS:
+source .venv/bin/activate
+# On Windows (PowerShell):
+# .venv\Scripts\Activate.ps1
+# On Windows (CMD):
+# .venv\Scripts\activate.bat
+
+# 4. Install Python dependencies
+pip install --upgrade pip
 pip install -r requirements.txt
 
-# Create initial environment file
+# 5. Create environment configuration
 cp .env.example .env
 ```
 
-### 4. Web Frontend Setup
+---
+
+### Step 4: Web Frontend Setup
 
 ```bash
-# Navigate to web directory and install npm packages
+# Navigate to web directory and install frontend dependencies
 cd web
 npm install
 cd ..
 ```
 
-### 5. Running Everything
+---
 
-Use the unified development runner `scripts/dev.sh`. It performs automatic preflight checks, starts Ollama, spins up the FastAPI backend on port `8000`, and launches the Next.js frontend on port `3000`:
+### Step 5: Launch the Application
+
+#### Option A: Unified Dev Runner (Linux & macOS / WSL2)
+
+We provide an automated runner that checks preflight conditions, starts Ollama, spins up the FastAPI backend, and boots the Next.js frontend with hot reload:
 
 ```bash
-# Start all services with hot reload
 bash scripts/dev.sh
 ```
 
-| Service | Address |
-| :--- | :--- |
-| **Next.js Web Application** | [http://localhost:3000](http://localhost:3000) |
-| **Interactive API Documentation (Swagger)** | [http://localhost:8000/docs](http://localhost:8000/docs) |
-| **Streamlit UI (Alternative)** | [http://localhost:8501](http://localhost:8501) (`streamlit run app/main.py`) |
+#### Option B: Manual Two-Terminal Launch (Universal / Native Windows)
 
-#### Runner Command Options:
+If you prefer running services individually or are on native Windows without Bash:
 
+- **Terminal 1 (Backend API)**:
+  ```bash
+  # Activate venv first
+  source .venv/bin/activate   # or .venv\Scripts\Activate.ps1 on Windows
+  uvicorn app.api.main:app --host 127.0.0.1 --port 8000 --reload
+  ```
+
+- **Terminal 2 (Frontend App)**:
+  ```bash
+  cd web
+  npm run dev
+  ```
+
+---
+
+### 🌐 Access Your Services
+
+| Service | Address | Description |
+| :--- | :--- | :--- |
+| **Next.js Web Application** | [http://localhost:3000](http://localhost:3000) | Primary web application |
+| **Interactive API Documentation** | [http://localhost:8000/docs](http://localhost:8000/docs) | Interactive Swagger UI |
+| **Streamlit UI (Alternative)** | [http://localhost:8501](http://localhost:8501) | Run via `streamlit run app/main.py` |
+
+#### Useful Runner Commands:
 ```bash
-bash scripts/dev.sh --stop      # Cleanly stop all running background services
-bash scripts/dev.sh --prod      # Production build and launch
-bash scripts/dev.sh --fresh     # Launch with an isolated, clean temporary database
-bash scripts/dev.sh --force     # Start even if optional preflight checks warn
+bash scripts/dev.sh --stop      # Cleanly terminate all running background processes
+bash scripts/dev.sh --prod      # Production build and optimized launch
+bash scripts/dev.sh --fresh     # Launch with a clean, temporary isolated database
+bash scripts/dev.sh --force     # Bypass optional preflight warnings
 ```
 
 ---

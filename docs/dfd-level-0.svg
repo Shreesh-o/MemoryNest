@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 460" width="100%" height="100%" style="background-color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <defs>
+    <marker id="arr-0" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 1 2 L 7 5 L 1 8 Z" fill="#334155"/>
+    </marker>
+    <filter id="shadow0" x="-6%" y="-6%" width="112%" height="116%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#0f172a" flood-opacity="0.05"/>
+    </filter>
+    <filter id="shadow-proc" x="-8%" y="-8%" width="116%" height="120%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#2563eb" flood-opacity="0.12"/>
+    </filter>
+  </defs>
+
+  <!-- Container Box -->
+  <rect x="20" y="20" width="860" height="420" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.2"/>
+  
+  <!-- Header Badge -->
+  <rect x="36" y="12" width="180" height="24" rx="5" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1"/>
+  <text x="126" y="28" text-anchor="middle" font-size="12" font-weight="700" fill="#1e293b">Level 0 : Context Diagram</text>
+
+  <!-- EXTERNAL ENTITY: User (Left) -->
+  <rect x="60" y="195" width="130" height="70" rx="4" fill="#ffffff" stroke="#1e293b" stroke-width="1.8" filter="url(#shadow0)"/>
+  <text x="125" y="236" text-anchor="middle" font-size="15" font-weight="700" fill="#0f172a">User</text>
+
+  <!-- CENTRAL PROCESS: MemoryNest System (Center) -->
+  <circle cx="450" cy="230" r="82" fill="#eff6ff" stroke="#2563eb" stroke-width="2.2" filter="url(#shadow-proc)"/>
+  <text x="450" y="224" text-anchor="middle" font-size="16" font-weight="800" fill="#1e3a8a">MemoryNest</text>
+  <text x="450" y="246" text-anchor="middle" font-size="15" font-weight="700" fill="#2563eb">System</text>
+
+  <!-- EXTERNAL ENTITIES: Right -->
+  <!-- Google Calendar API -->
+  <rect x="710" y="115" width="150" height="60" rx="4" fill="#ffffff" stroke="#1e293b" stroke-width="1.8" filter="url(#shadow0)"/>
+  <text x="785" y="142" text-anchor="middle" font-size="13" font-weight="700" fill="#0f172a">Google</text>
+  <text x="785" y="159" text-anchor="middle" font-size="12" font-weight="600" fill="#0f172a">Calendar API</text>
+
+  <!-- Gmail -->
+  <rect x="710" y="285" width="150" height="60" rx="4" fill="#ffffff" stroke="#1e293b" stroke-width="1.8" filter="url(#shadow0)"/>
+  <text x="785" y="312" text-anchor="middle" font-size="13" font-weight="700" fill="#0f172a">Gmail</text>
+  <text x="785" y="329" text-anchor="middle" font-size="11.5" font-weight="500" fill="#475569">(Email Service)</text>
+
+  <!-- DATA FLOWS: User <-> MemoryNest System -->
+  <!-- Top Curve: User -> MemoryNest -->
+  <path d="M 170 195 Q 260 145 372 185" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-0)"/>
+  <!-- Top List labels -->
+  <g transform="translate(230, 110)">
+    <text x="0" y="0" font-size="11" font-weight="600" fill="#1e293b">• Upload Documents</text>
+    <text x="0" y="16" font-size="11" font-weight="600" fill="#1e293b">• Ask Question</text>
+    <text x="0" y="32" font-size="11" font-weight="600" fill="#1e293b">• Request Summary</text>
+    <text x="0" y="48" font-size="11" font-weight="600" fill="#1e293b">• Manage Events</text>
+  </g>
+
+  <!-- Bottom Curve: MemoryNest -> User -->
+  <path d="M 376 270 Q 280 320 185 260" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-0)"/>
+  <!-- Bottom List labels -->
+  <g transform="translate(210, 305)">
+    <text x="0" y="0" font-size="11" font-weight="600" fill="#1e293b">• Search Results</text>
+    <text x="0" y="16" font-size="11" font-weight="600" fill="#1e293b">• AI Response</text>
+    <text x="0" y="32" font-size="11" font-weight="600" fill="#1e293b">• Document Summary</text>
+    <text x="0" y="48" font-size="11" font-weight="600" fill="#1e293b">• Event / Reminder Notification</text>
+  </g>
+
+  <!-- DATA FLOWS: MemoryNest System <-> Google Calendar -->
+  <!-- Outgoing to Calendar -->
+  <path d="M 524 190 Q 600 135 704 135" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-0)"/>
+  <rect x="560" y="138" width="115" height="18" rx="3" fill="#ffffff"/>
+  <text x="617" y="151" text-anchor="middle" font-size="10.5" font-weight="600" fill="#1e293b">Event Information</text>
+
+  <!-- Incoming from Calendar -->
+  <path d="M 710 162 Q 620 178 532 210" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-0)"/>
+  <rect x="562" y="180" width="120" height="18" rx="3" fill="#ffffff"/>
+  <text x="622" y="193" text-anchor="middle" font-size="10.5" font-weight="600" fill="#1e293b">Event Confirmation</text>
+
+  <!-- DATA FLOWS: MemoryNest System <-> Gmail -->
+  <!-- Outgoing to Gmail -->
+  <path d="M 528 255 Q 610 280 704 300" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-0)"/>
+  <rect x="565" y="260" width="105" height="18" rx="3" fill="#ffffff"/>
+  <text x="617" y="273" text-anchor="middle" font-size="10.5" font-weight="600" fill="#1e293b">Reminder Details</text>
+
+  <!-- Incoming from Gmail -->
+  <path d="M 710 330 Q 610 330 522 275" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arr-0)"/>
+  <rect x="565" y="318" width="112" height="18" rx="3" fill="#ffffff"/>
+  <text x="621" y="331" text-anchor="middle" font-size="10.5" font-weight="600" fill="#1e293b">Email Confirmation</text>
+</svg>

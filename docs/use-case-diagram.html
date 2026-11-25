@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MemoryNest — Use Case Diagram</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background-color: #0f172a;
+      color: #334155;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 30px 20px;
+    }
+    .toolbar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      background: #1e293b;
+      padding: 10px 18px;
+      border-radius: 9999px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .btn {
+      background: #2563eb;
+      color: #ffffff;
+      border: none;
+      padding: 8px 18px;
+      border-radius: 9999px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s ease;
+    }
+    .btn:hover {
+      background: #1d4ed8;
+    }
+    .btn-secondary {
+      background: #334155;
+      color: #e2e8f0;
+    }
+    .btn-secondary:hover {
+      background: #475569;
+    }
+    .canvas-container {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+      width: 100%;
+      max-width: 1040px;
+    }
+    .canvas-container svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="toolbar">
+    <button class="btn" onclick="window.print()">
+      🖨️ Print / Save PDF
+    </button>
+    <button class="btn btn-secondary" onclick="downloadSVG()">
+      ⬇️ Download SVG
+    </button>
+  </div>
+
+  <div class="canvas-container">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 620" width="100%" height="100%" style="background-color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <defs>
+    <!-- Solid arrow marker -->
+    <marker id="uc-arr" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 1 2 L 7 5 L 1 8 Z" fill="#334155"/>
+    </marker>
+    <!-- Dashed dependency arrow (open head as per UML) -->
+    <marker id="uml-dep" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 1 2 L 8 5 L 1 8" fill="none" stroke="#334155" stroke-width="1.3"/>
+    </marker>
+    <!-- Drop shadow -->
+    <filter id="uc-sh" x="-6%" y="-6%" width="112%" height="114%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#0f172a" flood-opacity="0.04"/>
+    </filter>
+  </defs>
+
+  <!-- ==================== TITLE BANNER ==================== -->
+  <g transform="translate(350, 16)">
+    <rect x="0" y="0" width="280" height="34" rx="6" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.2"/>
+    <text x="140" y="22" text-anchor="middle" font-size="14.5" font-weight="700" fill="#1e3a8a">Use Case Diagram – MemoryNest</text>
+  </g>
+
+  <!-- ==================== SYSTEM BOUNDARY ==================== -->
+  <rect x="170" y="65" width="590" height="535" rx="10" fill="#ffffff" stroke="#1e293b" stroke-width="1.8"/>
+  <text x="465" y="94" text-anchor="middle" font-size="17" font-weight="800" fill="#0f172a" letter-spacing="-0.01em">MemoryNest</text>
+
+  <!-- ==================== LEFT ACTOR: USER ==================== -->
+  <g id="actor-user" transform="translate(68, 290)">
+    <!-- Head -->
+    <circle cx="0" cy="-35" r="16" fill="#e0f2fe" stroke="#0284c7" stroke-width="2"/>
+    <!-- Body -->
+    <line x1="0" y1="-19" x2="0" y2="25" stroke="#0f172a" stroke-width="2.2" stroke-linecap="round"/>
+    <!-- Arms -->
+    <line x1="-30" y1="-3" x2="30" y2="-3" stroke="#0f172a" stroke-width="2.2" stroke-linecap="round"/>
+    <!-- Left Leg -->
+    <line x1="0" y1="25" x2="-22" y2="65" stroke="#0f172a" stroke-width="2.2" stroke-linecap="round"/>
+    <!-- Right Leg -->
+    <line x1="0" y1="25" x2="22" y2="65" stroke="#0f172a" stroke-width="2.2" stroke-linecap="round"/>
+    <!-- Label -->
+    <text x="0" y="85" text-anchor="middle" font-size="15" font-weight="800" fill="#0f172a">User</text>
+  </g>
+
+  <!-- ==================== USE CASES (LEFT COLUMN) ==================== -->
+  <!-- 1. Register and Log In -->
+  <g transform="translate(330, 120)">
+    <ellipse cx="0" cy="0" rx="90" ry="22" fill="#ffffff" stroke="#1e293b" stroke-width="1.6" filter="url(#uc-sh)"/>
+    <text x="0" y="4" text-anchor="middle" font-size="12" font-weight="600" fill="#0f172a">Register and Log In</text>
+  </g>
+
+  <!-- 2. Upload and Manage Documents -->
+  <g transform="translate(330, 180)">
+    <ellipse cx="0" cy="0" rx="95" ry="23" fill="#ffffff" stroke="#1e293b" stroke-width="1.6" filter="url(#uc-sh)"/>
+    <text x="0" y="-1" text-anchor="middle" font-size="11.5" font-weight="600" fill="#0f172a">Upload and</text>
+    <text x="0" y="13" text-anchor="middle" font-size="11.5" font-weight="600" fill="#0f172a">Manage Documents</text>
+  </g>
+
+  <!-- 3. Search Documents -->
+  <g transform="translate(330, 240)">
+    <ellipse cx="0" cy="0" rx="90" ry="22" fill="#ffffff" stroke="#1e293b" stroke-width="1.6" filter="url(#uc-sh)"/>
+    <text x="0" y="4" text-anchor="middle" font-size="12" font-weight="600" fill="#0f172a">Search Documents</text>
+  </g>
+
+  <!-- 4. Ask Questions -->
+  <g transform="translate(330, 300)">
+    <ellipse cx="0" cy="0" rx="90" ry="22" fill="#ffffff" stroke="#1e293b" stroke-width="1.6" filter="url(#uc-sh)"/>
+    <text x="0" y="4" text-anchor="middle" font-size="12" font-weight="600" fill="#0f172a">Ask Questions</text>
+  </g>
+
+  <!-- 5. Generate Summaries -->
+  <g transform="translate(330, 360)">
+    <ellipse cx="0" cy="0" rx="90" ry="22" fill="#ffffff" stroke="#1e293b" stroke-width="1.6" filter="url(#uc-sh)"/>
+    <text x="0" y="4" text-anchor="middle" font-size="12" font-weight="600" fill="#0f172a">Generate Summaries</text>
+  </g>
+
+  <!-- 6. Identify Events and Dates -->
+  <g transform="translate(330, 425)">
+    <ellipse cx="0" cy="0" rx="95" ry="23" fill="#ffffff" stroke="#1e293b" stroke-width="1.6" filter="url(#uc-sh)"/>
+    <text x="0" y="-1" text-anchor="middle" font-size="11.5" font-weight="600" fill="#0f172a">Identify Events</text>
+    <text x="0" y="13" text-anchor="middle" font-size="11.5" font-weight="600" fill="#0f172a">and Dates</text>
+  </g>
+
+  <!-- 7. Manage Settings -->
+  <g transform="translate(330, 495)">
+    <ellipse cx="0" cy="0" rx="95" ry="22" fill="#ffffff" stroke="#1e293b" stroke-width="1.6" filter="url(#uc-sh)"/>
+    <text x="0" y="4" text-anchor="middle" font-size="12" font-weight="600" fill="#0f172a">Manage Settings</text>
+  </g>
+
+  <!-- ==================== USER ACTOR ASSOCIATIONS (SOLID LINES) ==================== -->
+  <path d="M 98 275 L 240 120" stroke="#334155" stroke-width="1.4"/>
+  <path d="M 98 280 L 235 180" stroke="#334155" stroke-width="1.4"/>
+  <path d="M 98 285 L 240 240" stroke="#334155" stroke-width="1.4"/>
+  <path d="M 98 290 L 240 300" stroke="#334155" stroke-width="1.4"/>
+  <path d="M 98 295 L 240 360" stroke="#334155" stroke-width="1.4"/>
+  <path d="M 98 300 L 235 425" stroke="#334155" stroke-width="1.4"/>
+  <path d="M 98 305 L 235 495" stroke="#334155" stroke-width="1.4"/>
+
+  <!-- ==================== USE CASES (RIGHT COLUMN) ==================== -->
+  <!-- 8. View Source References -->
+  <g transform="translate(630, 265)">
+    <ellipse cx="0" cy="0" rx="88" ry="25" fill="#ffffff" stroke="#1e293b" stroke-width="1.6" filter="url(#uc-sh)"/>
+    <text x="0" y="-1" text-anchor="middle" font-size="12" font-weight="600" fill="#0f172a">View Source</text>
+    <text x="0" y="14" text-anchor="middle" font-size="12" font-weight="600" fill="#0f172a">References</text>
+  </g>
+
+  <!-- 9. Manage Reminders -->
+  <g transform="translate(620, 425)">
+    <ellipse cx="0" cy="0" rx="88" ry="23" fill="#ffffff" stroke="#1e293b" stroke-width="1.6" filter="url(#uc-sh)"/>
+    <text x="0" y="4" text-anchor="middle" font-size="12" font-weight="600" fill="#0f172a">Manage Reminders</text>
+  </g>
+
+  <!-- 10. Connect Google Calendar -->
+  <g transform="translate(605, 515)">
+    <ellipse cx="0" cy="0" rx="95" ry="23" fill="#ffffff" stroke="#1e293b" stroke-width="1.6" filter="url(#uc-sh)"/>
+    <text x="0" y="4" text-anchor="middle" font-size="11.5" font-weight="600" fill="#0f172a">Connect Google Calendar</text>
+  </g>
+
+  <!-- ==================== STEREOTYPE RELATIONSHIPS (DASHED ARROWS) ==================== -->
+  <!-- Search Documents -> View Source References («include») -->
+  <path d="M 420 240 Q 480 230 542 254" fill="none" stroke="#334155" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#uml-dep)"/>
+  <rect x="462" y="218" width="56" height="15" fill="#ffffff" rx="2"/>
+  <text x="490" y="229" text-anchor="middle" font-size="9" font-weight="600" fill="#475569">«include»</text>
+
+  <!-- Ask Questions -> View Source References («include») -->
+  <path d="M 420 300 Q 480 300 542 278" fill="none" stroke="#334155" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#uml-dep)"/>
+  <rect x="462" y="280" width="56" height="15" fill="#ffffff" rx="2"/>
+  <text x="490" y="291" text-anchor="middle" font-size="9" font-weight="600" fill="#475569">«include»</text>
+
+  <!-- Identify Events and Dates -> Manage Reminders («extend») -->
+  <path d="M 425 425 L 532 425" fill="none" stroke="#334155" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#uml-dep)"/>
+  <rect x="454" y="410" width="54" height="15" fill="#ffffff" rx="2"/>
+  <text x="481" y="421" text-anchor="middle" font-size="9" font-weight="600" fill="#475569">«extend»</text>
+
+  <!-- Manage Settings -> Connect Google Calendar («extend») -->
+  <path d="M 425 498 Q 470 502 510 510" fill="none" stroke="#334155" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#uml-dep)"/>
+  <rect x="446" y="490" width="54" height="15" fill="#ffffff" rx="2"/>
+  <text x="473" y="501" text-anchor="middle" font-size="9" font-weight="600" fill="#475569">«extend»</text>
+
+  <!-- ==================== EXTERNAL SERVICES / ACTORS (RIGHT) ==================== -->
+  <!-- Google Calendar -->
+  <g transform="translate(795, 360)">
+    <rect x="0" y="0" width="150" height="64" rx="6" fill="#ffffff" stroke="#1e293b" stroke-width="1.6" filter="url(#uc-sh)"/>
+    <!-- Calendar icon badge -->
+    <rect x="12" y="14" width="36" height="36" rx="6" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+    <!-- Calendar Header -->
+    <rect x="12" y="14" width="36" height="10" rx="4" fill="#ef4444"/>
+    <!-- Spiral rings -->
+    <circle cx="20" cy="14" r="1.5" fill="#ffffff"/>
+    <circle cx="30" cy="14" r="1.5" fill="#ffffff"/>
+    <circle cx="40" cy="14" r="1.5" fill="#ffffff"/>
+    <!-- Grid dots -->
+    <rect x="17" y="28" width="4" height="3" rx="1" fill="#94a3b8"/>
+    <rect x="25" y="28" width="4" height="3" rx="1" fill="#94a3b8"/>
+    <rect x="33" y="28" width="4" height="3" rx="1" fill="#94a3b8"/>
+    <rect x="17" y="35" width="4" height="3" rx="1" fill="#94a3b8"/>
+    <rect x="25" y="35" width="4" height="3" rx="1" fill="#94a3b8"/>
+    <rect x="33" y="35" width="4" height="3" rx="1" fill="#94a3b8"/>
+
+    <text x="56" y="36" font-size="12" font-weight="700" fill="#0f172a">Google</text>
+    <text x="56" y="49" font-size="12" font-weight="700" fill="#0f172a">Calendar</text>
+  </g>
+
+  <!-- Email Service -->
+  <g transform="translate(795, 475)">
+    <rect x="0" y="0" width="150" height="58" rx="6" fill="#ffffff" stroke="#1e293b" stroke-width="1.6" filter="url(#uc-sh)"/>
+    <!-- Mail icon badge -->
+    <rect x="12" y="12" width="36" height="34" rx="6" fill="#eff6ff" stroke="#93c5fd" stroke-width="1"/>
+    <!-- Envelope shape -->
+    <path d="M 18 20 H 42 V 38 H 18 Z" fill="#ffffff" stroke="#2563eb" stroke-width="1.2"/>
+    <path d="M 18 20 L 30 29 L 42 20" fill="none" stroke="#2563eb" stroke-width="1.2"/>
+
+    <text x="58" y="38" font-size="12.5" font-weight="700" fill="#0f172a">Email Service</text>
+  </g>
+
+  <!-- ==================== ASSOCIATIONS TO EXTERNAL ACTORS ==================== -->
+  <!-- Manage Reminders -> Google Calendar («include») -->
+  <path d="M 708 418 Q 745 400 795 392" fill="none" stroke="#334155" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#uml-dep)"/>
+  <rect x="730" y="390" width="56" height="15" fill="#ffffff" rx="2"/>
+  <text x="758" y="401" text-anchor="middle" font-size="9" font-weight="600" fill="#475569">«include»</text>
+
+  <!-- Manage Reminders -> Email Service («include») -->
+  <path d="M 700 440 Q 740 460 795 490" fill="none" stroke="#334155" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#uml-dep)"/>
+  <rect x="732" y="456" width="56" height="15" fill="#ffffff" rx="2"/>
+  <text x="760" y="467" text-anchor="middle" font-size="9" font-weight="600" fill="#475569">«include»</text>
+
+  <!-- Connect Google Calendar -> Google Calendar («include») -->
+  <path d="M 700 515 Q 755 500 795 410" fill="none" stroke="#334155" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#uml-dep)"/>
+  <rect x="740" y="474" width="56" height="15" fill="#ffffff" rx="2"/>
+  <text x="768" y="485" text-anchor="middle" font-size="9" font-weight="600" fill="#475569">«include»</text>
+</svg>
+  </div>
+
+  <script>
+    function downloadSVG() {
+      const svg = document.querySelector('svg').outerHTML;
+      const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'memorynest-use-case-diagram.svg';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>
